@@ -3,7 +3,7 @@
 
 import type { RankingSource } from '@pll/shared';
 
-export type PipelineCategory = 'scoreboard' | 'hs-summaries' | 'rankings';
+export type PipelineCategory = 'scoreboard' | 'hs-summaries' | 'rankings' | 'commits';
 
 export interface PostCategoryInfo {
   category: PipelineCategory;
@@ -38,6 +38,16 @@ export function categorizePost(slug: string, html: string): PostCategoryInfo | n
 
   // Scoreboard posts bundle both genders — keep them and let parsers section-filter.
   const isScoreboard = tags.some((t) => /scoreboard/.test(t)) || /scoreboard/.test(slugLc);
+
+  // Commits — recognize before the girls/college hard-skips so boys-only
+  // commit posts under /category/recruiting/ aren't dropped. The parser
+  // does its own girls-only Filed-Under check on the body. Wave 15 Lane 3.
+  const looksLikeCommit =
+    /\bcommit(?:s|ted|ments?)?\b/i.test(slugLc) ||
+    /recent-(?:boys?|mens)?-?commitments?/i.test(slugLc);
+  if (looksLikeCommit) {
+    return { category: 'commits' };
+  }
 
   // Hard-skip filters (girls / women's / college / non-game posts).
   if (!isScoreboard && /(?:^|-)(?:girls|womens|women)(?:-|$)/.test(slugLc)) return null;

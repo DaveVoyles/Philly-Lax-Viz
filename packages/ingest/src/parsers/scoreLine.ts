@@ -23,8 +23,13 @@ function stripTrailingStateSuffix(s: string): string {
 // multi-word. Single 1-2 char tokens like "PR", "DV", "AC" are sub-headers,
 // not real teams — letting them match here is what created the score-line
 // ghost-team artifacts (Easton vs Pennridge "PR" sub-header, etc).
+// Wave 15 Lane 1 (Chewy 🐻💪): allow an optional trailing event-annotation
+// parenthetical AFTER the second score (and after any OT / ppd clause), e.g.
+// "Avon Grove 9, Wissahickon 8 (Cole's Goals Benefit)" or
+// "Penn 10, Trinity 7 OT (Senior Day)". Captured but unused — not part of
+// either team name. Recovers ~10 games/year that previously failed to parse.
 const SCORE_RE =
-  /^([A-Za-z][A-Za-z'.\-]{2,}(?:[^,:=\d]*?)?|[A-Za-z][^,:=\d]*?\s+[A-Za-z][^,:=\d]*?)\s+(\d+)\s*,\s*([A-Za-z][A-Za-z'.\-]{2,}(?:[^,:=\d]*?)?|[A-Za-z][^,:=\d]*?\s+[A-Za-z][^,:=\d]*?)\s+(\d+)(?:\s*[,;]?\s*\((\d+)?\s*OT\)|\s*,\s*OT|\s+(\d+)?\s*OT)?(?:\s*[,;]\s*(ppd|postponed))?\.?$/i;
+  /^([A-Za-z][A-Za-z'.\-]{2,}(?:[^,:=\d]*?)?|[A-Za-z][^,:=\d]*?\s+[A-Za-z][^,:=\d]*?)\s+(\d+)\s*,\s*([A-Za-z][A-Za-z'.\-]{2,}(?:[^,:=\d]*?)?|[A-Za-z][^,:=\d]*?\s+[A-Za-z][^,:=\d]*?)\s+(\d+)(?:\s*[,;]?\s*\((\d+)?\s*OT\)|\s*,\s*OT|\s+(\d+)?\s*OT)?(?:\s*[,;]\s*(ppd|postponed))?(?:\s*\(([^)]+)\))?\.?$/i;
 
 // Comma-less form: "Twin Valley 17 Daniel Boone 1". Both team names must be
 // title-cased multi-word phrases (every word starts with a capital letter or is
@@ -42,8 +47,12 @@ const SCORE_RE =
 // caused the Bishop Shanahan / Pennsbury cross-game contamination.
 const TEAM_TOKEN = `(?:[A-Z][A-Za-z'.\\-]{2,}|[A-Z][A-Za-z'.\\-]*(?:\\s+(?:[A-Z][A-Za-z'.\\-]*|of|the|at))+)`;
 const STATE_SUFFIX = `(?:\\s*\\([A-Z]{2,3}\\))?`;
+// Wave 15 Lane 1 (Chewy 🐻💪): allow optional trailing OT clause and an
+// event-annotation paren on the no-comma form too: "Penn 10 Trinity 7 OT
+// (Senior Day)". Both groups are captured (m[5] OT count, m[6] event text)
+// but only OT affects the parsed result.
 const SCORE_RE_NOCOMMA = new RegExp(
-  `^(${TEAM_TOKEN})${STATE_SUFFIX}\\s+(\\d+)\\s+(${TEAM_TOKEN})${STATE_SUFFIX}\\s+(\\d+)\\.?$`,
+  `^(${TEAM_TOKEN})${STATE_SUFFIX}\\s+(\\d+)\\s+(${TEAM_TOKEN})${STATE_SUFFIX}\\s+(\\d+)(?:\\s+(\\d+)?\\s*OT)?(?:\\s*\\(([^)]+)\\))?\\.?$`,
 );
 
 export function parseScoreLine(rawLine: string): ParseResult<ParsedScoreLine> {
@@ -79,9 +88,12 @@ export function parseScoreLine(rawLine: string): ParseResult<ParsedScoreLine> {
   const teamB = stripTrailingStateSuffix((m[3] ?? '').trim());
   const scoreA = Number(m[2]);
   const scoreB = Number(m[4]);
-  // m[5] = parenthesized OT count; m[6] = bare-suffix OT count
-  // (Wave 12 Lane 1 — Darth 😈⚡); m[7] = ppd token.
-  const otRaw = usedNoComma ? undefined : (m[5] ?? m[6]);
+  // SCORE_RE: m[5] = parenthesized OT count; m[6] = bare-suffix OT count
+  // (Wave 12 Lane 1 — Darth 😈⚡); m[7] = ppd token; m[8] = event-annotation
+  // paren content (Wave 15 Lane 1 — Chewy 🐻💪, ignored).
+  // SCORE_RE_NOCOMMA: m[5] = bare OT count, m[6] = event-annotation
+  // paren content (ignored).
+  const otRaw = usedNoComma ? m[5] : (m[5] ?? m[6]);
   const ppdToken = usedNoComma ? undefined : m[7];
 
   // OT periods: "(3OT)" → 3, "(OT)" → 1, ", OT" → 1, " 2OT" → 2, none → 0.
@@ -90,6 +102,9 @@ export function parseScoreLine(rawLine: string): ParseResult<ParsedScoreLine> {
   else if (/,\s*OT\b/i.test(cleaned)) otPeriods = 1;
   else if (/\(OT\)/i.test(cleaned)) otPeriods = 1;
   else if (/\s+OT$/i.test(cleaned)) otPeriods = 1;
+  // Wave 15 Lane 1 (Chewy 🐻💪): bare " OT" followed by an event-annotation
+  // paren — e.g. "Penn 10 Trinity 7 OT (Senior Day)" — needs to count as 1 OT.
+  else if (/\s+OT\s*\([^)]+\)\s*\.?$/i.test(cleaned)) otPeriods = 1;
 
   const postponed = !!ppdToken;
 

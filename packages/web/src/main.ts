@@ -12,6 +12,9 @@ import * as graph from './views/graph.js';
 // stays out of the entry bundle. Coordinated with Han to add only ONE line
 // for view + ONE for teardown to minimise router/main.ts churn.
 let scrubberDestroy: (() => void) | null = null;
+// W15 L2 (R2): same lazy-chunk pattern as the scrubber so the constellation
+// view + its axis labels live in their own chunk.
+let constellationDestroy: (() => void) | null = null;
 import {
   initSeasonPicker,
   mountSeasonPicker,
@@ -31,6 +34,8 @@ const NAV: NavLink[] = [
   { href: '#/leaders', label: 'Leaders', match: 'leaders' },
   { href: '#/h2h', label: 'Compare', match: 'h2h' },
   { href: '#/graph', label: 'Network', match: 'graph' },
+  { href: '#/commits', label: 'Commits', match: 'commits' },
+  { href: '#/constellation', label: 'Constellation', match: 'constellation' },
   { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
 ];
@@ -81,6 +86,7 @@ function dispatch(main: HTMLElement, match: RouteMatch): void {
   // mounting the next one.
   graph.destroy();
   if (scrubberDestroy) { scrubberDestroy(); scrubberDestroy = null; }
+  if (constellationDestroy) { constellationDestroy(); constellationDestroy = null; }
   switch (match.name) {
     case 'dashboard':
       dashboard.render(main, match.params);
@@ -109,8 +115,17 @@ function dispatch(main: HTMLElement, match: RouteMatch): void {
     case 'graph':
       void graph.render(main, match.params);
       return;
+    case 'constellation':
+      void import('./views/constellation.js').then((m) => {
+        constellationDestroy = m.destroy;
+        m.render(main, match.params);
+      });
+      return;
     case 'h2h':
       void import('./views/h2h.js').then((m) => m.render(main, match.params));
+      return;
+    case 'commits':
+      void import('./views/commits.js').then((m) => m.render(main, match.params));
       return;
     case 'notFound':
       main.innerHTML = `<h1>Not found</h1><p>No route for <code>${match.path}</code>. <a href="#/">Go home</a>.</p>`;

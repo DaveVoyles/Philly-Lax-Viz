@@ -2,7 +2,7 @@
 // Routes: #/, #/teams/:id, #/games/:id, #/players/:id, #/data-quality
 
 export interface RouteMatch {
-  name: 'dashboard' | 'teamDetail' | 'gameDetail' | 'gameScrubber' | 'playerDetail' | 'dataQuality' | 'leaders' | 'anomalies' | 'graph' | 'h2h' | 'notFound';
+  name: 'dashboard' | 'teamDetail' | 'gameDetail' | 'gameScrubber' | 'playerDetail' | 'dataQuality' | 'leaders' | 'anomalies' | 'graph' | 'constellation' | 'h2h' | 'commits' | 'notFound';
   path: string;
   params: Record<string, string>;
 }
@@ -25,7 +25,9 @@ const routes: RouteDef[] = [
   { name: 'leaders', pattern: /^\/leaders\/?$/, keys: [] },
   { name: 'anomalies', pattern: /^\/anomalies\/?$/, keys: [] },
   { name: 'graph', pattern: /^\/graph\/?$/, keys: [] },
+  { name: 'constellation', pattern: /^\/constellation\/?$/, keys: [] },
   { name: 'h2h', pattern: /^\/h2h\/?$/, keys: [] },
+  { name: 'commits', pattern: /^\/commits\/?$/, keys: [] },
 ];
 
 function parseHash(): RouteMatch {

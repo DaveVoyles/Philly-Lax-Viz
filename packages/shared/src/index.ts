@@ -10,7 +10,9 @@ export type ParserStrategy =
   | 'quarter-line'
   | 'player-stat-line'
   | 'aggregated-list'
-  | 'ranking-list';
+  | 'ranking-list'
+  | 'commits-list'
+  | 'commits-profile';
 export type StatSource = 'summary' | 'manual';
 export type NameResolution = 'full' | 'partial';
 export type AliasSource = 'manual' | 'auto';
@@ -218,7 +220,7 @@ export interface ParseListResult<T> {
 
 // Current parser version. Bump when grammar changes so re-runs can target
 // affected rows via player_stats.parser_version.
-export const PARSER_VERSION = '0.2.6';
+export const PARSER_VERSION = '0.2.7';
 
 // ===== Leaderboards =====
 // Minimal contract shared with the web client. Server-side query rows include

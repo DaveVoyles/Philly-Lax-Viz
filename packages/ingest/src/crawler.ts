@@ -8,11 +8,12 @@ import {
   writeRawHtml,
 } from './cache.js';
 
-export type Category = 'scoreboard' | 'hs-summaries' | 'rankings';
+export type Category = 'scoreboard' | 'hs-summaries' | 'rankings' | 'commits';
 export const ALL_CATEGORIES: readonly Category[] = [
   'scoreboard',
   'hs-summaries',
   'rankings',
+  'commits',
 ] as const;
 
 export const USER_AGENT = 'philly-lacrosse-vis/0.1 (local dev)';
@@ -92,7 +93,12 @@ const DEFAULT_DEPS_SLEEP = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export function categoryUrl(category: Category, page: number): string {
-  return `https://phillylacrosse.com/category/${category}/page/${page}/`;
+  // PhillyLacrosse has no dedicated /category/commits/ archive; commit posts
+  // live under /category/recruiting/ alongside camp listings & profiles.
+  // The categorizer (commits-shaped post detection) filters non-commit posts
+  // back out at ingest time. Wave 15 Lane 3 (Han 🧑‍🚀🍔).
+  const slug = category === 'commits' ? 'recruiting' : category;
+  return `https://phillylacrosse.com/category/${slug}/page/${page}/`;
 }
 
 export function postUrlPrefix(category: Category, season: number = DEFAULT_SEASON): string {

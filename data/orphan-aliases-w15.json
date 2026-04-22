@@ -1,0 +1,621 @@
+{
+  "timestamp": "2026-04-22T20:47:30.484Z",
+  "apply": true,
+  "scanned": 102,
+  "orphan_count": 102,
+  "deleted": 102,
+  "orphans": [
+    {
+      "id": 1,
+      "alias": "Gacvin Roth",
+      "player_id": 36917,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 2,
+      "alias": "Bennet Pizzi",
+      "player_id": 36920,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 3,
+      "alias": "Aidan Knight",
+      "player_id": 39061,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 4,
+      "alias": "Devon Sharma",
+      "player_id": 36925,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 5,
+      "alias": "Hadyn Rogoff",
+      "player_id": 40484,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 6,
+      "alias": "Nollan Groschopp",
+      "player_id": 37779,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 7,
+      "alias": "Wooslayer",
+      "player_id": 36958,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 8,
+      "alias": "Dremlock",
+      "player_id": 36960,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 9,
+      "alias": "Connor Morsell",
+      "player_id": 36968,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 10,
+      "alias": "Conor Dodson",
+      "player_id": 36978,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 11,
+      "alias": "Michael Oldender",
+      "player_id": 39346,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 12,
+      "alias": "Jackson Pudliener",
+      "player_id": 38190,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 13,
+      "alias": "Connor McCaffery",
+      "player_id": 36995,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 14,
+      "alias": "Cole Telegeadis",
+      "player_id": 36997,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 15,
+      "alias": "Jake Vigilatne",
+      "player_id": 37235,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 16,
+      "alias": "Wetmore",
+      "player_id": 38048,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 17,
+      "alias": "Smith",
+      "player_id": 40711,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 18,
+      "alias": "John Kerancher",
+      "player_id": 39746,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 19,
+      "alias": "Nate Lowery",
+      "player_id": 39751,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 20,
+      "alias": "T.J. Smith",
+      "player_id": 40724,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 21,
+      "alias": "Kelley",
+      "player_id": 40728,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 22,
+      "alias": "Keeny",
+      "player_id": 40728,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 23,
+      "alias": "Lucas Dennis",
+      "player_id": 38223,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 24,
+      "alias": "Cole Gingerlowski",
+      "player_id": 38762,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 25,
+      "alias": "Gianni Picolotti",
+      "player_id": 37491,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 26,
+      "alias": "Kevin Schulde",
+      "player_id": 37488,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 27,
+      "alias": "Keiren Koons",
+      "player_id": 37063,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 28,
+      "alias": "Kieran Koons",
+      "player_id": 37063,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 29,
+      "alias": "Dylan Bella",
+      "player_id": 38680,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 30,
+      "alias": "Max DelVescio",
+      "player_id": 37075,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 31,
+      "alias": "Connor McCarthy",
+      "player_id": 38288,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 32,
+      "alias": "Dugan Downs,",
+      "player_id": 37654,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 33,
+      "alias": "L. Azzanessi",
+      "player_id": 37093,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 34,
+      "alias": "I. Milller",
+      "player_id": 37091,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 35,
+      "alias": "C. Kauffmann",
+      "player_id": 37096,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 36,
+      "alias": "Jonny Hassler,",
+      "player_id": 37106,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 37,
+      "alias": "Charlie Krause,",
+      "player_id": 41461,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 38,
+      "alias": "Dom DiSimone",
+      "player_id": 38209,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 42,
+      "alias": "Charlie Feimmer",
+      "player_id": 37411,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 43,
+      "alias": "Eathen Potochar",
+      "player_id": 38014,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 44,
+      "alias": "Ryan Wilkens.",
+      "player_id": 38322,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 45,
+      "alias": "Jack Caravan",
+      "player_id": 38328,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 46,
+      "alias": "Tommy Engle:",
+      "player_id": 37177,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 47,
+      "alias": "Brendan Heinerich",
+      "player_id": 37195,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 48,
+      "alias": "Brian Donohue",
+      "player_id": 37509,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 49,
+      "alias": "Cayden Ly",
+      "player_id": 37219,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 50,
+      "alias": "Landan Querey",
+      "player_id": 38400,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 51,
+      "alias": "Josh Van Ordeen",
+      "player_id": 37217,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 52,
+      "alias": "Javion Moreno",
+      "player_id": 37218,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 53,
+      "alias": "Aidan McFarland",
+      "player_id": 40098,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 54,
+      "alias": "Liam Castillo",
+      "player_id": 38493,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 55,
+      "alias": "Chase Grillie",
+      "player_id": 38496,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 56,
+      "alias": "Jack Fitzgerals",
+      "player_id": 37253,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 57,
+      "alias": "Nick Topolovich",
+      "player_id": 38497,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 58,
+      "alias": "Calvin Sodovy",
+      "player_id": 40112,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 59,
+      "alias": "Hayden Eshelman",
+      "player_id": 38502,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 60,
+      "alias": "Hayden Fischer",
+      "player_id": 38079,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 61,
+      "alias": "Evan Federsal",
+      "player_id": 38072,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 62,
+      "alias": "Braeden Surina",
+      "player_id": 38832,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 63,
+      "alias": "Braedon Suringa",
+      "player_id": 38832,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 64,
+      "alias": "Evan Fedesal",
+      "player_id": 38072,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 65,
+      "alias": "Grant Napolentano:",
+      "player_id": 38845,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 66,
+      "alias": "James Piciatelli",
+      "player_id": 37452,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 67,
+      "alias": "Alex Gambles",
+      "player_id": 37932,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 68,
+      "alias": "Conner Bray",
+      "player_id": 37337,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 69,
+      "alias": "Jax Disantis",
+      "player_id": 37718,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 70,
+      "alias": "Ryan Willams",
+      "player_id": 37705,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 71,
+      "alias": "Conner Post",
+      "player_id": 39516,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 72,
+      "alias": "Michael Pilegi",
+      "player_id": 37355,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 73,
+      "alias": "Michael Pillegi",
+      "player_id": 37355,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 74,
+      "alias": "Mathew Shohen",
+      "player_id": 37359,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 75,
+      "alias": "Macky Lynett",
+      "player_id": 37373,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 76,
+      "alias": "Will McPartlan",
+      "player_id": 37374,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 77,
+      "alias": "Jayson Thompson",
+      "player_id": 37392,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 78,
+      "alias": "Kyle Intel",
+      "player_id": 37758,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 79,
+      "alias": "Yusef Abbas",
+      "player_id": 39209,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 80,
+      "alias": "Colin Ward",
+      "player_id": 41272,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 81,
+      "alias": "Noah Weller",
+      "player_id": 37396,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 82,
+      "alias": "Henry Turbiner",
+      "player_id": 37400,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 83,
+      "alias": "Connor Sullivan",
+      "player_id": 37951,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 84,
+      "alias": "Jason kittihama",
+      "player_id": 37520,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 85,
+      "alias": "Beckham Siegler",
+      "player_id": 37524,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 86,
+      "alias": "Chrisitan Lozano",
+      "player_id": 37523,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 87,
+      "alias": "Stefan Synder",
+      "player_id": 39603,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 88,
+      "alias": "Elliot McCurdy",
+      "player_id": 39604,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 89,
+      "alias": "Philip Leslie",
+      "player_id": 37677,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 90,
+      "alias": "Adam Meyer",
+      "player_id": 37678,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 91,
+      "alias": "Jack Khmav",
+      "player_id": 37687,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 92,
+      "alias": "Matt Morrotta",
+      "player_id": 38003,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 93,
+      "alias": "Micah Meiman",
+      "player_id": 38194,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 94,
+      "alias": "Ken Vaughan g",
+      "player_id": 38198,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 95,
+      "alias": "Bertelsen/Simonetti",
+      "player_id": 39364,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 96,
+      "alias": "Bertelson/Simmonnetti",
+      "player_id": 39364,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 97,
+      "alias": "W. Kupset",
+      "player_id": 40889,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 98,
+      "alias": "Phillip Paoletti",
+      "player_id": 40372,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 99,
+      "alias": "Caden Chisolm:",
+      "player_id": 39372,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 100,
+      "alias": "Scotty Dehaven:",
+      "player_id": 41445,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 101,
+      "alias": "Kellen Mopes",
+      "player_id": 39651,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 102,
+      "alias": "Lellen Mapes",
+      "player_id": 39651,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 103,
+      "alias": "Pat Dougher",
+      "player_id": 39281,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 104,
+      "alias": "August Poirot Jr/A)",
+      "player_id": 39625,
+      "source": "auto-dedup-w12"
+    },
+    {
+      "id": 105,
+      "alias": "Hunter Palma",
+      "player_id": 38211,
+      "source": "auto-dedup-w12"
+    }
+  ]
+}

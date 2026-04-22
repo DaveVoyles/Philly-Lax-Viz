@@ -18,6 +18,8 @@ import { piaaRoutes } from './routes/piaa.js';
 import { rivalriesRoutes } from './routes/rivalries.js';
 import { h2hRoutes } from './routes/h2h.js';
 import { seasonsRoutes } from './routes/seasons.js';
+import { commitsRoutes } from './routes/commits.js';
+import { constellationRoutes } from './routes/constellation.js';
 
 export interface BuildOptions {
   logger?: boolean;
@@ -69,6 +71,8 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   await rivalriesRoutes(app, db);
   await h2hRoutes(app, db);
   await seasonsRoutes(app, db);
+  await commitsRoutes(app, db);
+  await constellationRoutes(app, db);
 
   return app;
 }

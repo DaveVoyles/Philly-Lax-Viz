@@ -151,3 +151,65 @@ describe('parseScoreLine — comma-less form', () => {
     expect(r.result?.otPeriods).toBe(1);
   });
 });
+
+// ─── Wave 15 Lane 1 (Chewy 🐻💪) ─────────────────────────────────────────
+describe('parseScoreLine — trailing event-annotation parens', () => {
+  it('ignores trailing event-annotation paren on comma form', () => {
+    const r = parseScoreLine("Avon Grove 9, Wissahickon 8 (Cole's Goals Benefit)");
+    expect(r.result).toMatchObject({
+      teamA: 'Avon Grove',
+      teamB: 'Wissahickon',
+      scoreA: 9,
+      scoreB: 8,
+      otPeriods: 0,
+    });
+  });
+
+  it('keeps OT period and ignores event-annotation paren on comma form', () => {
+    const r = parseScoreLine('Penn 10, Trinity 7, OT (Senior Day)');
+    expect(r.result).toMatchObject({
+      teamA: 'Penn',
+      teamB: 'Trinity',
+      scoreA: 10,
+      scoreB: 7,
+      otPeriods: 1,
+    });
+  });
+
+  it('ignores trailing event-annotation paren on no-comma form', () => {
+    const r = parseScoreLine('Avon Grove 9 Wissahickon 8 (Memorial Game)');
+    expect(r.result).toMatchObject({
+      teamA: 'Avon Grove',
+      teamB: 'Wissahickon',
+      scoreA: 9,
+      scoreB: 8,
+      otPeriods: 0,
+    });
+  });
+
+  it('parses no-comma form with bare OT and event-annotation paren', () => {
+    const r = parseScoreLine('Penn 10 Trinity 7 OT (Senior Day)');
+    expect(r.result).toMatchObject({
+      teamA: 'Penn',
+      teamB: 'Trinity',
+      scoreA: 10,
+      scoreB: 7,
+      otPeriods: 1,
+    });
+  });
+
+  it('parses no-comma form with 2OT and event-annotation paren', () => {
+    const r = parseScoreLine('Penn 10 Trinity 9 2OT (Alumni Day)');
+    expect(r.result).toMatchObject({
+      scoreA: 10,
+      scoreB: 9,
+      otPeriods: 2,
+    });
+  });
+
+  it('does not absorb event-annotation paren into team name', () => {
+    const r = parseScoreLine('Avon Grove 9, Wissahickon 8 (Charity)');
+    expect(r.result?.teamB).toBe('Wissahickon');
+    expect(r.result?.teamB).not.toMatch(/Charity/);
+  });
+});

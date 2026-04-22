@@ -4,6 +4,31 @@ import { ApiError, getPlayerDetail, type PlayerDetail, type PlayerPerGameStat } 
 import { formatDate } from '../util/format.js';
 import { renderPerGameTrend } from '../charts/index.js';
 import type { PerGameTrendDatum } from '../charts/index.js';
+import { renderCommitBadge } from '../components/commitBadge.js';
+
+interface CommitsApiRow {
+  playerId: number | null;
+  college: string;
+  division: string | null;
+}
+
+async function renderCommitBadgeForPlayer(root: HTMLElement, playerId: string): Promise<void> {
+  const numId = Number(playerId);
+  if (!Number.isFinite(numId) || numId <= 0) return;
+  try {
+    const res = await fetch(`/api/commits?season=all&limit=2000`);
+    if (!res.ok) return;
+    const body = (await res.json()) as { rows: CommitsApiRow[] };
+    const match = body.rows.find((r) => r.playerId === numId);
+    if (!match) return;
+    const wrap = document.createElement('p');
+    wrap.style.margin = '.25rem 0 .75rem';
+    wrap.appendChild(renderCommitBadge({ college: match.college, division: match.division }));
+    root.appendChild(wrap);
+  } catch {
+    // Silent — badge is enrichment, not critical.
+  }
+}
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   root.replaceChildren();
@@ -57,6 +82,11 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     teamP.appendChild(teamLink);
     root.appendChild(teamP);
   }
+
+  // Wave 15 Lane 3 (Han 🧑‍🚀🍔) — show "🎓 Committed to X" badge if a
+  // commits row exists for this player. Fire-and-forget; absence/error
+  // silently no-ops so the rest of the view always renders.
+  void renderCommitBadgeForPlayer(root, id);
 
   root.appendChild(buildSeasonCallouts(detail));
 

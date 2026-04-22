@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-04-22T20:47:21.005Z",
+  "apply": true,
+  "pre": {
+    "teams": 217,
+    "games": 535,
+    "aliases": 92
+  },
+  "post": {
+    "teams": 217,
+    "games": 535,
+    "aliases": 92
+  },
+  "pair_count": 0,
+  "merges": []
+}

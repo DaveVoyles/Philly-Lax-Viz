@@ -6,3 +6,4 @@ export * from './aggregatedList.js';
 export * from './rankingList.js';
 export * from './summariesPost.js';
 export * from './scoreboardPost.js';
+export * from './commitsPost.js';

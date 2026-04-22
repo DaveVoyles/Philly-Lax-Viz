@@ -14,11 +14,13 @@ import {
   parseSummariesPost,
   parseRankingList,
 } from '../parsers/index.js';
+import { parseCommitsPost } from '../parsers/commitsPost.js';
 import { categorizePost, type PipelineCategory } from '../pipelines/categorize.js';
 import { extractPostDate } from '../pipelines/postMeta.js';
 import { ingestScoreboardPost } from '../pipelines/scoreboard.js';
 import { ingestSummariesPost } from '../pipelines/summaries.js';
 import { ingestRankingsPost } from '../pipelines/rankings.js';
+import { ingestCommitsPost } from '../pipelines/commits.js';
 import { clearAnomaliesForPost } from '../pipelines/anomalies.js';
 import { DEFAULT_SEASON, seasonFromUrl } from '../crawler.js';
 
@@ -39,7 +41,7 @@ function parseArgs(argv: string[]): CliArgs {
       args.limit = v;
     } else if (a.startsWith('--category=')) {
       const v = a.slice('--category='.length);
-      if (!['all', 'scoreboard', 'hs-summaries', 'rankings'].includes(v)) {
+      if (!['all', 'scoreboard', 'hs-summaries', 'rankings', 'commits'].includes(v)) {
         throw new Error(`Invalid --category: ${v}`);
       }
       args.category = v as CliArgs['category'];
@@ -61,7 +63,7 @@ function parseArgs(argv: string[]): CliArgs {
 
 function printHelp(): void {
   console.log(
-    `Usage: tsx src/cli/ingest.ts [--limit=N] [--category=scoreboard|hs-summaries|rankings|all] [--reparse]
+    `Usage: tsx src/cli/ingest.ts [--limit=N] [--category=scoreboard|hs-summaries|rankings|commits|all] [--reparse]
 
 Walks data/raw-cache/<post-id>.html via raw_cache_meta. Each post is routed to
 its parser + pipeline. Per-post idempotency is keyed on (post_id, parser_version)
@@ -102,6 +104,7 @@ interface RunSummary {
   periodsAdded: number;
   playerStatsAdded: number;
   rankingsAdded: number;
+  commitsAdded: number;
   anomaliesAdded: number;
 }
 
@@ -117,6 +120,7 @@ function newSummary(): RunSummary {
     periodsAdded: 0,
     playerStatsAdded: 0,
     rankingsAdded: 0,
+    commitsAdded: 0,
     anomaliesAdded: 0,
   };
 }
@@ -203,6 +207,23 @@ function processPost(
       summary.summariesGames += r.gamesUpserted;
       summary.periodsAdded += r.periodsUpserted;
       summary.playerStatsAdded += r.playerStatsUpserted;
+      summary.anomaliesAdded += r.anomaliesAdded;
+    } else if (cat.category === 'commits') {
+      const parsed = parseCommitsPost(html);
+      const r = ingestCommitsPost(db, {
+        postId: meta.post_id,
+        postUrl: meta.url,
+        postDate,
+        commits: parsed.commits.map((c) => ({ ...c })),
+        anomalies: parsed.anomalies.map((a) => ({
+          rawLine: a.rawLine,
+          strategyAttempted: a.strategyAttempted as 'commits-list' | 'commits-profile',
+          reason: a.reason,
+        })),
+      });
+      upsertPostLog(db, meta.post_id, 'commits', 'ok', null,
+        0, r.commitsUpserted, r.anomaliesAdded, season);
+      summary.commitsAdded += r.commitsUpserted;
       summary.anomaliesAdded += r.anomaliesAdded;
     } else {
       const parsed = parseRankingList(html, {
@@ -322,7 +343,7 @@ async function main(): Promise<void> {
 
   console.log(`[ingest] done in ${elapsed}ms`);
   console.log(`  considered=${summary.postsConsidered} processed=${summary.postsProcessed} skipped=${summary.postsSkippedAlreadyDone} uncategorized=${summary.postsSkippedUncategorized} errors=${summary.postsErrored}`);
-  console.log(`  scoreboard_games=${summary.scoreboardGames} summaries_games=${summary.summariesGames} periods=${summary.periodsAdded} player_stats=${summary.playerStatsAdded} rankings=${summary.rankingsAdded} anomalies=${summary.anomaliesAdded}`);
+  console.log(`  scoreboard_games=${summary.scoreboardGames} summaries_games=${summary.summariesGames} periods=${summary.periodsAdded} player_stats=${summary.playerStatsAdded} rankings=${summary.rankingsAdded} commits=${summary.commitsAdded} anomalies=${summary.anomaliesAdded}`);
 
   db.close();
 }

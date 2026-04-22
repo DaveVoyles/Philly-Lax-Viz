@@ -580,3 +580,28 @@ export interface SeasonsResponse {
 export function getSeasons(): Promise<SeasonsResponse> {
   return request<SeasonsResponse>('/seasons');
 }
+
+// ---- Player constellation (W15 L2, R2) ----
+
+export interface ConstellationPlayer {
+  id: number;
+  name: string;
+  teamId: number;
+  teamName: string;
+  teamColor: string | null;
+  gamesPlayed: number;
+  goals: number;
+  assists: number;
+  points: number;
+  goalsPerGame: number;
+  assistsPerGame: number;
+}
+
+export interface ConstellationResponse {
+  season: number | null;
+  players: ConstellationPlayer[];
+}
+
+export function getConstellation(): Promise<ConstellationResponse> {
+  return request<ConstellationResponse>('/players/constellation');
+}

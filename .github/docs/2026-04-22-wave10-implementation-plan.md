@@ -281,3 +281,146 @@ typecheck` ✅, `pnpm -r test` ✅ (281 ingest + 91 server passing).
    duplicate) team. The W14 trade-off (duplicate vs lost game) is correct
    today but `dedup:teams` should run after every ingest as a safety
    net — wire it into the ingest CLI as a `--auto-dedup` flag.
+
+## Wave 15 Lane 2 — Player constellation WebGL view (R2, 2026-04-22)
+
+### Shipped
+- `GET /api/players/constellation?season=YYYY` returning
+  `{season, players: [{id, name, teamId, teamName, teamColor, gamesPlayed,
+  goals, assists, points, goalsPerGame, assistsPerGame}]}`. Honors the same
+  `?season=` semantics as `/api/leaders/*` (defaults to newest, accepts
+  `all`, rejects garbage with 400). Filters to `games_played >= 1` so
+  roster-only entries don't litter the chart. `teamColor` is always `null`
+  today (no color column in the schema yet); the web view falls back to a
+  hashed-name hue so the legend swatch and the dot color always match.
+- `packages/web/src/views/constellation.ts` — pixi.js v8 scatter plot
+  (900×600). x = goals/game, y = assists/game, dot radius =
+  `sqrt(points)*3`, color = `teamColor` ?? hashed team name. Hover ⇒ HTML
+  tooltip (player · team · G/A/P · GPG/APG · GP). Click ⇒
+  `#/players/:id`. Top-8 teams (by player count) render as a swatch
+  legend in the corner. Reuses graph.ts's pixi teardown discipline:
+  `app.destroy(true, {children:true, texture:true})` on route change,
+  bail-on-detached-stage check after async `app.init`.
+- `#/constellation` route + "Constellation" header link next to "Network".
+  Lazy-imported from `main.ts` so the chunk stays out of the entry bundle.
+
+### Files touched
+- `packages/server/src/queries/constellation.ts` (new)
+- `packages/server/src/routes/constellation.ts` (new)
+- `packages/server/src/app.ts` (register route)
+- `packages/server/src/__tests__/constellation.test.ts` (new — 4 tests:
+  query shape + per-game derivation; default season; explicit season filter;
+  invalid season → 400)
+- `packages/web/src/api.ts` (add `getConstellation()` + types)
+- `packages/web/src/router.ts` (add `constellation` route name + pattern)
+- `packages/web/src/main.ts` (NAV link + lazy dispatch + teardown wiring)
+- `packages/web/src/views/constellation.ts` (new view module)
+- `packages/web/src/views/constellation.test.ts` (smoke test — module
+  imports cleanly, exports `render`/`destroy`, `destroy()` is a no-op
+  when nothing is mounted)
+
+### Bundle
+- `dist/assets/constellation-*.js`: **5.84 kB / 2.58 kB gzipped** — well
+  inside the <30 KB budget. Pixi remains a shared chunk; constellation
+  carries only its own scatter/axis logic.
+
+### Validation
+- `pnpm -r typecheck` ✅
+- `pnpm -r test` ✅ (95 server + 277 ingest + 15 web; +4 server, +1 web
+  added in this lane)
+- `pnpm --filter @pll/web build` ✅
+
+### Coordination notes
+- Stayed out of `packages/ingest/` per Chewy's lock.
+- Reused Han's `currentSeason()` indirectly: `getConstellation()` goes
+  through `request()`, which threads `?season=` via `attachSeason()`. No
+  changes to seasonPicker — the existing season handler in `main.ts`
+  re-fires the route after a season change, so the view re-fetches
+  cleanly.
+- `teamColor` plumbed through end-to-end so a future `teams.color`
+  migration can populate it without web changes.
+
+## Wave 15 Lane 1 — Chewy 🐻💪: data quality polish (2026-04-22)
+
+Three follow-up items from Yoda's W14 punchlist. Item 4 (auto-dedup CLI flag)
+deferred — out of time budget.
+
+### Changes
+
+1. **Score-line event-annotation paren** (`packages/ingest/src/parsers/scoreLine.ts`)
+   Extended both `SCORE_RE` and `SCORE_RE_NOCOMMA` with an optional trailing
+   `\s*\([^)]+\)` capture group, plus added bare-OT support to the no-comma
+   form. Recovers lines like `"Avon Grove 9, Wissahickon 8 (Cole's Goals
+   Benefit)"` and `"Penn 10 Trinity 7 OT (Senior Day)"`. The paren content is
+   captured but discarded — never absorbed into a team name. PARSER_VERSION
+   bumped 0.2.6 → 0.2.7. **+6 score-line tests** in
+   `packages/ingest/src/parsers/__tests__/scoreLine.test.ts`.
+
+2. **State-suffix team dedup** (new `packages/ingest/src/scripts/dedupStateSuffixTeams.ts`)
+   Finds `(suffixed, bare)` pairs where `normalizeTeamName(a) ===
+   normalizeTeamName(b)` (e.g. `"Pennington (NJ)"` ↔ `"Pennington"`). Bare row
+   is canonical; suffixed display name is preserved as a `team_aliases` row
+   (`source='state-suffix-dedup-w15'`); games / players / aliases / rankings /
+   game_periods all repointed via the now-`export`ed `mergeTeam` helper inside
+   a single transaction. `--apply` flag, dry-run by default. JSON audit at
+   `data/state-suffix-dedup-w15.json`.
+
+3. **Orphan player_aliases cleanup** (new `packages/ingest/src/scripts/cleanOrphanAliases.ts`)
+   Deletes `player_aliases` rows whose `player_id` no longer exists in
+   `players` (left over from junk-player cleanup paths that ran with FK off).
+   `--apply` flag, dry-run by default. JSON audit at
+   `data/orphan-aliases-w15.json`. **+3 tests** covering find / dry-run /
+   apply-and-idempotent-rerun semantics.
+
+### Numbers
+
+| metric            | pre-W15 | post-reingest | post-dedup | post-orphan |
+|-------------------|---------|---------------|------------|-------------|
+| anomalies         | 485     | 450           | 450        | 450         |
+| games             | 557     | 560           | 535        | 535         |
+| teams             | 240     | 240           | 217        | 217         |
+| player_aliases    | 102     | 102           | 102        | 0           |
+| team_aliases      | 69      | 69            | 92         | 92          |
+
+- **Anomaly delta**: −35 (485 → 450, −7.2%)
+- **Score-line recovery (paren)**: +3 net new games from event-annotation parens
+  (only one paren-style anomaly remains: `"Malvern Prep 11, Chaminade (NY) 10,
+  2OT"` — comma-N-OT after state suffix, separate cluster, out of W15 scope)
+- **State-suffix pairs merged**: 23 (Lower Cape May (NJ), Blair Academy (NJ),
+  Brunswick School (CT), Marriott's Ridge (MD), Worthington Kilbourne (OH), and
+  18 more — see audit). All 23 had 0 players on the suffixed row, so the merge
+  was games-only. The 25-game shrink (560 → 535) is duplicate-game collapse on
+  `UNIQUE(date, home_team_id, away_team_id)` — same game stored twice under
+  different team-name variants.
+- **Orphan aliases removed**: 102 (every existing `player_aliases` row was an
+  orphan — junk-player cleanups had wiped the `players` rows but the aliases
+  table wasn't cascaded).
+
+### Files touched
+
+- `packages/shared/src/index.ts` — PARSER_VERSION 0.2.6 → 0.2.7
+- `packages/ingest/src/parsers/scoreLine.ts` — both regexes + OT-with-paren guard
+- `packages/ingest/src/parsers/__tests__/scoreLine.test.ts` — +6 tests (25 total)
+- `packages/ingest/src/scripts/dedupTeams.ts` — `mergeTeam` now exported
+- `packages/ingest/src/scripts/dedupStateSuffixTeams.ts` — new
+- `packages/ingest/src/scripts/cleanOrphanAliases.ts` — new
+- `packages/ingest/src/scripts/cleanOrphanAliases.test.ts` — new (+3 tests)
+- `data/lacrosse.db.bak-w15-pre-data-polish` — pre-W15 snapshot
+- `data/state-suffix-dedup-w15.json` — merge audit
+- `data/orphan-aliases-w15.json` — orphan-cleanup audit
+
+### Tests
+
+279 passed / 1 skipped (was 270 / 1 — +9 added). Typecheck clean.
+
+### Known issues / follow-ups
+
+- **Pre-existing orphan rankings**: 7 `rankings` rows reference team_ids
+  128, 129, 329 that no longer exist. These predate W15 (verified against
+  `data/lacrosse.db.bak-w15-pre-data-polish`) and are out of W15 scope. A
+  future `clean:orphan-rankings` script would mirror `cleanOrphanAliases`.
+- **Item 4 deferred**: `--auto-dedup` flag in ingest CLI (would chain
+  `dedup:teams` + `dedup:state-suffix` + `clean:orphan-aliases` after each
+  ingest run). Trivially additive — recommend Wave 16 lane.
+- **Comma + bare-N-OT after state suffix**: one anomaly remaining
+  (`"… (NY) 10, 2OT"`). Distinct cluster from W15's event-paren scope.

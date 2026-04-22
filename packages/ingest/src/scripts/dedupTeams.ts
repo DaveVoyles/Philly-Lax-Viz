@@ -228,7 +228,7 @@ export function applyExplicitPairs(
  * Handles UNIQUE collisions on players(team_id, name_normalized) and
  * games(date, home_team_id, away_team_id). Returns # of skipped collisions.
  */
-function mergeTeam(
+export function mergeTeam(
   db: ReturnType<typeof openDb>,
   sourceId: number,
   targetId: number,
