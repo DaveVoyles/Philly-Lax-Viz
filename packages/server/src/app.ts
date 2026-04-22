@@ -37,8 +37,13 @@ const DEFAULT_LOGOS_DIR = path.join(REPO_ROOT, 'data', 'logos');
 export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: opts.logger ?? false });
 
+  const corsOriginsEnv = process.env.CORS_ORIGINS?.trim();
+  const corsOrigins = corsOriginsEnv
+    ? corsOriginsEnv.split(',').map((o) => o.trim()).filter(Boolean)
+    : ['http://localhost:5173'];
+
   await app.register(cors, {
-    origin: ['http://localhost:5173'],
+    origin: corsOrigins,
     methods: ['GET', 'OPTIONS'],
   });
 
