@@ -74,6 +74,11 @@ COPY --from=builder --chown=app:app /app/packages/shared        ./packages/share
 COPY --from=builder --chown=app:app /app/packages/ingest        ./packages/ingest
 COPY --from=builder --chown=app:app /app/packages/server        ./packages/server
 
+# Bundle a seed DB so the container has data on first boot. The runtime copies
+# this to /data on startup if /data is empty (Azure Files SMB cannot host
+# SQLite reliably; using ephemeral copy-on-start as a workaround).
+COPY --chown=app:app data/lacrosse.db /app/seed/lacrosse.db
+
 USER app
 
 EXPOSE 8080
@@ -82,4 +87,4 @@ EXPOSE 8080
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # Run the server through its installed tsx (no global install needed).
-CMD ["node", "node_modules/tsx/dist/cli.mjs", "packages/server/src/index.ts"]
+CMD ["sh", "-c", "if [ -f /app/seed/lacrosse.db ] && [ ! -f \"$DB_PATH\" ]; then mkdir -p $(dirname \"$DB_PATH\") && cp /app/seed/lacrosse.db \"$DB_PATH\"; fi; exec node node_modules/tsx/dist/cli.mjs packages/server/src/index.ts"]

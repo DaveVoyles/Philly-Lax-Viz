@@ -18,6 +18,7 @@ node_modules
 
 # Local data + caches that must NEVER ship in the image
 data
+!data/lacrosse.db
 fixtures
 **/raw-cache
 *.db

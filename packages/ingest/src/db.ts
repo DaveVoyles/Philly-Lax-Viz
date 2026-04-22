@@ -60,7 +60,8 @@ export function openDb(path: string): DatabaseType {
     mkdirSync(dirname(path), { recursive: true });
   }
   const db = new Database(path);
-  db.pragma('journal_mode = WAL');
+  const journalMode = process.env.DB_JOURNAL_MODE ?? 'WAL';
+  db.pragma(`journal_mode = ${journalMode}`);
   db.pragma('foreign_keys = ON');
   runMigrations(db);
   return db;

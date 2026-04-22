@@ -4,7 +4,17 @@ Low-cost, scale-to-zero deployment of the PLL stack:
 
 - **Web** (`@pll/web` — Vite/D3) → **Azure Static Web Apps** (Free tier, global CDN, custom domain).
 - **API** (`@pll/server` — Fastify + better-sqlite3) → **Azure Container Apps** (Consumption plan, scale-to-zero).
-- **DB** (`data/lacrosse.db`) → **Azure Files** share mounted into the container at `/data`.
+- **DB** (`data/lacrosse.db`) → **baked into the container image** as a seed; copied to ephemeral `/tmp` on container start. Regenerated nightly by the ingest cron, so transient loss on cold-start is acceptable.
+
+> **Live deployment** (as of v3): SWA at `https://victorious-pond-0c5ff000f.7.azurestaticapps.net` · API at `https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io` · ACR `pllacr3087.azurecr.io`.
+
+> ### Deployment learnings (v3, baked from real run)
+>
+> 1. **Static Web Apps region**: SWA is **not** available in `eastus`. The bootstrap script provisions SWA in `eastus2` (separate `SWA_LOCATION` var) while the rest of the stack stays in `eastus`.
+> 2. **SQLite on Azure Files (SMB) is broken** for this workload. Even with `journal_mode=DELETE`, SMB does not support the byte-range locks SQLite needs for the migration transaction → `SQLITE_BUSY` on every start. **Solution**: don't put SQLite on SMB. Set `DB_PATH=/tmp/lacrosse.db` so the DB lives on the container's ephemeral disk, and bake the seed DB into the image so cold-starts are populated. The Azure Files share + volume mount can be removed entirely.
+> 3. **Container Registry**: GHCR push needs the `write:packages` scope, which `gh auth refresh` only grants via interactive browser. **Use ACR** (admin user enabled) for non-interactive `docker push` from CI or local. Bootstrap creates the ACR.
+> 4. **`az containerapp update --image` does not always replace the running image**. Pair it with `--revision-suffix vN` to force a new revision: `az containerapp update -n pll-server -g pll-rg --image .../pll-server:v3 --revision-suffix v3 --set-env-vars DB_PATH=/tmp/lacrosse.db`.
+> 5. **GitHub Actions billing**: if the account hits a spending-limit error, the deploy.yml workflow fails before doing anything. Local docker push to ACR + `az containerapp update` is the documented fallback (see "Local fallback" below).
 
 > The server already honours `DB_PATH` (preferred) and `PLL_DB_PATH` (legacy) env
 > vars and listens on `process.env.PORT` (defaults to 3001 locally; we set 8080
@@ -609,3 +619,35 @@ testing changed the original estimate. Two notes:
 
 Bottom line: still **~$1-4/mo** for typical traffic; **$8/mo** budget alert
 remains a safe ceiling.
+
+---
+
+## Local fallback (when GitHub Actions is unavailable)
+
+If CI is blocked (billing, secrets rotation, etc.), deploy directly from a workstation:
+
+```bash
+# 1. Build amd64 image with seed DB baked in
+docker buildx build --platform linux/amd64 \
+  -t pllacr3087.azurecr.io/pll-server:vN --load .
+
+# 2. Push to ACR (uses admin creds from `az acr credential show`)
+az acr login -n pllacr3087
+docker push pllacr3087.azurecr.io/pll-server:vN
+
+# 3. Roll the container app to the new image (force new revision)
+az containerapp update -n pll-server -g pll-rg \
+  --image pllacr3087.azurecr.io/pll-server:vN \
+  --revision-suffix vN \
+  --set-env-vars DB_PATH=/tmp/lacrosse.db PORT=8080 NODE_ENV=production
+
+# 4. Verify
+curl https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io/api/health
+
+# 5. Build + deploy the web bundle to SWA
+VITE_API_BASE_URL=https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io \
+  pnpm --filter @pll/web build
+SWA_TOKEN=$(az staticwebapp secrets list -n pll-web -g pll-rg --query "properties.apiKey" -o tsv)
+npx -y @azure/static-web-apps-cli deploy packages/web/dist \
+  --deployment-token "$SWA_TOKEN" --env production
+```

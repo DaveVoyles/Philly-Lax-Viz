@@ -14,6 +14,7 @@ set -euo pipefail
 # ---- Configurable knobs (override via env) ---------------------------------
 RG="${RG:-pll-rg}"
 LOCATION="${LOCATION:-eastus}"
+SWA_LOCATION="${SWA_LOCATION:-eastus2}"
 STORAGE_ACCOUNT="${STORAGE_ACCOUNT:-pllstorage$RANDOM}"
 FILE_SHARE="${FILE_SHARE:-pll-data}"
 SWA_NAME="${SWA_NAME:-pll-web}"
@@ -57,7 +58,7 @@ az storage share-rm create \
 az staticwebapp create \
   --name "$SWA_NAME" \
   --resource-group "$RG" \
-  --location "$LOCATION" \
+  --location "$SWA_LOCATION" \
   --sku Free \
   -o table
 
