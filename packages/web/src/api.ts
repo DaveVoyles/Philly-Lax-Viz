@@ -17,6 +17,7 @@ import {
   seasonValueToString,
   SEASON_QUERY_KEY,
 } from './components/seasonPicker.js';
+import { apiUrl } from './apiBase.js';
 
 export type { PiaaRecord };
 
@@ -58,7 +59,7 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const baseUrl = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
-  const url = attachSeason(baseUrl);
+  const url = apiUrl(attachSeason(baseUrl));
   let res: Response;
   try {
     res = await fetch(url, {

@@ -1,6 +1,8 @@
 // TeamBadge — renders a team logo (or initials fallback) next to a team name.
 // Wave 3 Lane 3 (Leia). Used across dashboard, leaders, team detail, game detail.
 
+import { apiUrl } from '../apiBase.js';
+
 export type TeamBadgeSize = 'sm' | 'md' | 'lg' | 'xl';
 
 export interface TeamBadgeOptions {
@@ -82,7 +84,7 @@ function buildInitialsEl(name: string, px: number, brand?: string | null): HTMLE
 function buildLogoEl(opts: TeamBadgeOptions, px: number): HTMLElement {
   if (opts.logoUrl) {
     const img = document.createElement('img');
-    img.src = opts.logoUrl;
+    img.src = apiUrl(opts.logoUrl);
     img.alt = `${opts.name} logo`;
     img.width = px;
     img.height = px;

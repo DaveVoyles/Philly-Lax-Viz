@@ -1,4 +1,5 @@
 import { onRoute, startRouter, currentRoute, type RouteMatch } from './router.js';
+import { apiUrl } from './apiBase.js';
 import * as dashboard from './views/dashboard.js';
 import * as teamDetail from './views/teamDetail.js';
 import * as gameDetail from './views/gameDetail.js';
@@ -158,7 +159,7 @@ function boot(): void {
   // W17 L3 (R2): populate the global "Last scoreboard update" footer slot
   // from /api/freshness. Failure is silent so a server outage does not
   // break the rest of the UI.
-  void fetch('/api/freshness')
+  void fetch(apiUrl('/api/freshness'))
     .then((r) => (r.ok ? r.json() : null))
     .then((f: { scoreboardLast: string | null } | null) => {
       const slot = document.querySelector<HTMLElement>('[data-freshness="scoreboard"]');

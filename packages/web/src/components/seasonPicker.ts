@@ -208,7 +208,7 @@ export async function initSeasonPicker(opts: {
   const fetcher =
     opts.fetchSeasons ??
     (async () => {
-      const res = await fetch('/api/seasons', { headers: { Accept: 'application/json' } });
+      const res = await fetch(apiUrl('/api/seasons'), { headers: { Accept: 'application/json' } });
       if (!res.ok) throw new Error(`/api/seasons ${res.status}`);
       return (await res.json()) as SeasonsResponse;
     });
