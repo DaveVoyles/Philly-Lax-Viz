@@ -86,6 +86,11 @@ export interface Game {
   sourcePostId: string;
   recapUrl: string | null;
   parsedAt: string; // ISO timestamp
+  /** Wave 17 Lane 2 (Han) — featured/inline image URL from the source post,
+   *  joined from `post_images` on `source_post_id`. CDN-hosted; we never
+   *  proxy or store the binary. Optional so non-image-aware callers stay
+   *  type-compatible. */
+  imageUrl?: string | null;
 }
 
 export interface GamePeriod {

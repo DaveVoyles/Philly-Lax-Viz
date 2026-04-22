@@ -351,6 +351,23 @@ export function getRecentGames(limit: number): Promise<Game[]> {
   return request<Game[]>(`/games?limit=${encodeURIComponent(String(limit))}`);
 }
 
+// ---- W17 L2 (Han) — batch image lookup for post slugs ----
+
+export interface PostImage {
+  imageUrl: string;
+  altText: string | null;
+  width: number | null;
+  height: number | null;
+}
+
+export async function getPostImages(slugs: string[]): Promise<Record<string, PostImage>> {
+  const cleaned = slugs.filter((s) => !!s);
+  if (cleaned.length === 0) return {};
+  const qs = encodeURIComponent(cleaned.join(','));
+  const res = await request<{ images: Record<string, PostImage> }>(`/posts/images?slugs=${qs}`);
+  return res.images;
+}
+
 // ---- W16 L2 (Leia) — schedule (upcoming games) ----
 
 export interface ScheduleGame {

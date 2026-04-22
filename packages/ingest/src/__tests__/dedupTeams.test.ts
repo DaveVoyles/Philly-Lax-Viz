@@ -58,10 +58,13 @@ const teamExists = (db: Database.Database, id: number) =>
   db.prepare('SELECT 1 FROM teams WHERE id = ?').get(id) !== undefined;
 
 describe('applyExplicitPairs', () => {
-  it('exposes the W8+W10 explicit-pair list', () => {
+  it('exposes the W8+W10+W17 explicit-pair list', () => {
     // 5 W8 hyphen pairs + 7 W10 dedup pairs (Jack Barrack ×3, Springside ×1,
-    // Hatboro-Horsham ×1, WC East ×1, WC Henderson ×1) = 12 total.
-    expect(EXPLICIT_PAIRS.length).toBe(12);
+    // Hatboro-Horsham ×1, WC East ×1, WC Henderson ×1) + 13 W17 cleanup
+    // pairs (Springfield ×2, CB East, Henderson, SJP, U Darby, Arch Carroll,
+    // ANC, Bonner Prendie, S. Lehigh, Manheim Twp, Lake Lehman, Spring Ford)
+    // = 25 total.
+    expect(EXPLICIT_PAIRS.length).toBe(25);
     // mergeFromId must be unique across all pairs (no row merged twice).
     const mergeFromIds = EXPLICIT_PAIRS.map((p) => p.mergeFromId);
     expect(new Set(mergeFromIds).size).toBe(mergeFromIds.length);

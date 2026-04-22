@@ -86,6 +86,51 @@ export const EXPLICIT_PAIRS: readonly ExplicitPair[] = [
   { keepId: 100, mergeFromId: 347, reason: 'Hatboro-Horsham hyphen variant canonical; merge "Hatboro Horsham" id=347 (W10)' },
   { keepId: 188, mergeFromId: 85, reason: 'West Chester East: merge "WC East" id=85 → canonical id=188 (W10)' },
   { keepId: 41, mergeFromId: 83, reason: 'WC Henderson: merge "Henderson" id=83 → canonical id=41 (W10; only WCASD Henderson in dataset)' },
+
+  // Wave 17 Lane 1 (Chewy 🐻💪) — final dup-needs-merge cleanup. Pairs
+  // surfaced by Yoda 🧙‍♂️🟢's W16 PIAA reconciliation pass and listed in
+  // seedTeamAliases.ts UNMAPPABLE_PIAA under category 'dup-needs-merge'.
+  // Keep-ids chosen to preserve the existing PIAA alias mapping where one
+  // exists (e.g. id 174 holds "springfield twp" → PIAA Springfield Twp 2A;
+  // id 69 holds "cb east" → PIAA CB East 3A) so the merge moves divergent
+  // rows into match. Verified 2026-04-22 against live data/lacrosse.db.
+  //
+  // Springfield trio (ids 97, 266 → 174): three spellings of Springfield
+  // Township (Montco). Keep id 174 — it owns the PIAA "springfield twp"
+  // alias. id 97 has 5 games + 0 players; id 266 has 1 game + 0 players;
+  // id 174 has 0 games + 0 players today, so the merge populates id 174.
+  { keepId: 174, mergeFromId: 97, reason: 'Springfield Township: merge "Springfield-Montco" id=97 → canonical id=174 (W17; preserves PIAA alias)' },
+  { keepId: 174, mergeFromId: 266, reason: 'Springfield Township: merge "Springfield-M" id=266 → canonical id=174 (W17)' },
+  // CB East (id 157 → 69): id 69 holds "cb east" alias and 13 games / 25
+  // players. id 157 has 3 games / 0 players, name "CB East" (LOWER matches
+  // PIAA directly so it appears divergent; merging consolidates to 69).
+  { keepId: 69, mergeFromId: 157, reason: 'Central Bucks East: merge "CB East" id=157 → canonical id=69 (W17; consolidates divergent split)' },
+  // Henderson (id 462 → 41): third Henderson row that surfaced post-W10
+  // (W10 already merged id 83 → 41). Same WCASD program.
+  { keepId: 41, mergeFromId: 462, reason: 'WC Henderson: merge "Henderson" id=462 → canonical id=41 (W17; post-W10 second variant)' },
+  // St. Joe's Prep (id 217 → 108): canonical id 108 owns the "sjp" alias.
+  // id 217 has 19 players, id 108 has 26 — collisions on duplicate roster
+  // names handled by mergeTeam.
+  { keepId: 108, mergeFromId: 217, reason: "St. Joseph's Prep: merge \"St. Joe's Prep\" id=217 → canonical id=108 (W17)" },
+  // U Darby → Upper Darby. id 271 has 0 players.
+  { keepId: 20, mergeFromId: 271, reason: 'Upper Darby: merge "U Darby" id=271 → canonical id=20 (W17)' },
+  // Arch Carroll → Archbishop Carroll. id 304 has 0 players.
+  { keepId: 94, mergeFromId: 304, reason: 'Archbishop Carroll: merge "Arch Carroll" id=304 → canonical id=94 (W17)' },
+  // Academy New Church → Academy of the New Church.
+  { keepId: 110, mergeFromId: 301, reason: 'Academy of the New Church: merge "Academy New Church" id=301 → canonical id=110 (W17)' },
+  // Bonner Prendie → Bonner-Prendie (hyphen variant canonical, matches W8
+  // convention; id 279 already chosen W10).
+  { keepId: 279, mergeFromId: 403, reason: 'Bonner-Prendie: merge "Bonner Prendie" id=403 → canonical id=279 (W17; hyphen canonical)' },
+  // S. Lehigh → Southern Lehigh. id 262 has 8 players, id 87 has 6.
+  { keepId: 87, mergeFromId: 262, reason: 'Southern Lehigh: merge "S. Lehigh" id=262 → canonical id=87 (W17)' },
+  // Manheim Twp. → Manheim Township. id 250 has 5 players, id 127 has 13.
+  { keepId: 127, mergeFromId: 250, reason: 'Manheim Township: merge "Manheim Twp." id=250 → canonical id=127 (W17)' },
+  // Lake Lehman → Lake-Lehman (hyphen canonical, matches W8 convention).
+  // id 361 has 9 players, id 239 has 2.
+  { keepId: 239, mergeFromId: 361, reason: 'Lake-Lehman: merge "Lake Lehman" id=361 → canonical id=239 (W17; hyphen canonical)' },
+  // Spring Ford → Spring-Ford (hyphen canonical; id 355 has 0 players,
+  // id 1 holds "springford" PIAA alias).
+  { keepId: 1, mergeFromId: 355, reason: 'Spring-Ford: merge "Spring Ford" id=355 → canonical id=1 (W17; hyphen canonical, preserves PIAA alias)' },
 ];
 
 /** Parse a team name into [base, suffix] if it ends with " (foo)", else null. */

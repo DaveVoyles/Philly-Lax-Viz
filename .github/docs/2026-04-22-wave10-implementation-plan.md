@@ -424,3 +424,82 @@ deferred — out of time budget.
   ingest run). Trivially additive — recommend Wave 16 lane.
 - **Comma + bare-N-OT after state suffix**: one anomaly remaining
   (`"… (NY) 10, 2OT"`). Distinct cluster from W15's event-paren scope.
+
+---
+
+## Wave 17 Lane 1 — Final Cleanup (Chewy 🐻💪, 2026-04-22)
+
+Hard-stop 30 min wave. Closed out the W16 dup-needs-merge handoff (13
+team-row pairs from Yoda 🧙‍♂️��) and the W16 Lane 2 schedule unresolved
+list (15 entries from Leia), then documented the irreducible anomaly
+floor.
+
+### Outcomes
+
+| Metric | Before W17 | After W17 | Δ |
+|---|---|---|---|
+| `ingest_anomalies` total | 465 | 454 | −11 |
+| `schedule-team-resolve` anomalies | 15 | 6 | −9 |
+| `teams` rows | 217 | 207 | −10 (13 merged + 2 state-suffix dedups, partly re-created on reparse) |
+| PIAA `match` | 10 | **14** | +4 |
+| PIAA `close` | 32 | 28 | −4 |
+| PIAA `divergent` | 16 | **15** | −1 |
+| PIAA `unmapped` | 159 | 150 | −9 |
+
+Headline wins: **CB East** and **WC Henderson** moved from divergent → match
+(both now exact 6-7 / 9-4 vs PIAA). Springfield Township lifted from
+unmapped to divergent (5 games attached but the source data shows them
+all as losses; lifting to close requires source-data corrections beyond
+W17 scope).
+
+### What landed
+
+1. **13 explicit team merges** appended to `EXPLICIT_PAIRS` in
+   `packages/ingest/src/scripts/dedupTeams.ts`. All 13 applied cleanly;
+   13 game collisions handled by `mergeTeam` (duplicate games on target
+   team deleted, cascades to player_stats + game_periods). Two
+   incidental state-suffix merges (St. Anthony's NY, St Augustine Prep
+   NJ) ran in the suffix pass.
+2. **9 schedule aliases** added to `PARSER_ABBREVIATIONS` in
+   `packages/ingest/src/scripts/seedTeamAliases.ts` (W17 block). Schedule
+   re-ingest dropped unresolved from 15 → 6.
+3. **6 documented out-of-coverage opponents** (NJ/DE/upstate-PA schools)
+   stay as `schedule_games` with null team_id — see
+   `docs/2026-04-22-remaining-anomalies.md`.
+4. **HS-summaries reparse** to clear stale per-post anomalies and pick up
+   the new aliases (no net anomaly change beyond the −9 schedule
+   resolution; confirmed remaining sub-headers are real misses, not
+   stale aliases).
+5. **`UNMAPPABLE_PIAA` dup-needs-merge entries** annotated as RESOLVED
+   IN W17 (kept as historical reference; test skips this category by
+   design).
+6. **Orphan ranking cleanup** (incidental): 7 pre-existing orphan rows
+   (team_ids 128/129/329) deleted to unblock `dedupTeams.ts`'s FK check.
+   Pre-existing per the W15 known-issues note above.
+7. **New doc**: `docs/2026-04-22-remaining-anomalies.md` summarizes the
+   four remaining clusters with maintainer guidance + recommended next
+   steps in cost/value order.
+
+### Files touched
+
+- `packages/ingest/src/scripts/dedupTeams.ts` — +13 W17 EXPLICIT_PAIRS
+- `packages/ingest/src/scripts/seedTeamAliases.ts` — +9 W17 schedule
+  aliases; UNMAPPABLE_PIAA dup-needs-merge block annotated as resolved
+- `packages/ingest/src/__tests__/dedupTeams.test.ts` — count assertion
+  updated 12 → 25
+- `docs/2026-04-22-remaining-anomalies.md` — new
+- `data/lacrosse.db` — applied: merges + alias seed + reparse
+- `data/lacrosse.db.bak-w17-pre-final-cleanup` — pre-W17 snapshot
+
+### Tests
+
+310 passed / 1 skipped (was 309 / 1 — only the `EXPLICIT_PAIRS.length`
+assertion needed updating). Typecheck clean across all 4 workspaces.
+
+### Known issues / follow-ups
+
+See `docs/2026-04-22-remaining-anomalies.md` recommended next steps:
+score-line OT-suffix regex tweak (★ high value, low cost), aggregated-
+list saves-header case fix (★ medium), and the larger sub-header re-
+anchoring refactor for the ~150 player-stat-line drops (★★★ highest
+data value but parser rewrite).

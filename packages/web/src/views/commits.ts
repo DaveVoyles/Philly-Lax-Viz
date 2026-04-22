@@ -4,6 +4,10 @@
 // tile expands a per-college player list under the grid. Empty state is
 // rendered when no commits exist (the common case until parsers warm up
 // or the recruiting feed surfaces fresh content).
+//
+// Wave 17 Lane 2 (Han) added imageUrl avatars next to each player row.
+
+import { renderPlayerAvatar } from '../components/postImage.js';
 
 interface CollegeCount {
   college: string;
@@ -21,6 +25,7 @@ interface CommitsListRow {
   division: string | null;
   announcedDate: string | null;
   sourceUrl: string | null;
+  imageUrl: string | null;
 }
 
 interface CollegesResponse {
@@ -159,25 +164,32 @@ async function showCollege(target: HTMLElement, college: string): Promise<void> 
   for (const r of resp.rows) {
     const li = document.createElement('li');
     li.style.cssText =
-      'display:flex; justify-content:space-between; gap:.75rem; padding:.5rem .75rem; border:1px solid var(--border); border-radius:6px;';
+      'display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.5rem .75rem; border:1px solid var(--border); border-radius:6px;';
     const left = document.createElement('div');
+    left.style.cssText = 'display:flex; align-items:center; gap:.6rem;';
+    // Wave 17 Lane 2 (Han) -- player photo from the recruit post if extracted.
+    if (r.imageUrl) {
+      left.appendChild(renderPlayerAvatar(r.imageUrl, r.playerName));
+    }
+    const nameWrap = document.createElement('div');
     if (r.playerId !== null) {
       const a = document.createElement('a');
       a.href = `#/players/${r.playerId}`;
       a.textContent = r.playerName;
-      left.appendChild(a);
+      nameWrap.appendChild(a);
     } else {
       const span = document.createElement('span');
       span.textContent = r.playerName;
-      left.appendChild(span);
+      nameWrap.appendChild(span);
     }
     if (r.highSchoolName) {
       const hs = document.createElement('div');
       hs.className = 'muted';
       hs.style.fontSize = '.85rem';
       hs.textContent = r.highSchoolName;
-      left.appendChild(hs);
+      nameWrap.appendChild(hs);
     }
+    left.appendChild(nameWrap);
     li.appendChild(left);
     const right = document.createElement('div');
     right.style.cssText = 'text-align:right;';

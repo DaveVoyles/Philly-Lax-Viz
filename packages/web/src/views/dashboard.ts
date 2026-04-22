@@ -4,8 +4,10 @@ import {
   getTeams,
   getRecentGames,
   getPlayerLeaders,
+  getPostImages,
   type PlayerLeaderRow,
   type PlayerLeaderMetric,
+  type PostImage,
   type ServerHealthResponse,
   type TeamSeasonRecord,
 } from '../api.js';
@@ -13,6 +15,7 @@ import type { Game, Team } from '@pll/shared';
 import { formatDate } from '../util/format.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderPiaaBadge } from '../components/piaaBadge.js';
+import { renderGameThumb } from '../components/postImage.js';
 import { renderHorizontalLeaderboard } from '../charts/index.js';
 import type { ChartHandle } from '../charts/types.js';
 import { renderEmptyState } from '../components/emptyState.js';
@@ -243,7 +246,16 @@ async function loadTeamsAndGames(
   try {
     const games = await getRecentGames(RECENT_GAME_LIMIT);
     const teamById = new Map<number, Team>(teams.map((t) => [t.id, t]));
-    gamesTarget.replaceChildren(buildRecentGamesTable(games, teamById));
+    // Wave 17 Lane 2 (Han) -- batch-fetch featured images for visible games.
+    let images: Record<string, PostImage> = {};
+    try {
+      const slugs = games.map((g) => g.sourcePostId).filter((s): s is string => !!s);
+      images = await getPostImages(slugs);
+    } catch {
+      // image hydration is purely cosmetic; never block the games table on it.
+      images = {};
+    }
+    gamesTarget.replaceChildren(buildRecentGamesTable(games, teamById, images));
   } catch (err) {
     gamesTarget.replaceChildren(errorBlock(err));
   }
@@ -379,7 +391,11 @@ function buildGapBadge(t: TeamSeasonRecord): HTMLSpanElement {
   return span;
 }
 
-function buildRecentGamesTable(games: Game[], teamById: Map<number, Team>): HTMLElement {
+function buildRecentGamesTable(
+  games: Game[],
+  teamById: Map<number, Team>,
+  images: Record<string, PostImage> = {},
+): HTMLElement {
   if (games.length === 0) {
     return renderEmptyState({ subject: 'games' });
   }
@@ -394,7 +410,7 @@ function buildRecentGamesTable(games: Game[], teamById: Map<number, Team>): HTML
 
   const thead = document.createElement('thead');
   const trh = document.createElement('tr');
-  for (const label of ['Date', 'Matchup', 'Score']) {
+  for (const label of ['', 'Date', 'Matchup', 'Score']) {
     const th = document.createElement('th');
     th.textContent = label;
     trh.appendChild(th);
@@ -418,6 +434,15 @@ function buildRecentGamesTable(games: Game[], teamById: Map<number, Team>): HTML
         go();
       }
     });
+
+    // Wave 17 Lane 2 (Han) -- tiny recap thumbnail (60x40) if we have one.
+    const tdImg = document.createElement('td');
+    tdImg.style.width = '64px';
+    const img = images[g.sourcePostId];
+    if (img) {
+      tdImg.appendChild(renderGameThumb(img.imageUrl, img.altText));
+    }
+    tr.appendChild(tdImg);
 
     const tdDate = document.createElement('td');
     tdDate.textContent = formatDate(g.date);

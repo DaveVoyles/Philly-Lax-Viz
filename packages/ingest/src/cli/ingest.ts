@@ -25,6 +25,7 @@ import { clearAnomaliesForPost } from '../pipelines/anomalies.js';
 import { ingestScheduleRows } from '../pipelines/schedule.js';
 import { parseScheduleCsv } from '../parsers/scheduleCsv.js';
 import { fetchPiaaScheduleCsv } from '../sources/piaaSchedule.js';
+import { runImageExtraction } from '../pipelines/postImages.js';
 import { DEFAULT_SEASON, seasonFromUrl } from '../crawler.js';
 
 interface CliArgs {
@@ -36,6 +37,7 @@ interface CliArgs {
   schedule: boolean;
   scheduleSeason: number;
   scheduleForce: boolean;
+  extractImages: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -45,6 +47,7 @@ function parseArgs(argv: string[]): CliArgs {
     schedule: false,
     scheduleSeason: DEFAULT_SEASON,
     scheduleForce: false,
+    extractImages: false,
   };
   for (const a of argv) {
     if (a.startsWith('--limit=')) {
@@ -71,6 +74,8 @@ function parseArgs(argv: string[]): CliArgs {
       args.scheduleSeason = v;
     } else if (a === '--force-fetch') {
       args.scheduleForce = true;
+    } else if (a === '--extract-images') {
+      args.extractImages = true;
     } else if (a === '--help' || a === '-h') {
       printHelp();
       process.exit(0);
@@ -325,6 +330,18 @@ async function main(): Promise<void> {
   );
 
   const db = openDb(dbPath);
+
+  // Wave 17 Lane 2 (Han) -- featured image extraction. Reads cached HTML,
+  // skips the recap/scoreboard pipelines, writes image URLs into post_images.
+  if (args.extractImages) {
+    console.log(`[ingest:images] cacheDir=${cacheDir} limit=${args.limit ?? 'all'}`);
+    const r = runImageExtraction(db, cacheDir, { limit: args.limit });
+    console.log(
+      `[ingest:images] scanned=${r.postsScanned} with_image=${r.postsWithImage} inserted=${r.imagesInserted} skipped_existing=${r.imagesSkippedExisting}`,
+    );
+    db.close();
+    return;
+  }
 
   // Wave 16 Lane 2 (Leia) — schedule path runs independently of the
   // post-cache walker. Skips the recap pipeline entirely.

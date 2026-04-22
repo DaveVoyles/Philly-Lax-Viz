@@ -1,5 +1,6 @@
 import { ApiError, getGameDetail, type GameDetail, type GamePlayerStat } from '../api.js';
 import type { GamePeriod, Team } from '@pll/shared';
+import { renderGameHero } from '../components/postImage.js';
 
 // Server's GET /api/games/:id embeds homeTeam/awayTeam (Wave 3 Lane 2, Yoda).
 // The shared GameDetail type in api.ts doesn't yet declare them; Yoda owns
@@ -69,6 +70,12 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       { id: game.awayTeamId, name: awayName, logoUrl: awayLogo },
     ),
   );
+
+  // Wave 17 Lane 2 (Han) -- featured photo from the recap post if one was
+  // extracted. Lazy-loaded; falls back gracefully if the CDN URL 404s.
+  if (game.imageUrl) {
+    root.appendChild(renderGameHero(game.imageUrl, `${awayName} at ${homeName}`));
+  }
 
   const qChartSlot = document.createElement('div');
   qChartSlot.dataset['chart'] = 'quarterByQuarter';

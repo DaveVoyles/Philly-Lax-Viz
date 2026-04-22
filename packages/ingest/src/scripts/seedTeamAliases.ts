@@ -154,6 +154,24 @@ export const PARSER_ABBREVIATIONS: readonly AliasMapping[] = [
   // "Solehi" appears only in Parkland vs Southern Lehigh games → id 87.
   { alias: 'pburg', teamId: 232, teamName: 'Phillipsburg' },
   { alias: 'solehi', teamId: 87, teamName: 'Southern Lehigh' },
+
+  // ─── Wave 17 Lane 1 (Chewy 🐻💪) — Leia W16 schedule unresolved ────────
+  // 15 raw schedule team names that failed schedule-team-resolve. Of those,
+  // 9 map confidently to existing teams; the remaining 6 have no
+  // corresponding teams row (out-of-coverage NJ/DE schools or
+  // outside-Philly PA programs). The 6 are documented in
+  // docs/2026-04-22-remaining-anomalies.md rather than seeded — leaving
+  // them as schedule_games rows with null team_id is the intended outcome.
+  // Aliases are written in normalized form (see normalizeTeamName).
+  { alias: 'wilson high school (d3)', teamId: 29, teamName: 'Wilson' },
+  { alias: "saint joseph's preparatory school", teamId: 108, teamName: "St. Joseph's Prep" },
+  { alias: 'springfield twp.(m)', teamId: 174, teamName: 'Springfield Township' },
+  { alias: 'springfield (delco)', teamId: 37, teamName: 'Springfield-Delco' },
+  { alias: 'pennington prep school', teamId: 117, teamName: 'Pennington Prep (NJ)' },
+  { alias: 'msgr bonner & abp prendergast', teamId: 279, teamName: 'Bonner-Prendie' },
+  { alias: 'lawrenceville prep school', teamId: 249, teamName: 'Lawrenceville School' },
+  { alias: 'easton area', teamId: 7, teamName: 'Easton' },
+  { alias: 'conwell-egan catholic', teamId: 205, teamName: 'Conwell Egan' },
 ];
 
 export const PARSER_ABBREV_SOURCE = 'parser-abbrev-w10';
@@ -288,6 +306,13 @@ export const UNMAPPABLE_PIAA: readonly UnmappableNote[] = [
   // Aliasing cannot fix these — the alias UNIQUE constraint blocks pointing
   // a PIAA name at two teams. The fix is to merge the dup into the canonical
   // row via dedupTeams.ts. Listed here so the next dedup pass has a hit list.
+  //
+  // RESOLVED in Wave 17 Lane 1 (Chewy 🐻💪) — all 13 entries below were
+  // merged via dedupTeams.ts EXPLICIT_PAIRS. Kept in this list as historical
+  // documentation of the divergent → merged transitions (the merged-from
+  // ids no longer exist in `teams`, so the entries are functionally inert
+  // but useful for plan-log auditing). The dup-needs-merge category is
+  // skipped by the UNMAPPABLE_PIAA / PIAA-collision test by design.
   { category: 'dup-needs-merge', teamName: 'Spring Ford (id 355)', rationale: 'Dup of "Spring-Ford" (id 1). Canonical already aliased "springford" → 1.' },
   { category: 'dup-needs-merge', teamName: 'Springfield-Montco (id 97)', rationale: 'Dup of "Springfield Township" (id 174, holds "springfield twp" alias). Merging 97 into 174 would lift id 174 from divergent (0-0 vs 4-7) → close.' },
   { category: 'dup-needs-merge', teamName: 'Springfield-M (id 266)', rationale: 'Same school as id 97/174 — third spelling variant. Merge into 174.' },

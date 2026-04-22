@@ -229,6 +229,16 @@ The original brief said "WebGL + TypeScript" — we shipped D3/SVG instead becau
 - PhillyLacrosse posts often include featured images. Strip + cache for team headers.
 - Roster pages from team websites would let us pre-create players (graduation year, jersey #, position) before any stats are reported.
 
+> **Status (W17 L2 / Han 🧑‍🚀🍔):** D6 photos shipped. Migration `010_post_images.sql`
+> + `extractPostImages` pipeline + `--extract-images` CLI flag. Live extraction
+> over 103 cached posts produced 87 images (no `og:image` on this corpus, so the
+> first-non-sponsor-`<img>` heuristic carried the load). Server: `imageUrl`
+> joined onto `GET /api/games/:id` and `GET /api/commits`; new
+> `GET /api/posts/images?slugs=…` for batch hydration. Web: thumbnails on the
+> dashboard recent-games table, hero on game-detail, avatars on commits list.
+> All images CDN-hosted (we never store binaries). Backup
+> `data/lacrosse.db.bak-w17-pre-images` written before the run.
+
 #### D7 — Inter-Ac & private school coverage
 - Currently weighted toward PIAA District 1 public schools. Inter-Ac (Penn Charter, Episcopal, Haverford School, Malvern, GA, Springside) and Friends Schools League have sparser coverage. Manual schedule import could close the gap.
 

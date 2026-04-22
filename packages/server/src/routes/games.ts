@@ -12,6 +12,7 @@ import {
   type TeamRow,
 } from '../queries/mappers.js';
 import { synthesizeScoringEvents } from '../queries/games.js';
+import { getImageForSlug } from '../queries/postImages.js';
 
 interface ListQuery {
   date?: string;
@@ -145,8 +146,16 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
       gameRow.away_team_id,
     );
 
+    // Wave 17 Lane 2 (Han) -- attach featured image URL if we have one for
+    // this post slug. Single-row lookup; no additional joins on the hot path.
+    const imgRow = gameRow.source_post_id
+      ? getImageForSlug(db, gameRow.source_post_id)
+      : null;
+    const game = mapGame(gameRow);
+    game.imageUrl = imgRow?.image_url ?? null;
+
     return {
-      game: mapGame(gameRow),
+      game,
       homeTeam: homeTeamRow ? mapTeam(homeTeamRow) : null,
       awayTeam: awayTeamRow ? mapTeam(awayTeamRow) : null,
       periods,

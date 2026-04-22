@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Database } from 'better-sqlite3';
 import { countCommitsByCollege, listCommits } from '../queries/commits.js';
 import { resolveSeason } from '../queries/seasons.js';
+import { getImagesForSlugs } from '../queries/postImages.js';
 
 interface CommitsQuery {
   season?: string;
@@ -30,6 +31,11 @@ export async function commitsRoutes(app: FastifyInstance, db: Database): Promise
       college: req.query.college,
       limit,
     });
+    // Wave 17 Lane 2 (Han) -- batch-attach image URLs by source_post_id.
+    const slugs = rows
+      .map((r) => r.source_post_id)
+      .filter((s): s is string => !!s);
+    const imageMap = getImagesForSlugs(db, slugs);
     return {
       season,
       rows: rows.map((r) => ({
@@ -43,6 +49,7 @@ export async function commitsRoutes(app: FastifyInstance, db: Database): Promise
         division: r.division,
         announcedDate: r.announced_date,
         sourceUrl: r.source_url,
+        imageUrl: r.source_post_id ? imageMap.get(r.source_post_id)?.image_url ?? null : null,
       })),
     };
   });
