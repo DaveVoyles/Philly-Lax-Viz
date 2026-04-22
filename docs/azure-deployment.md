@@ -485,3 +485,127 @@ Dockerfile                              # multi-stage image for @pll/server
 infra/azure-bootstrap.sh                # one-shot az CLI provisioning
 docs/azure-deployment.md                # this file
 ```
+
+---
+
+## Known issues found in W17 smoke test
+
+Local Docker smoke test results (R2, W17 L3) — `docker build && docker run` of
+this Dockerfile against `data/lacrosse.db`:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Container exited(1) on first start with `Could not locate the bindings file ... better_sqlite3.node` | pnpm 10 ignores postinstall build scripts by default; the original `pnpm install --frozen-lockfile --ignore-scripts=false` flag is *not* sufficient — pnpm 10 also requires an `onlyBuiltDependencies` allow-list. | Added `pnpm.onlyBuiltDependencies = ["better-sqlite3", "esbuild"]` to root `package.json` and added a `RUN pnpm rebuild better-sqlite3` belt-and-braces line to the builder stage of the `Dockerfile`. After the fix all endpoints return 200 from the running container. |
+| The original deploy doc said the leaders endpoint is `/api/leaders/scoring` | Actual route names are `/api/leaders/players?metric=points` and `/api/leaders/teams?metric=wins`. There is no `/leaders/scoring`. | No code change needed — just calling it out so future smoke scripts use the right URL. |
+
+After the Dockerfile + `package.json` fixes, a clean smoke run:
+
+```text
+docker build -t pll-lacrosse:test .                 # OK
+docker run -d --name pll-test -p 3002:3001 \
+  -e PORT=3001 -e DB_PATH=/data/lacrosse.db \
+  -v "$(pwd)/data:/data:ro" pll-lacrosse:test       # OK
+curl -sf http://localhost:3002/api/health           # 200, schemaVersion=10, seasons=[{year:2026,games:531}]
+curl -sf http://localhost:3002/api/freshness        # 200, scoreboardLast/recapsLast/... populated
+curl -sf http://localhost:3002/api/teams            # 200, 207 teams
+curl -sf 'http://localhost:3002/api/leaders/players?metric=points&season=2026'  # 200
+curl -sf http://localhost:3002/api/seasons          # 200
+docker stop pll-test && docker rm pll-test          # clean shutdown via tini
+```
+
+All five probes returned 200 with the expected JSON shape.
+
+---
+
+## Pre-deployment checklist for the user
+
+Before running `infra/azure-bootstrap.sh` for the first time, you (the human
+maintainer) need to decide / collect the following. Nothing else in this repo
+can do this for you — these are *your* identity and *your* money.
+
+1. **Azure subscription.** A Pay-as-you-go (or MSDN/free credit) subscription
+   you control. Run `az account list -o table` and pick the one for this
+   project. Set it: `az account set --subscription "<id>"`.
+2. **Resource group name** (default `pll-rg`). Pick something unique to this
+   project so cleanup is `az group delete -n <name> --yes`.
+3. **Region** (default `eastus`). Container Apps Consumption is available in
+   most regions; pick one geographically close to your users. `westus2`,
+   `northeurope`, and `eastus2` are good alternates.
+4. **Storage account name.** Must be **3-24 chars, lowercase, globally unique**
+   (e.g. `pllstorage<your-initials><random>`). The bootstrap script appends
+   `$RANDOM` if you don't override `STORAGE_ACCOUNT`.
+5. **GHCR owner.** Your GitHub username or org. The image will live at
+   `ghcr.io/<owner>/pll-server:<sha>`. Make sure you have a personal access
+   token (or an OIDC config) that can push there.
+6. **Custom domain (optional).** If you want `pll.example.com` instead of
+   `<random>.azurestaticapps.net`, you need DNS access to that domain. You
+   can add it post-deploy via Azure Portal → Static Web Apps → Custom domains.
+7. **GitHub OIDC trust** for Azure (recommended over a long-lived service
+   principal secret). You will need:
+   - Tenant ID (`az account show --query tenantId -o tsv`)
+   - Subscription ID (same)
+   - Application (client) ID — created during bootstrap
+   These three values become the `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
+   `AZURE_CLIENT_ID` GitHub Actions secrets used by `deploy.yml`.
+8. **Budget alert threshold.** Pick a hard ceiling (suggested: $10/mo). The
+   bootstrap script can wire this up via `az consumption budget create`.
+
+Tick each item off before you `bash infra/azure-bootstrap.sh`. If any are
+missing the script will exit early with a clear message — but it's faster to
+just have them ready.
+
+---
+
+## Manual deploy walkthrough
+
+End-to-end, assuming the checklist above is satisfied:
+
+```bash
+# 1. One-time: provision Azure resources (RG, storage, file share, ACA env,
+#    SWA, GHCR pull secret, Log Analytics workspace).
+bash infra/azure-bootstrap.sh
+
+# 2. Set GitHub Actions secrets (the bootstrap script prints these values).
+#    The deploy workflow needs them to authenticate to Azure + push to GHCR.
+gh secret set AZURE_TENANT_ID       --body "<from-bootstrap>"
+gh secret set AZURE_SUBSCRIPTION_ID --body "<from-bootstrap>"
+gh secret set AZURE_CLIENT_ID       --body "<from-bootstrap>"
+gh secret set AZURE_RG              --body "pll-rg"
+gh secret set AZURE_ACA_NAME        --body "pll-server"
+gh secret set AZURE_SWA_TOKEN       --body "<from az staticwebapp secrets list>"
+
+# 3. Push to main (or merge a PR). The deploy workflow will:
+#    - build the web bundle and ship it to Static Web Apps
+#    - build + push the server image to ghcr.io/<owner>/pll-server:<sha>
+#    - update the Container App to the new image
+git push origin main
+
+# 4. Watch it deploy:
+gh run watch
+
+# 5. Smoke the live API once Actions go green:
+curl -sf https://pll-server.<random>.<region>.azurecontainerapps.io/api/health
+curl -sf https://pll-server.<random>.<region>.azurecontainerapps.io/api/freshness
+```
+
+The first deploy takes ~6-8 minutes (image push + container revision spin-up).
+Subsequent deploys are ~3-4 minutes.
+
+---
+
+## Cost estimate refinement (post-W17)
+
+The W17 smoke test ran the image locally for ~1 minute total across rebuilds
+and probes. Real production usage will dominate the cost; nothing in W17
+testing changed the original estimate. Two notes:
+
+- The image is ~250 MB compressed (Node 20 alpine + node_modules + native
+  better-sqlite3). GHCR storage for this is free; ACA cold-start pulls cost
+  nothing extra inside the same Azure region.
+- The new `/api/freshness` and `/api/health` endpoints query the SQLite file
+  on every hit (no caching). At >1 req/s sustained you'd want to add a 30 s
+  in-memory cache; below that the queries are sub-millisecond and not worth
+  optimising.
+
+Bottom line: still **~$1-4/mo** for typical traffic; **$8/mo** budget alert
+remains a safe ceiling.

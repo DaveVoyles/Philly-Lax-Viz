@@ -21,6 +21,8 @@ import { seasonsRoutes } from './routes/seasons.js';
 import { commitsRoutes } from './routes/commits.js';
 import { constellationRoutes } from './routes/constellation.js';
 import { scheduleRoutes } from './routes/schedule.js';
+import { freshnessRoutes } from './routes/freshness.js';
+import { postImagesRoutes } from './routes/postImages.js';
 
 export interface BuildOptions {
   logger?: boolean;
@@ -75,6 +77,8 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   await commitsRoutes(app, db);
   await constellationRoutes(app, db);
   await scheduleRoutes(app, db);
+  await freshnessRoutes(app, db);
+  await postImagesRoutes(app, db);
 
   return app;
 }

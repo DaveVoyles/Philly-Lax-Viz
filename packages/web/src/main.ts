@@ -41,6 +41,7 @@ const NAV: NavLink[] = [
   { href: '#/constellation', label: 'Constellation', match: 'constellation' },
   { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
+  { href: '#/sources', label: 'Sources', match: 'sources' },
 ];
 
 function mountShell(app: HTMLElement): {
@@ -60,7 +61,13 @@ function mountShell(app: HTMLElement): {
     </header>
     <main id="main" class="container"></main>
     <footer class="site-footer">
-      <span class="muted">Wave 2 shell &middot; @pll/web</span>
+      <div class="site-footer__row">
+        <span class="muted" id="freshness-footer">Last scoreboard update: <span data-freshness="scoreboard">checking...</span></span>
+        <span class="muted">
+          <a href="#/sources">Where does this data come from?</a>
+        </span>
+        <span class="muted">Made with &#129405; in Philly</span>
+      </div>
       <span class="muted attribution">
         Win/loss records and rankings: <a href="https://www.piaa.org" target="_blank" rel="noopener noreferrer">PIAA District 1</a> (state officials, ground truth).
         Game summaries, scores, and player stats: <a href="https://phillylacrosse.com" target="_blank" rel="noopener noreferrer">PhillyLacrosse</a> RSS feed.
@@ -134,6 +141,9 @@ function dispatch(main: HTMLElement, match: RouteMatch): void {
     case 'schedule':
       void import('./views/schedule.js').then((m) => { scheduleDestroy = m.destroy; m.render(main, match.params); });
       return;
+    case 'sources':
+      void import('./views/sources.js').then((m) => m.render(main, match.params));
+      return;
     case 'notFound':
       main.innerHTML = `<h1>Not found</h1><p>No route for <code>${match.path}</code>. <a href="#/">Go home</a>.</p>`;
       return;
@@ -144,6 +154,34 @@ function boot(): void {
   const app = document.getElementById('app');
   if (!app) throw new Error('#app root missing');
   const { main, seasonHost, setActive } = mountShell(app);
+
+  // W17 L3 (R2): populate the global "Last scoreboard update" footer slot
+  // from /api/freshness. Failure is silent so a server outage does not
+  // break the rest of the UI.
+  void fetch('/api/freshness')
+    .then((r) => (r.ok ? r.json() : null))
+    .then((f: { scoreboardLast: string | null } | null) => {
+      const slot = document.querySelector<HTMLElement>('[data-freshness="scoreboard"]');
+      if (!slot) return;
+      if (!f || !f.scoreboardLast) {
+        slot.textContent = 'unknown';
+        return;
+      }
+      const t = Date.parse(f.scoreboardLast);
+      if (Number.isNaN(t)) {
+        slot.textContent = 'unknown';
+        return;
+      }
+      const ms = Date.now() - t;
+      const min = Math.round(ms / 60_000);
+      const rel =
+        min < 60 ? `${min}m ago` : min < 24 * 60 ? `${Math.round(min / 60)}h ago` : `${Math.round(min / 60 / 24)}d ago`;
+      slot.textContent = `${new Date(t).toLocaleString()} (${rel})`;
+    })
+    .catch(() => {
+      const slot = document.querySelector<HTMLElement>('[data-freshness="scoreboard"]');
+      if (slot) slot.textContent = 'unknown';
+    });
 
   const rerenderCurrent = (): void => {
     const match = currentRoute();

@@ -30,7 +30,14 @@ COPY packages/web/package.json     ./packages/web/
 
 # Install everything (including dev deps — tsx is needed at runtime).
 # --frozen-lockfile keeps the image deterministic.
-RUN pnpm install --frozen-lockfile --ignore-scripts=false
+# pnpm 10 requires explicit allow-list for native build scripts; root
+# package.json sets pnpm.onlyBuiltDependencies = ["better-sqlite3", "esbuild"].
+RUN pnpm install --frozen-lockfile
+
+# Belt-and-braces: ensure the native better-sqlite3 binding exists for the
+# image's arch. Without this, pnpm's script gate can silently skip the
+# postinstall and the container exits with "Could not locate the bindings file".
+RUN pnpm rebuild better-sqlite3
 
 # Now copy the rest of the workspace source the server needs
 COPY packages/shared ./packages/shared
