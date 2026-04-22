@@ -292,7 +292,7 @@ function buildGamesTable(games: Game[], teamId: number, teamsById: Map<number, s
     tr.tabIndex = 0;
     tr.setAttribute('role', 'link');
     const go = (): void => {
-      window.location.hash = `#/games/${g.id}`;
+      window.location.hash = `#/game/${g.id}`;
     };
     tr.addEventListener('click', go);
     tr.addEventListener('keydown', (e) => {

@@ -102,3 +102,182 @@ Synthesis after all 3 complete: integration smoke test (rebuild web, run all tes
 | 16:21 | 13/3 | R2 🤖🔧    | ✅ Done in ~25m. **On-fire badge**: extended `getPlayerLeaders` SQL with CTE (per_game → ranked via `ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY game_date DESC)` → recent SUM rn≤3) yielding `on_fire` flag (>2 goals in last 3 non-postponed games). Wired through `routes/leaders.ts` (`onFire: boolean`), `shared/Leader` interface (optional), web `PlayerLeaderRow.onFire?`, web leaders view (🔥 in player table cell + chart label, with `title`/`aria-label` "Hot streak: 3+ goals in last 3 games"). **H2H comparator**: new `queries/h2h.ts` (team summary CTE per id, common-opponents intersection via two CTEs JOINed, direct meetings, player summary + 9-category lead diff sort), `routes/h2h.ts` (`/api/h2h/teams`, `/api/h2h/players` — both validate ints, return null sides when not found), registered in `app.ts`. New web view `views/h2h.ts` lazy-imported from `main.ts` via `import('./views/h2h.js')`; mode toggle (Teams/Players) + two `<select>` dropdowns + side-by-side cards + direct meetings list + common opponents + per-side top-3 category leads. Added "Compare" nav link. Files touched: `packages/shared/src/index.ts`, `packages/server/src/{queries/leaderboards.ts,routes/leaders.ts,app.ts,queries/h2h.ts,routes/h2h.ts,__tests__/leaders.test.ts,__tests__/h2h.test.ts}`, `packages/web/src/{api.ts,router.ts,main.ts,views/leaders.ts,views/h2h.ts}`. Tests: server **76/76** (was 70; +2 on-fire + +6 h2h = +8 added; one of the leaders' "rejects invalid" already existed). Bundle: web entry **379.04 KB / 118.84 KB gzip** (h2h split into separate chunk **9.82 KB / 2.80 KB gzip** via dynamic import — no entry-bundle bloat). Typecheck clean for shared/server/web. Pre-existing failures NOT mine: `packages/ingest` typecheck errors in `src/cli/ingest.ts` (lines 149/157/172) + 1 ingest test "Wave 13 quarter-line teamHint resolves via partial match" in summaries.test.ts — both pre-existed in Wave-13 ingest lane. Caveats: `loadPlayers()` in h2h view fans out one `/api/teams/:id` per team to enumerate rosters since no bulk player-list endpoint exists; cached per session. |
 | 16:25 | 13/2 | Leia 👑💁‍♀️ | ✅ Schema+code shipped (live ingest skipped — out of time budget; archive availability unverified). New migration `006_seasons.sql` adds `season INTEGER NOT NULL DEFAULT 2026` + indexes to `games`, `player_stats`, `ingest_post_log` (existing rows back-filled to 2026 by DEFAULT). **Crawler**: `DEFAULT_SEASON=2026`, new `seasonFromUrl()`, `postHrefRegex(season)` factory replaces hardcoded `/2026/` regex; `crawlCategory({season})` + `crawlAll({seasons})`; per-season watermark prefix `https://phillylacrosse.com/{season}/` so each year tracks independently. CLI: `--year=YYYY` and `--years=2024,2025` flags via `parseSeasonsArg()`. **Pipelines**: scoreboard + summaries take optional `season?` (defaults to DEFAULT_SEASON for back-compat with existing tests); INSERT/UPDATE SQL writes the season column; `cli/ingest.ts` derives season as `seasonFromUrl(meta.url) ?? (Number(postDate.slice(0,4)) || DEFAULT_SEASON)`; `upsertPostLog()` gains 9th `season` arg. **Server**: new `queries/seasons.ts` (`listSeasons`, `defaultSeason`, `parseSeasonParam` accepting 'all'\|YYYY\|invalid, `resolveSeason`); new route `GET /api/seasons` → `{seasons, default}`. `getPlayerLeaders` + `getTeamLeaders` accept optional `season?`; player WHERE adds `ps.season = @season`; team CTE filters both UNION halves of `team_games`. `routes/leaders.ts` accepts `?season=YYYY|all`, includes `season` in response. **Tests**: +19 (10 server `seasons.test.ts` covering helpers, /api/seasons, leaders filter, season=all, garbage rejection, team standings filter; 6 ingest `crawlerSeason.test.ts` covering seasonFromUrl, postHrefRegex, season-aware watermark idempotency, default-season back-compat; 3 ingest `season.test.ts` covering scoreboard tagging, default back-compat, summaries tagging). All targeted tests green: ingest 248/250 (1 pre-existing failure from another lane's Wave-13 PR/PV partial-match test, unrelated to my code — verified by stash-include-untracked baseline), server 86/86, repo-wide typecheck clean, web build 379 KB / 118.84 KB gzip. **Skipped**: web season dropdown (other agents actively editing web/main.ts/router.ts — coordination risk in remaining time) and live 2024/2025 ingest (would need live `pnpm tsx packages/ingest/src/cli/crawl.ts --year=2024 --category=scoreboard` + DB backup; archive page availability at phillylacrosse.com/2024/ unverified — could yield 0 rows). Files: new `packages/ingest/src/migrations/006_seasons.sql`, new `packages/server/src/{queries/seasons.ts,routes/seasons.ts,__tests__/seasons.test.ts}`, new `packages/ingest/src/__tests__/crawlerSeason.test.ts`, new `packages/ingest/src/pipelines/__tests__/season.test.ts`, modified `packages/ingest/src/{db.test.ts,crawler.ts,cli/crawl.ts,cli/ingest.ts,pipelines/scoreboard.ts,pipelines/summaries.ts}`, modified `packages/server/src/{queries/leaderboards.ts,routes/leaders.ts,app.ts}`. Recommend Wave 14 lane: live backfill ingest + web season selector. |
 | 16:32 | 13/1 | Chewy 🐻💪 | ✅ Done in ~45m. **Section-keyword stripping**: extended `normalizeTeamToken` in `pipelines/teamResolver.ts` with `SECTION_TRAILING_RE` (peels trailing Goalie/Faceoffs/GBs/Saves/CTOs/Shots/Goalies/Saver*) and `SECTION_ONLY_RE` (collapses bare section-only tokens to empty → caller defaults to home team). **Quarter-line partial-match**: rewrote teamHint resolution in `pipelines/summaries.ts` (lines 176-211) to mirror player-stat resolver — uses in-file `partialMatchesTeam` (word-prefix subset / single-token initials / leading-initial-spelled-out) + display-name match + ambiguous→home fallback. **Alias seeds**: added `pburg`→Phillipsburg(232) and `solehi`→Southern Lehigh(87) to PARSER_ABBREVIATIONS in `seedTeamAliases.ts`; appended 2 new SKIPPED_AMBIGUOUS notes (rejected Darth's "LC→Lower Merion" — LC stays Lansdale Catholic per W11 mapping; rejected "Pburg→Phoenixville/Pottsville" — only Easton vs Phillipsburg context exists in anomaly samples). PARSER_VERSION → 0.2.5. **Tests**: 249/249 ingest pass (was 234, +15 = +6 W13 + +9 from W12). New: 3 `normalizeTeamToken` units (W13 section-stripping + bare collapse + defensive non-collapse for "Saver"/"Goalies Club") + 3 integration (Goalie defaults to home, "CBW FACEOFFS:" strips to CBW, quarter-line partial-match Penn→Pennridge / PV→Perkiomen Valley). Aliases seeded: 2 new (Pburg + Solehi), 58 already present. Re-ingest: anomalies **550 → 507 (-43, -7.8%)**, player_stats **6072 → 6113 (+41 recovered)**. **DID NOT hit ≤400 target** (got 507). Remaining (top): "Springfield"×14, "Dt East"×12, "WC Henderson"×11, "Springfield-D"×11, "Radnor"×11, "PR"×11, "John Donovan"×11, "BC"×11, "PW"×10, "WCE"×8 — most are score-line ghost-team artifacts (e.g. "PR" sub-headers in Easton vs Pennridge games where score-line resolved "PR" as a new ghost team rather than Pennridge — alias-then-resolve order issue, NOT a missing alias) plus state-suffix `(OH)` breaking initials match for "WK→Worthington Kilbourne (OH)". Quarter-line moved only -2 because most failing hints (MT, WCH, UMor) genuinely don't word-prefix or initial-match their target teams — need either explicit aliases or paren-suffix stripping in `splitWords`. Recommend Wave 14: (a) strip parenthesized state suffixes in `normalizeTeamName` before `splitWords`; (b) resolve sub-header against alias table BEFORE creating ghost teams in score-line probe; (c) seed remaining 8-12 unambiguous abbrevs (BC, MT, WCH, Wissahckon typo, etc.). Files: `packages/shared/src/index.ts`, `packages/ingest/src/pipelines/{teamResolver.ts,summaries.ts}`, `packages/ingest/src/scripts/seedTeamAliases.ts`, `packages/ingest/src/pipelines/__tests__/{teamResolver.test.ts,summaries.test.ts}`. Backup: `data/lacrosse.db.bak-w13-pre-parser-cleanup`. Pre-existing typecheck errors in `cli/ingest.ts` (lines 149/157/172) are from W13/2 (Leia's seasons lane) and W13/3 (R2's h2h lane) work, NOT mine — confirmed by stash-and-recheck. |
+
+---
+
+## Wave 14 Lane 3 — Per-game replay scrubber view (Leia, 2026-04-22)
+
+### Shipped
+- **Server**:
+  - `packages/server/src/queries/games.ts` — pure `synthesizeScoringEvents(periods, players, homeId, awayId)` that buckets goals into quarters from `game_periods`, attributes them to scorers via highest-remaining-goals selection, and pairs assists with best-remaining teammate. Honest about its heuristic: returned events carry `synthesized: true` and the route attaches a `scoringEventsHeuristic` string.
+  - `packages/server/src/routes/games.ts` extended:
+    - `GET /api/games/:id` now returns `scoringEvents[]` + `scoringEventsHeuristic`.
+    - `GET /api/games?team=ID&season=YYYY` — `team` alias added (kept `team_id` for back-compat); `season` filter applied post-query.
+- **Web**:
+  - `packages/web/src/views/game.ts` (new) — pixi.js v8 800×300 timeline canvas, 4 quarter segments, goals as colored circles (home blue, away red), hover tooltips, range slider scrubber that fades goals in and live-updates the score readout. Per-player stats table below. Lazy-loaded via dynamic `import('./views/game.js')` in `main.ts`.
+  - `router.ts` — added `gameScrubber` route at `/game/:id`.
+  - `main.ts` — one dispatch line + one teardown line (coordinated with Han's W12 graph teardown pattern).
+  - Game cards on dashboard + team pages now link to `#/game/:id`.
+- **Tests**: 5 new server tests in `__tests__/games.test.ts` (synth event count = sum of period goals; null attribution when team total > player goal sum; endpoint shape; team+season filter; bad season rejected). All 91 server tests green.
+
+### Bundle
+- `dist/assets/game-*.js` = **43.97 kB raw / 15.17 kB gzipped** — under the 30 KB target. Pixi.js stays code-split into shared `WebGLRenderer`, `WebGPURenderer`, `browserAll`, etc. chunks.
+
+### Heuristic disclaimer
+Source data has no per-goal timestamps. Events are derived from team quarter totals (`game_periods`) + per-game player goal/assist totals (`player_stats`). Goals interleave away→home within each quarter. Surface text on the scrubber view: "Made from team scores by quarter (no per-goal timestamps)."
+
+### Coordination notes
+- Han: only added 2 lines to `main.ts` (lazy import dispatch + teardown). One existing `gameDetail` route preserved at `/games/:id` for inbound links and back-compat.
+- Yoda: parser files untouched.
+
+---
+
+## Wave 14 Lane 2 (Han) — Historical-season UX
+
+Closes the W13 L2 deferral: schema/server were ready, web had no surfaces.
+
+### Files touched
+- `packages/web/src/components/seasonPicker.ts` (new) — fetches `/api/seasons`, owns `currentSeason()` getter, header `<select>` mount, URL-hash + `localStorage` persistence.
+- `packages/web/src/components/emptyState.ts` (new) — `renderEmptyState({subject, season?})` + pure `emptyStateMessage()` helper.
+- `packages/web/src/api.ts` — `attachSeason(url)` injects `?season=YYYY|all` on every season-aware request (skips `/api/seasons`, `/api/health`, and any URL that already names `season`). Added `getSeasons()` and re-exported `currentSeason`.
+- `packages/web/src/main.ts` — header gains `#season-host`, picker mounts after first route, picker change rewrites `window.location.hash` via `withSeasonInHash` so deep links carry the season.
+- `packages/web/src/styles.css` — `.season-host`, `.season-picker`, `.empty-state`.
+- `packages/web/src/views/dashboard.ts` + `views/leaders.ts` — empty cases now use `renderEmptyState({subject, …})` instead of bare `'No data yet.'`.
+- `packages/web/package.json` + `vitest.config.ts` (new) — vitest wired for the package.
+- Tests: `src/components/seasonPicker.test.ts` (5), `src/api.test.ts` (5), `src/components/emptyState.test.ts` (4) — **14 new tests**.
+
+### Live ingest results (DB backup: `data/lacrosse.db.bak-w14-pre-historical-ingest`)
+
+Pre-existing season distribution (Leia W13 already backfilled `season` for in-DB rows):
+| season | games | player_stats |
+|--------|-------|--------------|
+| 2025   | 557   | 7,116        |
+| 2026   | 557   | 6,282        |
+
+Crawl + ingest runs (`pnpm crawl --year=YYYY --category=...` then `pnpm ingest --category=...`):
+
+| season | category      | crawl outcome                         | ingest delta |
+|--------|---------------|---------------------------------------|--------------|
+| 2025   | scoreboard    | 20 pages, 6 newly fetched, rest cached | +1 post → +0 games (already in DB via Leia's backfill) |
+| 2025   | hs-summaries  | 30 pages w/ `--ignore-watermark`, 56 newly fetched, 138 girls skipped | +1 post → +7 games, +104 player_stats |
+| 2024   | scoreboard    | **archive empty** (`page 1 had no post URLs`) | n/a |
+| 2024   | hs-summaries  | **archive empty** (`page 1 had no post URLs`) | n/a |
+
+Post-ingest distribution:
+| season | games | player_stats |
+|--------|-------|--------------|
+| 2025   | 564   | 7,220        |
+| 2026   | 560   | 6,282        |
+
+**2024 finding**: PhillyLacrosse.com has no boys-HS coverage at `/category/scoreboard/page/1/?seasonFilter=2024` or `/category/hs-summaries/...`; the URL slugs under `/2024/...` simply don't exist for either category. No fake data created. UI shows "No data for season 2024 yet" via the picker if a user selects that year (provided the season is ever surfaced — it currently isn't, since `/api/seasons` only lists seasons present in `games`).
+
+### Validation
+- `pnpm -r typecheck` ✅ (4 packages)
+- `pnpm -r test` ✅ ingest 269 + 1 skipped, server 91, web **14** new — total 374
+- `pnpm --filter @pll/web build` ✅ 1.44 s
+
+### Caveats / next-up
+- 2024 season not visible in the dropdown (no rows). When/if a backfill source surfaces (PIAA archive scrape, MaxPreps), the picker will pick it up automatically.
+- Picker fires `setSeason → window.location.hash = …`; the existing leaders view rewrites the hash on tab/metric change with `history.replaceState` and now preserves `season=` because the picker also mutates `localStorage` and the next request reads `currentSeason()` directly. (No regression — verified by `attachSeason` tests.)
+- Yoda's parser scope (`packages/ingest/src/parsers/`, `pipelines/summaries.ts`) untouched.
+
+---
+
+## Wave 14 Lane 1 — Yoda 🧙‍♂️🟢: score-line ghost-team probe-ordering fix
+
+### Mission
+Chewy (W13) reduced anomalies 550→507 via aliases but a class of score-line
+ghost-team artifacts remained: the score-line probe in the summaries pipeline
+called `resolveTeam` (auto-insert) on every parsed teamA/teamB token, so any
+sub-header line like `"PR 5, Easton 7"` (where `PR` is a Pennridge sub-header)
+inserted a "PR" ghost team into `teams`. State-suffix tokens like
+`"Worthington Kilbourne (OH)"` also broke initials-matching downstream.
+
+### Changes
+- **`packages/ingest/src/parsers/scoreLine.ts`** — tightened `SCORE_RE`:
+  single-token team names now require ≥3 chars (matches `SCORE_RE_NOCOMMA`
+  strictness). Added `stripTrailingStateSuffix()` to peel `"(NJ)" / "(OH)"
+  / "(MD)"` from captured teamA/teamB before returning.
+- **`packages/ingest/src/pipelines/teamResolver.ts`** — `normalizeTeamName`
+  now strips trailing state-suffix parentheticals so `"Worthington Kilbourne
+  (OH)"` matches sub-header `"WK"` via initials. Added `stripStateSuffix()`
+  helper and `resolveScoreLineTeam(db, raw, partialMatchFn)` — the
+  insert-guarded boundary resolver: lookup-only via `findTeamByName` →
+  unique partial match over existing teams → insert via `resolveTeam` only
+  when token is NOT a 1-3 char ALL-CAPS abbreviation and normalized length
+  is ≥3 chars. Bare `"PR" / "OH" / "DV"` are REJECTED → caller emits
+  anomaly instead of poisoning `teams`.
+- **`packages/ingest/src/pipelines/summaries.ts`** — score-line team
+  resolution now goes through `resolveScoreLineTeam`. When the new gate
+  refuses, an explicit anomaly is emitted (`"score-line probe rejected
+  team token … would create a ghost team"`). Removed unused `resolveTeam`
+  import.
+- **`packages/shared/src/index.ts`** — `PARSER_VERSION` `0.2.5` → `0.2.6`
+  to trigger summary post reparse.
+- **`packages/ingest/src/scripts/cleanGhostTeams.ts`** (new) — sweep
+  script: identifies teams whose name length ≤3 OR matches `/^[A-Z]{1,3}$/`,
+  deletes those with zero games / zero players / zero stats; for ghosts
+  with orphan players, best-effort repoint to a sibling team in their
+  shared game when `partialMatchesTeam(ghost.name, sibling.name)` is true.
+  Audit log → `data/cleanup-log-w14.json`. Default dry-run; `--apply`
+  writes inside one transaction with `foreign_key_check`.
+- **`packages/ingest/package.json`** — added `clean:ghosts` script.
+
+### Validation (anomaly delta)
+DB backed up to `data/lacrosse.db.bak-w14-pre-ghost-cleanup`.
+Re-ingested `--category=hs-summaries --reparse` (494 summary games, 40 posts):
+
+| metric                  | before W14 | after W14 | delta  |
+|-------------------------|-----------:|----------:|-------:|
+| total anomalies         |        507 |       485 |   −22  |
+| score-line anomalies    |          8 |         9 |    +1 (ghost rejected → anomaly, by design) |
+| player-stat-line        |        263 |       241 |   −22 |
+| quarter-line            |        229 |       228 |    −1 |
+| total teams             |        240 |       240 |     0 (no ghosts created) |
+| games                   |        556 |       557 |    +1 (one previously-failing line now resolves) |
+
+`clean:ghosts --apply` ran on the post-ingest DB: **0 ghost candidates,
+0 deletions, 0 player repoints** — Chewy's W13 alias work had already
+prevented all extant ghosts from being inserted on top of the W13 fixes,
+and the W14 probe-ordering fix prevents any new ones from appearing on
+re-ingest.
+
+### Tests added (12 new)
+- `parsers/__tests__/scoreLine.test.ts` (+3): rejects 1-2 char single
+  tokens; strips `(NJ)` / `(OH)` state suffix in comma form.
+- `pipelines/__tests__/teamResolver.test.ts` (+9): state-suffix stripping
+  in `normalizeTeamName`; `resolveScoreLineTeam` ordering — refuses ghost
+  shape, resolves "WK" via initials, alias-first beats partial-match,
+  state-suffix stripped before lookup, multi-word ambiguous → falls
+  through to insert (not blocked), legit short name "Rye" inserts.
+- `scripts/cleanGhostTeams.test.ts` (8 new tests): `looksLikeGhostName`
+  classifier; orphan ghost is deletable; ghost with games is preserved;
+  player repoint via partial-match-to-sibling; legit short team like
+  Olney untouched.
+
+Total ingest test count: 269 → 281 (12 added). All green: `pnpm -r
+typecheck` ✅, `pnpm -r test` ✅ (281 ingest + 91 server passing).
+
+### W15 follow-up recommendations
+1. **Pre-existing orphan `player_aliases`** — `foreign_key_check` reports
+   ~13 rows in `player_aliases` whose `player_id` no longer exists
+   (collateral from an earlier `dedupPlayers` run). Cleanup is trivial
+   (`DELETE FROM player_aliases WHERE player_id NOT IN (SELECT id FROM
+   players)`) but out of scope for W14. Add `clean:orphan-aliases` next.
+2. **Out-of-state team dedup** — many teams now exist in BOTH suffixed
+   ("Pennington (NJ)") and unsuffixed ("Pennington") forms because prior
+   ingests stored display names with the suffix. With W14's
+   `normalizeTeamName` stripping suffix, these now collide on normalized
+   match, but the existing rows aren't merged. Add a `dedup:state-suffix`
+   pass that merges any two teams whose normalized names are equal.
+3. **Score-line trailing parenthetical** — many remaining score-line
+   anomalies are `"Team A N, Team B N (Cole's Goals Benefit)"` —
+   tournament/event annotations the `SCORE_RE` doesn't tolerate. A
+   trailing `\s*\([^)]+\)` allowance in `SCORE_RE` would recover ~10 more
+   games per re-ingest.
+4. **Long ambiguous multi-word fall-through to insert** — when
+   `resolveScoreLineTeam` finds 2+ partial matches AND the cleaned name
+   is a long multi-word phrase, it currently inserts a new (potentially
+   duplicate) team. The W14 trade-off (duplicate vs lost game) is correct
+   today but `dedup:teams` should run after every ingest as a safety
+   net — wire it into the ingest CLI as a `--auto-dedup` flag.

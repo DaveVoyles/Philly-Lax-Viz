@@ -1,0 +1,13 @@
+{
+  "mode": "apply",
+  "result": {
+    "preTeams": 240,
+    "candidates": [],
+    "deletable": [],
+    "repoints": [],
+    "skipped": [],
+    "postTeams": 240,
+    "deleted": 0,
+    "repointed": 0
+  }
+}

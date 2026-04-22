@@ -11,10 +11,13 @@ import {
   type PlayerStatRow,
   type TeamRow,
 } from '../queries/mappers.js';
+import { synthesizeScoringEvents } from '../queries/games.js';
 
 interface ListQuery {
   date?: string;
   team_id?: string;
+  team?: string;
+  season?: string;
   limit?: string;
   offset?: string;
 }
@@ -25,7 +28,7 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
   const s = getStatements(db);
 
   app.get<{ Querystring: ListQuery }>('/api/games', async (req, reply) => {
-    const { date, team_id } = req.query;
+    const { date } = req.query;
 
     let limit = 50;
     if (req.query.limit !== undefined) {
@@ -53,13 +56,26 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
     }
 
     let teamId: number | undefined;
-    if (team_id !== undefined) {
-      const n = Number(team_id);
+    // `team` is the W14 alias preferred by the new game-scrubber view; the
+    // original `team_id` query param remains supported for back-compat.
+    const teamRaw = req.query.team_id ?? req.query.team;
+    if (teamRaw !== undefined) {
+      const n = Number(teamRaw);
       if (!Number.isInteger(n) || n <= 0) {
         reply.code(400);
-        return { error: 'BadRequest', message: 'team_id must be a positive integer' };
+        return { error: 'BadRequest', message: 'team must be a positive integer' };
       }
       teamId = n;
+    }
+
+    let season: number | undefined;
+    if (req.query.season !== undefined) {
+      const n = Number(req.query.season);
+      if (!Number.isInteger(n) || n < 1900 || n > 3000) {
+        reply.code(400);
+        return { error: 'BadRequest', message: 'season must be a 4-digit year' };
+      }
+      season = n;
     }
 
     let rows: GameRow[];
@@ -71,6 +87,10 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
       rows = s.listGamesByTeam.all(teamId, teamId, limit, offset) as GameRow[];
     } else {
       rows = s.listGames.all(limit, offset) as GameRow[];
+    }
+
+    if (season !== undefined) {
+      rows = rows.filter((r) => (r as GameRow & { season?: number }).season === season);
     }
 
     return rows.map(mapGame);
@@ -101,12 +121,39 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
       teamName: r.team_name,
     }));
 
+    // Wave 14 Lane 3 (Leia) — synthesize a per-goal event sequence so the
+    // game-scrubber view has something to render. We don't have real
+    // timestamps; see queries/games.ts for the heuristic.
+    const playerTeamIdByPlayerId = new Map<number, number>();
+    for (const r of statRows) {
+      // statRows have ps.player_id; their player belongs to home or away.
+      // Cheapest lookup: re-derive from the existing roster query already
+      // joined on team. We re-query players to get team_id, but to avoid a
+      // new prepared statement we just probe the in-memory homeTeam/awayTeam
+      // by checking the row's joined team_name.
+      if (r.team_name === homeTeamRow?.name) playerTeamIdByPlayerId.set(r.player_id, gameRow.home_team_id);
+      else if (r.team_name === awayTeamRow?.name) playerTeamIdByPlayerId.set(r.player_id, gameRow.away_team_id);
+    }
+    const playersForSynth = playerStats.map((ps) => ({
+      ...ps,
+      teamId: playerTeamIdByPlayerId.get(ps.playerId) ?? -1,
+    }));
+    const scoringEvents = synthesizeScoringEvents(
+      periods,
+      playersForSynth,
+      gameRow.home_team_id,
+      gameRow.away_team_id,
+    );
+
     return {
       game: mapGame(gameRow),
       homeTeam: homeTeamRow ? mapTeam(homeTeamRow) : null,
       awayTeam: awayTeamRow ? mapTeam(awayTeamRow) : null,
       periods,
       playerStats,
+      scoringEvents,
+      scoringEventsHeuristic:
+        'Made from team scores by quarter (game_periods) and per-game player goal/assist totals (player_stats); no per-goal timestamps in source.',
     };
   });
 }

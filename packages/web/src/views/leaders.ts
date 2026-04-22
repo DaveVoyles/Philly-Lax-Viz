@@ -15,6 +15,7 @@ import {
 import { renderHorizontalLeaderboard } from '../charts/index.js';
 import type { ChartHandle } from '../charts/types.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
+import { renderEmptyState } from '../components/emptyState.js';
 
 type Tab = 'players' | 'teams';
 
@@ -276,7 +277,7 @@ async function loadPlayers(
   const top = resp.rows.slice(0, TOP_N);
   chartEl.replaceChildren();
   if (top.length === 0) {
-    chartEl.textContent = 'No data yet.';
+    chartEl.appendChild(renderEmptyState({ subject: 'player leaders' }));
   } else {
     activeChart = renderHorizontalLeaderboard(
       chartEl,
@@ -314,7 +315,7 @@ async function loadTeams(
   const top = resp.rows.slice(0, TOP_N);
   chartEl.replaceChildren();
   if (top.length === 0) {
-    chartEl.textContent = 'No data yet.';
+    chartEl.appendChild(renderEmptyState({ subject: 'team leaders' }));
   } else {
     activeChart = renderHorizontalLeaderboard(
       chartEl,

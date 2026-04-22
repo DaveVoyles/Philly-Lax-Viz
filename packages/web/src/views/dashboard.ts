@@ -15,6 +15,7 @@ import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderPiaaBadge } from '../components/piaaBadge.js';
 import { renderHorizontalLeaderboard } from '../charts/index.js';
 import type { ChartHandle } from '../charts/types.js';
+import { renderEmptyState } from '../components/emptyState.js';
 
 type SortKey = 'name' | 'gap';
 type SortDir = 'asc' | 'desc';
@@ -170,10 +171,7 @@ async function loadLeaderPanel(
     el.replaceChildren();
     const top = resp.rows.slice(0, LEADER_PANEL_LIMIT);
     if (top.length === 0) {
-      const p = document.createElement('p');
-      p.className = 'muted';
-      p.textContent = 'No qualifying players yet.';
-      el.appendChild(p);
+      el.appendChild(renderEmptyState({ subject: 'qualifying players' }));
       return;
     }
     const handle = renderHorizontalLeaderboard(
@@ -288,10 +286,12 @@ function buildTeamsGrid(
   const wrap = document.createElement('div');
 
   if (teams.length === 0) {
-    const p = document.createElement('p');
-    p.className = 'muted';
-    p.textContent = 'No teams yet -- run `pnpm ingest` to populate the database.';
-    wrap.appendChild(p);
+    wrap.appendChild(
+      renderEmptyState({
+        subject: 'teams',
+        hint: 'Try a different season, or run `pnpm ingest` to populate the database.',
+      }),
+    );
     return wrap;
   }
 
@@ -381,10 +381,7 @@ function buildGapBadge(t: TeamSeasonRecord): HTMLSpanElement {
 
 function buildRecentGamesTable(games: Game[], teamById: Map<number, Team>): HTMLElement {
   if (games.length === 0) {
-    const p = document.createElement('p');
-    p.className = 'muted';
-    p.textContent = 'No games yet.';
-    return p;
+    return renderEmptyState({ subject: 'games' });
   }
 
   const sorted = [...games].sort((a, b) => {
@@ -412,7 +409,7 @@ function buildRecentGamesTable(games: Game[], teamById: Map<number, Team>): HTML
     tr.tabIndex = 0;
     tr.setAttribute('role', 'link');
     const go = (): void => {
-      window.location.hash = `#/games/${g.id}`;
+      window.location.hash = `#/game/${g.id}`;
     };
     tr.addEventListener('click', go);
     tr.addEventListener('keydown', (e) => {

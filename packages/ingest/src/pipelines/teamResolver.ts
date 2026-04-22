@@ -28,11 +28,34 @@ export function normalizeTeamName(raw: string): string {
     .replace(/[\u2013\u2014]/g, '-')
     .replace(/\u00A0/g, ' ');
   s = s.toLowerCase().trim();
+  // Wave 14 Lane 1 (Yoda 🧙‍♂️🟢): strip trailing state-suffix parenthetical
+  // like "(nj)", "(oh)", "(md)" — these are disambiguation hints from
+  // out-of-state opponents (Wave 12 capture). Stripping here means
+  // alias / display-name / initials matches all see the bare team name,
+  // so "Worthington Kilbourne (OH)" matches sub-header "WK" via initials.
+  s = s.replace(/\s*\([a-z]{2,3}\)\s*$/i, '').trim();
   // Drop trailing HS / High School / H.S. suffixes.
   s = s.replace(/\s+(?:high\s+school|h\.?\s*s\.?)$/i, '');
   s = s.replace(/\s+/g, ' ').trim();
   s = s.replace(/[\.,:;]+$/u, '').trim();
   return s;
+}
+
+/**
+ * Strip a trailing state-suffix parenthetical from a raw team token
+ * BEFORE further normalization. Returns `{ name, state }` where `state`
+ * is the uppercase 2-3 letter code if found, else null. Idempotent.
+ *
+ * Wave 14 Lane 1 (Yoda 🧙‍♂️🟢): used by the score-line probe to detect
+ * "Notre Dame (NJ)" → name="Notre Dame", state="NJ" so the resolver can
+ * use the state hint when an alias collision exists, without storing the
+ * suffix in `teams.name` for new inserts.
+ */
+export function stripStateSuffix(raw: string): { name: string; state: string | null } {
+  if (!raw) return { name: '', state: null };
+  const m = raw.match(/^(.*?)\s*\(([A-Z]{2,3})\)\s*$/i);
+  if (!m) return { name: raw.trim(), state: null };
+  return { name: m[1]!.trim(), state: m[2]!.toUpperCase() };
 }
 
 /**
@@ -175,4 +198,66 @@ export function resolveTeam(db: Database, rawName: string): TeamRow {
     .run(displayName, slug);
   const id = Number(info.lastInsertRowid);
   return { id, name: displayName, slug };
+}
+
+/**
+ * Score-line-safe team resolver. Wave 14 Lane 1 (Yoda 🧙‍♂️🟢).
+ *
+ * Lookup order — the boundary detector MUST exhaust every non-creating
+ * strategy before inserting, because the score-line probe sometimes
+ * matches sub-header lines (e.g. "PR 5, Easton 7" where "PR" is just a
+ * Pennridge sub-header) and creating a "PR" ghost team poisons the DB.
+ *
+ *   1. `findTeamByName` — handles alias + normalized exact match (lookup-only).
+ *   2. `partialMatchesTeam` over all existing teams — catches initials and
+ *      word-prefix variants ("PR" → "Pennridge", "WK" → "Worthington
+ *      Kilbourne"). Only returns a team when EXACTLY ONE existing team
+ *      matches; ambiguous → fall through.
+ *   3. Insert-allowed only when the cleaned name is "team-shaped":
+ *        - length >= 4 chars, OR
+ *        - contains a space (multi-word phrase like "PJP II"), OR
+ *        - is a known title-cased title-only team
+ *      Bare 1-3 char ALL-CAPS tokens ("PR", "OH", "NJ", "DV") are REJECTED;
+ *      caller treats `null` return as a probe-failed anomaly.
+ */
+export function resolveScoreLineTeam(
+  db: Database,
+  rawName: string,
+  partialMatchFn?: (sub: string, teamName: string) => boolean,
+): TeamRow | null {
+  const { name: stripped } = stripStateSuffix(rawName);
+  const cleaned = normalizeTeamToken(stripped);
+  const normalized = normalizeTeamName(cleaned);
+  if (!normalized) return null;
+
+  // (1) findTeamByName — alias + normalized name lookup, no insert.
+  const direct = findTeamByName(db, stripped);
+  if (direct) return direct;
+
+  // (2) partial match over all teams (initials / word-prefix). When EXACTLY
+  //     one team matches uniquely, prefer it over inserting a duplicate.
+  //     If 2+ match, fall through to the insert gate — for long multi-word
+  //     names (e.g. "Wilkes-Barre Area") we'd rather insert a new row than
+  //     drop the game; the duplicate can be merged later by `dedup:teams`.
+  if (partialMatchFn) {
+    const allTeams = db
+      .prepare('SELECT id, name, slug FROM teams')
+      .all() as ExistingTeamRow[];
+    const matches = allTeams.filter((t) => partialMatchFn(cleaned, t.name));
+    if (matches.length === 1) return matches[0]!;
+  }
+
+  // (3) Insert gate — the line of defence against ghost teams.
+  //     REFUSE to insert tokens that match the ghost shape:
+  //       - bare 1-3 char ALL-CAPS abbreviations ("PR", "OH", "NJ", "DV")
+  //       - any token whose normalized form is < 3 chars
+  //     Everything else (legit short teams like "Rye", multi-word like
+  //     "Wilkes-Barre Area") gets inserted normally.
+  const trimmed = cleaned.trim();
+  const isShortAllCaps = /^[A-Z]{1,3}$/.test(trimmed);
+  const tooShort = normalized.length < 3;
+  if (isShortAllCaps || tooShort) {
+    return null;
+  }
+  return resolveTeam(db, stripped);
 }

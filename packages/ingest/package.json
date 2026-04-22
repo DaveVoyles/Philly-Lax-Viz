@@ -15,6 +15,7 @@
     "players:dedup": "tsx src/scripts/dedupPlayers.ts",
     "dedup:teams": "tsx src/scripts/dedupTeams.ts",
     "cleanup:junk": "tsx src/scripts/cleanupJunkPlayers.ts",
+    "clean:ghosts": "tsx src/scripts/cleanGhostTeams.ts",
     "aliases:seed": "tsx src/scripts/seedTeamAliases.ts",
     "reattribute:junk": "tsx src/scripts/reattributeJunkStats.ts",
     "anomaly:triage": "tsx src/scripts/anomalyTriage.ts"

@@ -1,13 +1,30 @@
 import type { ParseResult, ParsedScoreLine } from '@pll/shared';
 import { normalizeUnicodeQuotes, normalizeWhitespace } from './text.js';
 
+/**
+ * Strip a trailing 2-3 letter state-suffix parenthetical like "(NJ)",
+ * "(OH)", "(MD)" from a team token. Wave 14 Lane 1 (Yoda 🧙‍♂️🟢):
+ * out-of-state opponents on inquirer.com appear as "Notre Dame (NJ)".
+ * The suffix breaks alias / initials matching ("WK" should match
+ * "Worthington Kilbourne" but doesn't match "Worthington Kilbourne (OH)").
+ * Strip here so downstream resolution sees only the bare team name.
+ */
+function stripTrailingStateSuffix(s: string): string {
+  return s.replace(/\s*\([A-Z]{2,3}\)\s*$/i, '').trim();
+}
+
 // Score line: "Team A 14, Team B 7" with optional "(3OT)" / ", OT" / ", ppd"
 // or trailing bare " 2OT" / " OT" (Wave 12 Lane 1 — Darth 😈⚡: catches
 // "Avon Grove 9, West Chester East 8 2OT").
 // Strict shape: team names cannot contain `:`, `=`, or digits — this prevents
 // quarter lines like "Easton: 6, 3, 3, 2 – 14" from being misread as scores.
+//
+// Wave 14 Lane 1 (Yoda 🧙‍♂️🟢): require team names of >= 3 chars OR
+// multi-word. Single 1-2 char tokens like "PR", "DV", "AC" are sub-headers,
+// not real teams — letting them match here is what created the score-line
+// ghost-team artifacts (Easton vs Pennridge "PR" sub-header, etc).
 const SCORE_RE =
-  /^([A-Za-z][^,:=\d]*?)\s+(\d+)\s*,\s*([A-Za-z][^,:=\d]*?)\s+(\d+)(?:\s*[,;]?\s*\((\d+)?\s*OT\)|\s*,\s*OT|\s+(\d+)?\s*OT)?(?:\s*[,;]\s*(ppd|postponed))?\.?$/i;
+  /^([A-Za-z][A-Za-z'.\-]{2,}(?:[^,:=\d]*?)?|[A-Za-z][^,:=\d]*?\s+[A-Za-z][^,:=\d]*?)\s+(\d+)\s*,\s*([A-Za-z][A-Za-z'.\-]{2,}(?:[^,:=\d]*?)?|[A-Za-z][^,:=\d]*?\s+[A-Za-z][^,:=\d]*?)\s+(\d+)(?:\s*[,;]?\s*\((\d+)?\s*OT\)|\s*,\s*OT|\s+(\d+)?\s*OT)?(?:\s*[,;]\s*(ppd|postponed))?\.?$/i;
 
 // Comma-less form: "Twin Valley 17 Daniel Boone 1". Both team names must be
 // title-cased multi-word phrases (every word starts with a capital letter or is
@@ -58,8 +75,8 @@ export function parseScoreLine(rawLine: string): ParseResult<ParsedScoreLine> {
     };
   }
 
-  const teamA = (m[1] ?? '').trim();
-  const teamB = (m[3] ?? '').trim();
+  const teamA = stripTrailingStateSuffix((m[1] ?? '').trim());
+  const teamB = stripTrailingStateSuffix((m[3] ?? '').trim());
   const scoreA = Number(m[2]);
   const scoreB = Number(m[4]);
   // m[5] = parenthesized OT count; m[6] = bare-suffix OT count

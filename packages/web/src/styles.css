@@ -78,6 +78,22 @@ pre {
   color: var(--accent-fg);
 }
 
+.season-host { margin-left: auto; }
+.season-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+.season-picker__select {
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: inherit;
+}
+.empty-state { padding: 1rem 0; }
+
 .container {
   max-width: 1100px;
   margin: 0 auto;

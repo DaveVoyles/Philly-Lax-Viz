@@ -9,7 +9,7 @@ import type { Database } from 'better-sqlite3';
 import type { ParsedPlayerStat } from '@pll/shared';
 import { PARSER_VERSION } from '@pll/shared';
 import type { ParsedSummariesPost } from '../parsers/summariesPost.js';
-import { normalizeTeamName, normalizeTeamToken, resolveTeam, findTeamByName, type TeamRow } from './teamResolver.js';
+import { normalizeTeamName, normalizeTeamToken, resolveScoreLineTeam, findTeamByName, type TeamRow } from './teamResolver.js';
 import { normalizePlayerName } from '../normalize/playerName.js';
 import { insertAnomaly } from './anomalies.js';
 import { DEFAULT_SEASON } from '../crawler.js';
@@ -115,10 +115,15 @@ export function ingestSummariesPost(
   );
 
   for (const block of input.parsed.games) {
-    let homeTeam: TeamRow, awayTeam: TeamRow;
+    let homeTeam: TeamRow | null = null;
+    let awayTeam: TeamRow | null = null;
     try {
-      homeTeam = resolveTeam(db, block.scoreLine.teamA);
-      awayTeam = resolveTeam(db, block.scoreLine.teamB);
+      // Wave 14 Lane 1 (Yoda 🧙‍♂️🟢): use the layered, insert-guarded
+      // resolver. It tries alias → exact-name → partialMatch (initials,
+      // word-prefix) before EVER inserting, and refuses to insert short
+      // 1-3 char ALL-CAPS tokens that would create ghost teams like "PR".
+      homeTeam = resolveScoreLineTeam(db, block.scoreLine.teamA, partialMatchesTeam);
+      awayTeam = resolveScoreLineTeam(db, block.scoreLine.teamB, partialMatchesTeam);
     } catch (err) {
       r.anomaliesAdded += insertAnomaly(db, {
         sourcePostId: input.postId,
@@ -127,6 +132,18 @@ export function ingestSummariesPost(
         parentGameId: null,
         strategyAttempted: 'score-line',
         reason: `team resolution failed: ${(err as Error).message}`,
+      });
+      continue;
+    }
+    if (!homeTeam || !awayTeam) {
+      const failed = !homeTeam ? block.scoreLine.teamA : block.scoreLine.teamB;
+      r.anomaliesAdded += insertAnomaly(db, {
+        sourcePostId: input.postId,
+        sourceUrl: input.postUrl,
+        rawLine: `${block.scoreLine.teamA} ${block.scoreLine.scoreA}, ${block.scoreLine.teamB} ${block.scoreLine.scoreB}`,
+        parentGameId: null,
+        strategyAttempted: 'score-line',
+        reason: `score-line probe rejected team token "${failed}" (likely a sub-header, not a real team — would create a ghost team)`,
       });
       continue;
     }

@@ -190,3 +190,90 @@ describe('resolveTeam with suffix tokens', () => {
     expect(count.c).toBe(1);
   });
 });
+
+// ─── Wave 14 Lane 1 (Yoda 🧙‍♂️🟢) ─────────────────────────────────────
+describe('normalizeTeamName — state-suffix stripping (W14)', () => {
+  it('strips trailing "(NJ)", "(OH)", "(MD)" parentheticals', () => {
+    expect(normalizeTeamName('Bergen Catholic (NJ)')).toBe('bergen catholic');
+    expect(normalizeTeamName('Worthington Kilbourne (OH)')).toBe('worthington kilbourne');
+    expect(normalizeTeamName('McDonogh School (MD)')).toBe('mcdonogh school');
+  });
+  it('does not strip non-state-shaped parentheticals', () => {
+    expect(normalizeTeamName('Notre Dame (Girls)')).toBe('notre dame (girls)');
+  });
+  it('lets stripped name match a non-suffix alias / display variant', () => {
+    expect(normalizeTeamName('Pennington (NJ)')).toBe(normalizeTeamName('Pennington'));
+  });
+});
+
+describe('resolveScoreLineTeam — Wave 14 probe-ordering guard', () => {
+  let db: ReturnType<typeof freshDb>;
+  beforeEach(() => { db = freshDb(); });
+
+  it('REFUSES to insert a 1-3 char ALL-CAPS sub-header token (would create ghost)', async () => {
+    const { resolveScoreLineTeam } = await import('../teamResolver.js');
+    const { partialMatchesTeam } = await import('../summaries.js');
+    const before = (db.prepare('SELECT COUNT(*) as c FROM teams').get() as { c: number }).c;
+    const result = resolveScoreLineTeam(db, 'PR', partialMatchesTeam);
+    const after = (db.prepare('SELECT COUNT(*) as c FROM teams').get() as { c: number }).c;
+    expect(result).toBeNull();
+    expect(after).toBe(before); // no ghost team created
+  });
+
+  it('resolves "WK" to "Worthington Kilbourne" via partial-match (initials) when team already exists', async () => {
+    const { resolveScoreLineTeam } = await import('../teamResolver.js');
+    const { partialMatchesTeam } = await import('../summaries.js');
+    const wk = resolveTeam(db, 'Worthington Kilbourne');
+    const result = resolveScoreLineTeam(db, 'WK', partialMatchesTeam);
+    expect(result?.id).toBe(wk.id);
+  });
+
+  it('uses alias FIRST before considering partial-match or insert', async () => {
+    const { resolveScoreLineTeam } = await import('../teamResolver.js');
+    const { partialMatchesTeam } = await import('../summaries.js');
+    const real = resolveTeam(db, 'Pennridge');
+    db.prepare('INSERT INTO team_aliases (alias, team_id, source) VALUES (?, ?, ?)').run('pr', real.id, 'manual');
+    const result = resolveScoreLineTeam(db, 'PR', partialMatchesTeam);
+    expect(result?.id).toBe(real.id);
+    const teamCount = (db.prepare('SELECT COUNT(*) as c FROM teams').get() as { c: number }).c;
+    expect(teamCount).toBe(1); // didn't create a duplicate
+  });
+
+  it('strips state-suffix before matching: "Pennington (NJ)" resolves to existing "Pennington"', async () => {
+    const { resolveScoreLineTeam } = await import('../teamResolver.js');
+    const { partialMatchesTeam } = await import('../summaries.js');
+    const pennington = resolveTeam(db, 'Pennington');
+    const result = resolveScoreLineTeam(db, 'Pennington (NJ)', partialMatchesTeam);
+    expect(result?.id).toBe(pennington.id);
+  });
+
+  it('inserts a new team when name is multi-word or >= 4 chars and not in DB', async () => {
+    const { resolveScoreLineTeam } = await import('../teamResolver.js');
+    const { partialMatchesTeam } = await import('../summaries.js');
+    const result = resolveScoreLineTeam(db, 'Springfield', partialMatchesTeam);
+    expect(result).not.toBeNull();
+    expect(result?.name).toBe('Springfield');
+  });
+
+  it('refuses to guess only on SHORT ambiguous tokens; for multi-word names falls through to insert', async () => {
+    const { resolveScoreLineTeam } = await import('../teamResolver.js');
+    const { partialMatchesTeam } = await import('../summaries.js');
+    // Two existing teams that share initials "WK"
+    resolveTeam(db, 'Worthington Kilbourne');
+    resolveTeam(db, 'Wilmington Knights');
+    // Short ambiguous → refuse (would still match 2 teams)
+    const shortResult = resolveScoreLineTeam(db, 'WK', partialMatchesTeam);
+    expect(shortResult).toBeNull();
+    // Long multi-word ambiguous → falls through and inserts
+    const longResult = resolveScoreLineTeam(db, 'Wilkes-Barre Area', partialMatchesTeam);
+    expect(longResult).not.toBeNull();
+  });
+
+  it('inserts a legit 3-char short team like "Rye" (not all-caps)', async () => {
+    const { resolveScoreLineTeam } = await import('../teamResolver.js');
+    const { partialMatchesTeam } = await import('../summaries.js');
+    const result = resolveScoreLineTeam(db, 'Rye', partialMatchesTeam);
+    expect(result).not.toBeNull();
+    expect(result?.name).toBe('Rye');
+  });
+});

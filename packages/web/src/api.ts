@@ -12,8 +12,38 @@ import type {
   RankingSource,
   Team,
 } from '@pll/shared';
+import {
+  currentSeason,
+  seasonValueToString,
+  SEASON_QUERY_KEY,
+} from './components/seasonPicker.js';
 
 export type { PiaaRecord };
+
+export { currentSeason } from './components/seasonPicker.js';
+
+// Endpoints that must NOT be season-scoped (their response is the source of
+// truth for season metadata, or they're global health probes).
+const SEASON_EXEMPT = new Set<string>(['/seasons', '/health']);
+
+function shouldAttachSeason(path: string): boolean {
+  for (const exempt of SEASON_EXEMPT) {
+    if (path === exempt || path === `/api${exempt}` || path.startsWith(`${exempt}/`) || path.startsWith(`/api${exempt}/`)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** Append `?season=` to a built URL when a season is selected. */
+export function attachSeason(url: string, season = currentSeason()): string {
+  if (season === null) return url;
+  if (!shouldAttachSeason(url)) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  // If the caller already set season explicitly, leave it alone.
+  if (url.includes(`${SEASON_QUERY_KEY}=`)) return url;
+  return `${url}${sep}${SEASON_QUERY_KEY}=${encodeURIComponent(seasonValueToString(season))}`;
+}
 
 export class ApiError extends Error {
   readonly status: number;
@@ -27,7 +57,8 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const url = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
+  const baseUrl = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
+  const url = attachSeason(baseUrl);
   let res: Response;
   try {
     res = await fetch(url, {
@@ -286,6 +317,22 @@ export interface GameDetail {
   game: Game;
   periods: GamePeriod[];
   playerStats: GamePlayerStat[];
+  scoringEvents?: ScoringEvent[];
+  scoringEventsHeuristic?: string;
+}
+
+export interface ScoringEvent {
+  quarter: number;
+  sequence: number;
+  teamId: number;
+  side: 'home' | 'away';
+  playerId: number | null;
+  playerName: string | null;
+  assistPlayerId: number | null;
+  assistPlayerName: string | null;
+  homeScoreAfter: number;
+  awayScoreAfter: number;
+  synthesized: true;
 }
 
 export function getServerHealth(): Promise<ServerHealthResponse> {
@@ -521,4 +568,15 @@ export function getH2HTeams(a: number, b: number): Promise<H2HTeamsResponse> {
 
 export function getH2HPlayers(a: number, b: number): Promise<H2HPlayersResponse> {
   return request<H2HPlayersResponse>(`/h2h/players?a=${a}&b=${b}`);
+}
+
+// ---- Seasons (W13 L2 Leia / W14 L2 Han) ----
+
+export interface SeasonsResponse {
+  seasons: number[];
+  default: number | null;
+}
+
+export function getSeasons(): Promise<SeasonsResponse> {
+  return request<SeasonsResponse>('/seasons');
 }

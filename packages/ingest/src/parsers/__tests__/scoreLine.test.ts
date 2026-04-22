@@ -57,6 +57,24 @@ describe('parseScoreLine', () => {
     const r = parseScoreLine('Wilson 16, Gov. Mifflin 4.');
     expect(r.result).toMatchObject({ teamA: 'Wilson', scoreA: 16, scoreB: 4 });
   });
+
+  // ─── Wave 14 Lane 1 (Yoda 🧙‍♂️🟢) ───────────────────────────────────────
+  it('rejects 1-2 char single-token "team" names that are sub-headers, not teams', () => {
+    // "PR 5, Easton 7" should NOT parse — "PR" is a Pennridge sub-header.
+    const r = parseScoreLine('PR 5, Easton 7');
+    expect(r.result).toBeNull();
+  });
+
+  it('strips trailing state-suffix "(NJ)" from the team name (comma form)', () => {
+    const r = parseScoreLine('Notre Dame (NJ) 21, Pennsbury 10');
+    expect(r.result?.teamA).toBe('Notre Dame');
+    expect(r.result?.teamB).toBe('Pennsbury');
+  });
+
+  it('strips trailing state-suffix "(OH)" so initials match works downstream', () => {
+    const r = parseScoreLine('Worthington Kilbourne (OH) 12, Springfield 8');
+    expect(r.result?.teamA).toBe('Worthington Kilbourne');
+  });
 });
 
 describe('parseScoreLine — comma-less form', () => {
