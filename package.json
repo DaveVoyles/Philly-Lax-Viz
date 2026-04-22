@@ -1,0 +1,21 @@
+{
+  "name": "philly-lacrosse-vis",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "crawl": "pnpm --filter @pll/ingest crawl",
+    "ingest": "pnpm --filter @pll/ingest ingest",
+    "dev": "concurrently -n server,web -c blue,green \"pnpm --filter @pll/server dev\" \"pnpm --filter @pll/web dev\"",
+    "build": "pnpm -r build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1",
+    "typescript": "^5.6.3",
+    "tsx": "^4.19.2",
+    "vitest": "^2.1.4"
+  },
+  "packageManager": "pnpm@10.33.1"
+}

@@ -1,0 +1,163 @@
+name: ingest-nightly
+
+# Pull current SQLite DB from Azure Files, run ingest, push back, restart app.
+# 02:00 America/New_York ≈ 06:00 UTC year-round (close enough for nightly).
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      categories:
+        description: 'Comma-separated ingest categories'
+        required: false
+        default: 'hs-summaries,hs-scoreboards'
+      reparse:
+        description: 'Force reparse of all posts'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10.33.1'
+  DB_LOCAL_PATH: data/lacrosse.db
+  DB_REMOTE_NAME: lacrosse.db
+  AZ_FILE_SHARE: pll-data         # adjust if you named the share differently
+
+concurrency:
+  group: ingest-nightly
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Download current DB from Azure Files
+        env:
+          AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          AZURE_STORAGE_KEY:     ${{ secrets.AZURE_STORAGE_KEY }}
+        run: |
+          mkdir -p data
+          # Tolerate first-run case where the share is empty.
+          if az storage file exists \
+                --account-name "$AZURE_STORAGE_ACCOUNT" \
+                --account-key  "$AZURE_STORAGE_KEY" \
+                --share-name   "${{ env.AZ_FILE_SHARE }}" \
+                --path "${{ env.DB_REMOTE_NAME }}" \
+                --query exists -o tsv | grep -q true; then
+            az storage file download \
+              --account-name "$AZURE_STORAGE_ACCOUNT" \
+              --account-key  "$AZURE_STORAGE_KEY" \
+              --share-name   "${{ env.AZ_FILE_SHARE }}" \
+              --path "${{ env.DB_REMOTE_NAME }}" \
+              --dest "${{ env.DB_LOCAL_PATH }}"
+            echo "Downloaded DB: $(du -h ${{ env.DB_LOCAL_PATH }})"
+          else
+            echo "::warning::Remote DB not found; ingest will create a fresh one."
+          fi
+
+      - name: Snapshot pre-ingest anomaly count
+        id: pre
+        run: |
+          if [ -f "${{ env.DB_LOCAL_PATH }}" ]; then
+            COUNT=$(node -e "const D=require('better-sqlite3'); \
+              const d=new D('${{ env.DB_LOCAL_PATH }}',{readonly:true}); \
+              try{console.log(d.prepare('SELECT COUNT(*) c FROM anomalies').get().c)} \
+              catch{console.log(0)}")
+          else
+            COUNT=0
+          fi
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "Pre-ingest anomalies: $COUNT"
+
+      - name: Run ingest
+        env:
+          DB_PATH: ${{ env.DB_LOCAL_PATH }}
+        run: |
+          CATEGORIES="${{ github.event.inputs.categories || 'hs-summaries,hs-scoreboards' }}"
+          REPARSE_FLAG=""
+          if [ "${{ github.event.inputs.reparse }}" = "true" ]; then
+            REPARSE_FLAG="--reparse"
+          fi
+          IFS=',' read -ra CATS <<< "$CATEGORIES"
+          for c in "${CATS[@]}"; do
+            echo "::group::Ingest category=$c"
+            pnpm --filter @pll/ingest ingest -- --category="$c" $REPARSE_FLAG --dbPath="${{ env.DB_LOCAL_PATH }}"
+            echo "::endgroup::"
+          done
+
+      - name: Snapshot post-ingest anomaly count
+        id: post
+        run: |
+          COUNT=$(node -e "const D=require('better-sqlite3'); \
+            const d=new D('${{ env.DB_LOCAL_PATH }}',{readonly:true}); \
+            console.log(d.prepare('SELECT COUNT(*) c FROM anomalies').get().c)")
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "Post-ingest anomalies: $COUNT"
+
+      - name: Upload updated DB to Azure Files
+        env:
+          AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          AZURE_STORAGE_KEY:     ${{ secrets.AZURE_STORAGE_KEY }}
+        run: |
+          az storage file upload \
+            --account-name "$AZURE_STORAGE_ACCOUNT" \
+            --account-key  "$AZURE_STORAGE_KEY" \
+            --share-name   "${{ env.AZ_FILE_SHARE }}" \
+            --source "${{ env.DB_LOCAL_PATH }}" \
+            --path "${{ env.DB_REMOTE_NAME }}"
+
+      - name: Restart Container App revision
+        run: |
+          REV=$(az containerapp revision list \
+            --name "${{ secrets.ACA_NAME }}" \
+            --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}" \
+            --query "[?properties.active].name | [0]" -o tsv)
+          if [ -n "$REV" ]; then
+            az containerapp revision restart \
+              --name "${{ secrets.ACA_NAME }}" \
+              --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}" \
+              --revision "$REV"
+            echo "Restarted revision: $REV"
+          else
+            echo "::warning::No active revision found to restart."
+          fi
+
+      - name: Post anomaly delta to Discord
+        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          PRE: ${{ steps.pre.outputs.count }}
+          POST: ${{ steps.post.outputs.count }}
+        run: |
+          DELTA=$((POST - PRE))
+          curl -fsS -H "Content-Type: application/json" \
+            -d "{\"content\":\":lacrosse: nightly ingest done — anomalies ${PRE} → ${POST} (Δ ${DELTA})\"}" \
+            "$DISCORD_WEBHOOK_URL" || echo "Discord post failed (non-fatal)"
+
+      - name: Azure logout
+        if: always()
+        run: az logout

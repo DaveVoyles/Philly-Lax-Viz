@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Charts Demo — Philly Lacrosse</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <style>
+      .demo-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+      @media (min-width: 900px) {
+        .demo-grid { grid-template-columns: 1fr 1fr; }
+      }
+      .demo-card {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 1rem;
+      }
+      .demo-card h2 {
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <span class="brand">Charts harness</span>
+      <span class="muted">R2 / W3L2 — visual smoke test, no live API needed</span>
+    </header>
+    <main class="container">
+      <div class="demo-grid">
+        <section class="demo-card">
+          <h2>quarterByQuarter</h2>
+          <div id="chart-qbq"></div>
+        </section>
+        <section class="demo-card">
+          <h2>seasonRecord</h2>
+          <div id="chart-record"></div>
+        </section>
+        <section class="demo-card">
+          <h2>topScorers</h2>
+          <div id="chart-scorers"></div>
+        </section>
+        <section class="demo-card">
+          <h2>perGameTrend</h2>
+          <div id="chart-trend"></div>
+        </section>
+      </div>
+    </main>
+    <script type="module" src="/src/charts/__demo__.ts"></script>
+  </body>
+</html>

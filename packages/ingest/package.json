@@ -1,0 +1,33 @@
+{
+  "name": "@pll/ingest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "crawl": "tsx src/cli/crawl.ts",
+    "ingest": "tsx src/cli/ingest.ts",
+    "sync:logos": "tsx src/scripts/syncLogos.ts",
+    "test:db:seed": "tsx src/scripts/seedTestDb.ts",
+    "dedup:players": "tsx src/scripts/dedupPlayers.ts",
+    "dedup:teams": "tsx src/scripts/dedupTeams.ts",
+    "cleanup:junk": "tsx src/scripts/cleanupJunkPlayers.ts",
+    "aliases:seed": "tsx src/scripts/seedTeamAliases.ts",
+    "reattribute:junk": "tsx src/scripts/reattributeJunkStats.ts",
+    "anomaly:triage": "tsx src/scripts/anomalyTriage.ts"
+  },
+  "dependencies": {
+    "@pll/shared": "workspace:*",
+    "better-sqlite3": "^11.5.0",
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}

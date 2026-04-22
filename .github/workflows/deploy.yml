@@ -1,0 +1,147 @@
+name: deploy
+
+# Build + ship on every push to main.
+# Web -> Azure Static Web Apps (Free tier).
+# Server -> GHCR image -> Azure Container Apps (Consumption, scale-to-zero).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10.33.1'
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/pll-server
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------------
+  # 1. Build + test the whole monorepo once. Both web and server reuse it.
+  # ---------------------------------------------------------------------
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Test
+        run: pnpm -r test
+
+      - name: Build web bundle
+        run: pnpm --filter @pll/web build
+
+      - name: Upload web bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: packages/web/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  # ---------------------------------------------------------------------
+  # 2. Deploy the static web bundle to Azure Static Web Apps (Free).
+  # ---------------------------------------------------------------------
+  deploy-web:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download web bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: packages/web/dist
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          # Bundle is already built, point at the dist folder.
+          app_location: 'packages/web/dist'
+          api_location: ''            # API lives in Container Apps, not SWA.
+          output_location: ''
+          skip_app_build: true
+          skip_api_build: true
+
+  # ---------------------------------------------------------------------
+  # 3. Build + push the server image, then update the Container App.
+  # ---------------------------------------------------------------------
+  deploy-server:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build + push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ secrets.ACA_RESOURCE_GROUP }}
+          containerAppName: ${{ secrets.ACA_NAME }}
+          imageToDeploy: ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          # Server reads DB from /data/lacrosse.db via env (set on the app itself).
+          # We don't override env here so the existing volume mount is preserved.
+
+      - name: Azure logout
+        if: always()
+        run: az logout

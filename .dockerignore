@@ -1,0 +1,38 @@
+# Keep the build context small + secret-free.
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Dependencies — reinstalled inside the builder stage
+node_modules
+**/node_modules
+
+# Build artifacts (server runs from TS via tsx; web is built separately)
+**/dist
+**/.vite
+**/coverage
+**/.turbo
+**/.next
+
+# Local data + caches that must NEVER ship in the image
+data
+fixtures
+**/raw-cache
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+
+# Env + secrets
+.env
+.env.*
+!.env.example
+
+# Misc
+*.log
+.DS_Store
+README.md
+docs
+AGENTS.md

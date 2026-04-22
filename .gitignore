@@ -1,0 +1,15 @@
+node_modules/
+dist/
+data/lacrosse.db
+data/lacrosse.test.db
+data/lacrosse.test.db-wal
+data/lacrosse.test.db-shm
+data/raw-cache/
+*.log
+.DS_Store
+.vite/
+coverage/
+data/lacrosse.db-shm
+data/lacrosse.db-wal
+data/lacrosse.db.bak*
+data/lacrosse.db.bak.*
