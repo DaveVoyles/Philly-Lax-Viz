@@ -350,3 +350,36 @@ describe('on-fire badge (last 3 games >2 goals)', () => {
     expect(taylor.onFire).toBe(false);
   });
 });
+
+describe('team branding fields (W16 L3)', () => {
+  it('exposes teamPrimaryColor on /api/leaders/players when seeded', async () => {
+    db.prepare("UPDATE teams SET primary_color = '#0033A0' WHERE id = 1").run();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/leaders/players?stat=points',
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    const haverfordRow = body.rows.find((r: { teamId: number }) => r.teamId === 1);
+    expect(haverfordRow).toBeDefined();
+    expect(haverfordRow.teamPrimaryColor).toBe('#0033A0');
+    // Unbranded teams must come back as null, not undefined.
+    const otherRow = body.rows.find((r: { teamId: number }) => r.teamId === 2);
+    if (otherRow) expect(otherRow.teamPrimaryColor).toBeNull();
+    db.prepare('UPDATE teams SET primary_color = NULL WHERE id = 1').run();
+  });
+
+  it('exposes primaryColor on /api/leaders/teams when seeded', async () => {
+    db.prepare("UPDATE teams SET primary_color = '#A6192E' WHERE id = 1").run();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/leaders/teams?stat=goal_diff',
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    const haverford = body.rows.find((r: { teamId: number }) => r.teamId === 1);
+    expect(haverford).toBeDefined();
+    expect(haverford.primaryColor).toBe('#A6192E');
+    db.prepare('UPDATE teams SET primary_color = NULL WHERE id = 1').run();
+  });
+});

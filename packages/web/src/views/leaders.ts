@@ -374,6 +374,7 @@ const PLAYER_COLS: ReadonlyArray<ColDef<PlayerLeaderRow>> = [
       renderTeamBadge({
         name: r.teamName,
         logoUrl: r.teamLogoUrl,
+        primaryColor: r.teamPrimaryColor ?? null,
         size: 'sm',
         href: `#/teams/${r.teamId}`,
       }),
@@ -402,6 +403,7 @@ const TEAM_COLS: ReadonlyArray<ColDef<TeamLeaderRow>> = [
       renderTeamBadge({
         name: r.teamName,
         logoUrl: r.logoUrl,
+        primaryColor: r.primaryColor ?? null,
         size: 'md',
         href: `#/teams/${r.teamId}`,
       }),

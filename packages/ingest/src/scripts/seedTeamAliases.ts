@@ -179,6 +179,137 @@ export const SKIPPED_AMBIGUOUS: readonly SkippedAmbiguousNote[] = [
   { token: 'pburg-extra', rationale: 'Darth suggested Phoenixville/Pottsville; live data shows the only "Pburg" usage is Phillipsburg (verified by anomaly→game join). Seeded id=232.' },
 ];
 
+// ─── Wave 16 Lane 1 (Yoda 🧙‍♂️🟢) — UNMAPPABLE_PIAA ──────────────────────
+//
+// PIAA validation reconciliation pass. Baseline before this wave (live DB
+// data/lacrosse.db on 2026-04-22, post-W15 dedup):
+//
+//   match     10
+//   close     32
+//   divergent 16
+//   unmapped  159    (217 teams total)
+//
+// Investigation result: every active PIAA District 1 program (57 of 59) is
+// already linked to a team row via the W6 PIAA_ALIASES seed or via a direct
+// LOWER(t.name) = p.name_normalized match. The two PIAA rows that remain
+// unlinked are inactive 0-0 programs with no corresponding team row in our
+// dataset (Harry S. Truman, William Tennent — see W6 skip note above).
+//
+// The remaining "unmapped" teams are NOT naming mismatches. They fall into
+// the categories below, none of which can ever map to a PIAA D1 row because
+// PIAA D1 only covers PA public schools + a small set of catholic schools
+// inside southeastern PA's District 1 footprint. All entries below were
+// verified against the PIAA D1 official roster (piaa_official_teams) on
+// 2026-04-22; none share a name_normalized with any PIAA D1 row.
+//
+// This list is documentary only — it is NOT seeded as aliases. The
+// `unmapped` validation status is the correct, intended outcome for these
+// teams. Tests in seedTeamAliases.test.ts assert that none of these names
+// appear in the PIAA roster, so the doc stays in sync if PIAA expands.
+export interface UnmappableNote {
+  category: string;
+  teamName: string;
+  rationale: string;
+}
+
+export const UNMAPPABLE_PIAA: readonly UnmappableNote[] = [
+  // ── Inter-Ac League (private day schools, Philly suburbs) ──────────────
+  // The Inter-Academic League schools play their own championship; PIAA D1
+  // does not include any private-school members. Validation status =
+  // "unmapped" is correct for all of them.
+  { category: 'inter-ac', teamName: 'Episcopal Academy', rationale: 'Private Inter-Ac school; PIAA D1 covers public + select catholic only.' },
+  { category: 'inter-ac', teamName: 'Penn Charter', rationale: 'Private Inter-Ac school (William Penn Charter); not a PIAA D1 member.' },
+  { category: 'inter-ac', teamName: 'Germantown Academy', rationale: 'Private Inter-Ac school; not a PIAA D1 member.' },
+  { category: 'inter-ac', teamName: 'Haverford School', rationale: 'Private Inter-Ac school; distinct from PIAA "Haverford" (the public HS, id 36).' },
+  { category: 'inter-ac', teamName: 'Malvern Prep', rationale: 'Private Inter-Ac school; not a PIAA D1 member.' },
+  { category: 'inter-ac', teamName: 'Springside Chestnut Hill', rationale: 'Private Inter-Ac school; not a PIAA D1 member.' },
+
+  // ── Philadelphia Catholic League (PCL) ─────────────────────────────────
+  // Only the suburban catholic programs that compete in PIAA D1 brackets
+  // (Bishop Shanahan, Holy Ghost Prep, Pope John Paul II, Lansdale Catholic,
+  // Delco Christian) appear in the PIAA roster. The Philly-proper catholics
+  // below run under PCL's own bracket and never appear in D1.
+  { category: 'pcl', teamName: "Cardinal O'Hara", rationale: 'Philly Catholic League; not a PIAA D1 member.' },
+  { category: 'pcl', teamName: 'Archbishop Wood', rationale: 'Philly Catholic League; not a PIAA D1 member.' },
+  { category: 'pcl', teamName: 'Archbishop Ryan', rationale: 'Philly Catholic League; not a PIAA D1 member.' },
+  { category: 'pcl', teamName: 'Archbishop Carroll', rationale: 'Philly Catholic League; not a PIAA D1 member.' },
+  { category: 'pcl', teamName: "St. Joseph's Prep", rationale: 'Philly Catholic League; not a PIAA D1 member.' },
+  { category: 'pcl', teamName: 'La Salle', rationale: 'Philly Catholic League (La Salle College HS); not a PIAA D1 member.' },
+  { category: 'pcl', teamName: 'Roman Catholic', rationale: 'Philly Catholic League; not a PIAA D1 member.' },
+  { category: 'pcl', teamName: 'Father Judge', rationale: 'Philly Catholic League; not a PIAA D1 member.' },
+  { category: 'pcl', teamName: 'Conwell Egan', rationale: 'Philly Catholic League; not a PIAA D1 member.' },
+  { category: 'pcl', teamName: 'Bonner-Prendie', rationale: 'Philly Catholic League (Monsignor Bonner-Archbishop Prendergast); not a PIAA D1 member.' },
+  { category: 'pcl', teamName: 'Devon Prep', rationale: 'Catholic prep; not a PIAA D1 member (lacrosse plays independent schedule).' },
+
+  // ── Other independent / boarding ──────────────────────────────────────
+  { category: 'independent', teamName: 'Hill School', rationale: 'Boarding school (MAPL); not a PIAA D1 member.' },
+  { category: 'independent', teamName: 'Perkiomen School', rationale: 'Boarding school; not a PIAA D1 member.' },
+  { category: 'independent', teamName: 'Shipley School', rationale: 'Independent day school (Friends Schools League); not a PIAA D1 member.' },
+  { category: 'independent', teamName: 'Westtown', rationale: 'Quaker boarding school (FSL); not a PIAA D1 member.' },
+  { category: 'independent', teamName: 'Jack Barrack', rationale: 'Jack M. Barrack Hebrew Academy (FSL); not a PIAA D1 member.' },
+  { category: 'independent', teamName: 'Academy of the New Church', rationale: 'Private religious day school (FSL); not a PIAA D1 member.' },
+  { category: 'independent', teamName: 'Moravian Academy', rationale: 'Private day school (Lehigh Valley); not a PIAA D1 member.' },
+  { category: 'independent', teamName: 'AIM Academy', rationale: 'Private day school; not a PIAA D1 member.' },
+
+  // ── PA public schools outside District 1 ──────────────────────────────
+  // PIAA boys lacrosse is district-bracketed; these programs play in D2/D3/
+  // D11/D12 etc. and are correctly absent from the D1 roster.
+  { category: 'non-d1-pa', teamName: 'Easton', rationale: 'D11 (Lehigh Valley); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Parkland', rationale: 'D11 (Lehigh Valley); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Wilson', rationale: 'D11 (Wilson Area, Easton); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Nazareth', rationale: 'D11 (Lehigh Valley); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Emmaus', rationale: 'D11 (Lehigh Valley); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Northampton', rationale: 'D11 (Lehigh Valley); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Liberty', rationale: 'D11 (Bethlehem); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Freedom', rationale: 'D11 (Bethlehem); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Southern Lehigh', rationale: 'D11; not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Saucon Valley', rationale: 'D11; not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Twin Valley', rationale: 'D3 (Berks); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Wyomissing', rationale: 'D3 (Berks); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Daniel Boone', rationale: 'D3 (Berks); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Abington Heights', rationale: 'D2 (NEPA); not a PIAA D1 program (distinct from D1\'s "Abington").' },
+  { category: 'non-d1-pa', teamName: 'Scranton Prep', rationale: 'D2 (NEPA); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Delaware Valley', rationale: 'D2 (NEPA Pike County); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'North Pocono', rationale: 'D2 (NEPA); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Crestwood', rationale: 'D2 (NEPA); not a PIAA D1 program.' },
+  { category: 'non-d1-pa', teamName: 'Phillipsburg', rationale: 'NJ (Warren County); not a PIAA D1 program despite Easton-area scheduling.' },
+
+  // ── Out-of-state opponents (NJ, NY, MD, DE, VA) ───────────────────────
+  // Independent/private schools that show up via cross-border games. None
+  // are PIAA-eligible.
+  { category: 'out-of-state', teamName: "St. Anthony's (NY)", rationale: 'NY private; cross-border opponent. Not PIAA-eligible.' },
+  { category: 'out-of-state', teamName: 'Pennington (NJ)', rationale: 'NJ private; cross-border opponent. Not PIAA-eligible.' },
+  { category: 'out-of-state', teamName: 'Episcopal', rationale: 'Episcopal HS (Alexandria, VA). Distinct from PA Episcopal Academy.' },
+  { category: 'out-of-state', teamName: 'Loyola Blakefield', rationale: 'MD (MIAA-A); cross-border opponent. Not PIAA-eligible.' },
+  { category: 'out-of-state', teamName: 'Blair Academy', rationale: 'NJ boarding (MAPL); cross-border opponent. Not PIAA-eligible.' },
+  { category: 'out-of-state', teamName: 'Bergen Catholic (NJ)', rationale: 'NJ catholic; cross-border opponent. Not PIAA-eligible.' },
+
+  // ── Team-row duplicates awaiting dedup (W15 Lane 2 / future wave) ──────
+  // Aliasing cannot fix these — the alias UNIQUE constraint blocks pointing
+  // a PIAA name at two teams. The fix is to merge the dup into the canonical
+  // row via dedupTeams.ts. Listed here so the next dedup pass has a hit list.
+  { category: 'dup-needs-merge', teamName: 'Spring Ford (id 355)', rationale: 'Dup of "Spring-Ford" (id 1). Canonical already aliased "springford" → 1.' },
+  { category: 'dup-needs-merge', teamName: 'Springfield-Montco (id 97)', rationale: 'Dup of "Springfield Township" (id 174, holds "springfield twp" alias). Merging 97 into 174 would lift id 174 from divergent (0-0 vs 4-7) → close.' },
+  { category: 'dup-needs-merge', teamName: 'Springfield-M (id 266)', rationale: 'Same school as id 97/174 — third spelling variant. Merge into 174.' },
+  { category: 'dup-needs-merge', teamName: 'CB East (id 157)', rationale: 'Dup of "Central Bucks East" (id 69). LOWER name matches PIAA "cb east" directly, so it appears divergent (1-2 vs 6-7). Merge into 69.' },
+  { category: 'dup-needs-merge', teamName: 'Henderson (id 462)', rationale: 'Dup of "WC Henderson" (id 41).' },
+  { category: 'dup-needs-merge', teamName: "St. Joe's Prep (id 217)", rationale: 'Dup of "St. Joseph\'s Prep" (id 108).' },
+  { category: 'dup-needs-merge', teamName: 'U Darby (id 271)', rationale: 'Dup of "Upper Darby" (id 20).' },
+  { category: 'dup-needs-merge', teamName: 'Arch Carroll (id 304)', rationale: 'Dup of "Archbishop Carroll" (id 94).' },
+  { category: 'dup-needs-merge', teamName: 'Academy New Church (id 301)', rationale: 'Dup of "Academy of the New Church" (id 110).' },
+  { category: 'dup-needs-merge', teamName: 'Bonner Prendie (id 403)', rationale: 'Dup of "Bonner-Prendie" (id 279).' },
+  { category: 'dup-needs-merge', teamName: 'S. Lehigh (id 262)', rationale: 'Dup of "Southern Lehigh" (id 87).' },
+  { category: 'dup-needs-merge', teamName: 'Manheim Twp. (id 250)', rationale: 'Dup of "Manheim Township" (id 127).' },
+  { category: 'dup-needs-merge', teamName: 'Lake Lehman (id 361)', rationale: 'Dup of "Lake-Lehman" (id 239); neither in PIAA D1.' },
+
+  // ── Junk team rows (parser leakage; cleanup belongs to ghost-cleanup) ──
+  { category: 'parser-junk', teamName: 'Saves for Abington Colton Naholnik (id 25)', rationale: 'Player-row leakage; should be deleted by cleanGhostTeams not aliased.' },
+  { category: 'parser-junk', teamName: 'Dylan Bellas (id 26)', rationale: 'Player-row leakage; should be deleted by cleanGhostTeams not aliased.' },
+  { category: 'parser-junk', teamName: 'Halftime R (id 461)', rationale: 'Live-blog header leakage; should be deleted.' },
+  { category: 'parser-junk', teamName: 'Halftime – EA (id 323)', rationale: 'Live-blog header leakage; should be deleted.' },
+  { category: 'parser-junk', teamName: 'South Philly (id 298)', rationale: 'Live-blog placeholder; not a real team row.' },
+];
+
 export interface SeedResult {
   inserted: number;
   alreadyPresent: number;
@@ -271,6 +402,14 @@ function main(): void {
     console.log(`\nSKIPPED_AMBIGUOUS (documented, not seeded): ${SKIPPED_AMBIGUOUS.length}`);
     for (const s of SKIPPED_AMBIGUOUS) {
       console.log(`  · ${s.token} — ${s.rationale}`);
+    }
+    const byCategory = new Map<string, number>();
+    for (const u of UNMAPPABLE_PIAA) {
+      byCategory.set(u.category, (byCategory.get(u.category) ?? 0) + 1);
+    }
+    console.log(`\nUNMAPPABLE_PIAA (documented non-PIAA-D1 teams): ${UNMAPPABLE_PIAA.length}`);
+    for (const [cat, n] of byCategory) {
+      console.log(`  · ${cat}: ${n}`);
     }
     console.log('\n(Dry-run only. Re-run with --apply to write.)');
     db.close();

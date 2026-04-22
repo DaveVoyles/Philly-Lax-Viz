@@ -152,4 +152,22 @@ describe('GET /api/players/constellation', () => {
     });
     expect(res.statusCode).toBe(400);
   });
+
+  it('returns the team primary_color as teamColor when seeded (W16 L3)', async () => {
+    // Update Alpha (team id 1) with a brand color and re-query 2026.
+    db.prepare("UPDATE teams SET primary_color = '#0033A0' WHERE id = 1").run();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/players/constellation?season=2026',
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    const striker = body.players.find((p: { id: number }) => p.id === 1);
+    expect(striker.teamColor).toBe('#0033A0');
+    // Bravo was not branded; must still come back null.
+    const bravo = body.players.find((p: { id: number }) => p.id === 3);
+    expect(bravo.teamColor).toBeNull();
+    // Cleanup so other tests in this file are unaffected.
+    db.prepare('UPDATE teams SET primary_color = NULL WHERE id = 1').run();
+  });
 });

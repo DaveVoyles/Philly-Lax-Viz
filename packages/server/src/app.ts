@@ -20,6 +20,7 @@ import { h2hRoutes } from './routes/h2h.js';
 import { seasonsRoutes } from './routes/seasons.js';
 import { commitsRoutes } from './routes/commits.js';
 import { constellationRoutes } from './routes/constellation.js';
+import { scheduleRoutes } from './routes/schedule.js';
 
 export interface BuildOptions {
   logger?: boolean;
@@ -73,6 +74,7 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   await seasonsRoutes(app, db);
   await commitsRoutes(app, db);
   await constellationRoutes(app, db);
+  await scheduleRoutes(app, db);
 
   return app;
 }

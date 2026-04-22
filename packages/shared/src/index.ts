@@ -12,7 +12,8 @@ export type ParserStrategy =
   | 'aggregated-list'
   | 'ranking-list'
   | 'commits-list'
-  | 'commits-profile';
+  | 'commits-profile'
+  | 'schedule-team-resolve';
 export type StatSource = 'summary' | 'manual';
 export type NameResolution = 'full' | 'partial';
 export type AliasSource = 'manual' | 'auto';
@@ -62,6 +63,11 @@ export interface Team {
   slug: string;
   division: Division;
   logoUrl: string | null;
+  /** Wave 16: hand-curated brand colors + nickname. NULL when uncurated;
+   *  the web client falls back to a deterministic name-hash hue. */
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  nickname: string | null;
   piaa?: PiaaRecord | null;
   coverage?: CoverageRecord;
   derivedRecord?: DerivedRecord;

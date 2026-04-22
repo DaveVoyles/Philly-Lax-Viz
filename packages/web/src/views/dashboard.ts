@@ -330,7 +330,7 @@ function buildTeamsGrid(
     const li = document.createElement('li');
     const a = document.createElement('a');
     a.href = `#/teams/${t.id}`;
-    a.appendChild(renderTeamBadge({ name: t.name, logoUrl: t.logoUrl, size: 'sm' }));
+    a.appendChild(renderTeamBadge({ name: t.name, logoUrl: t.logoUrl, primaryColor: t.primaryColor, size: 'sm' }));
     if (t.piaaValidation) {
       const badge = renderPiaaBadge({
         validation: t.piaaValidation,

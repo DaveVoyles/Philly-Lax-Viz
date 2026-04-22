@@ -15,6 +15,8 @@ let scrubberDestroy: (() => void) | null = null;
 // W15 L2 (R2): same lazy-chunk pattern as the scrubber so the constellation
 // view + its axis labels live in their own chunk.
 let constellationDestroy: (() => void) | null = null;
+// W16 L2 (Leia): same lazy-chunk pattern for the schedule view.
+let scheduleDestroy: (() => void) | null = null;
 import {
   initSeasonPicker,
   mountSeasonPicker,
@@ -35,6 +37,7 @@ const NAV: NavLink[] = [
   { href: '#/h2h', label: 'Compare', match: 'h2h' },
   { href: '#/graph', label: 'Network', match: 'graph' },
   { href: '#/commits', label: 'Commits', match: 'commits' },
+  { href: '#/schedule', label: 'Schedule', match: 'schedule' },
   { href: '#/constellation', label: 'Constellation', match: 'constellation' },
   { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
@@ -87,6 +90,7 @@ function dispatch(main: HTMLElement, match: RouteMatch): void {
   graph.destroy();
   if (scrubberDestroy) { scrubberDestroy(); scrubberDestroy = null; }
   if (constellationDestroy) { constellationDestroy(); constellationDestroy = null; }
+  if (scheduleDestroy) { scheduleDestroy(); scheduleDestroy = null; }
   switch (match.name) {
     case 'dashboard':
       dashboard.render(main, match.params);
@@ -126,6 +130,9 @@ function dispatch(main: HTMLElement, match: RouteMatch): void {
       return;
     case 'commits':
       void import('./views/commits.js').then((m) => m.render(main, match.params));
+      return;
+    case 'schedule':
+      void import('./views/schedule.js').then((m) => { scheduleDestroy = m.destroy; m.render(main, match.params); });
       return;
     case 'notFound':
       main.innerHTML = `<h1>Not found</h1><p>No route for <code>${match.path}</code>. <a href="#/">Go home</a>.</p>`;

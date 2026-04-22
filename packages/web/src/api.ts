@@ -351,6 +351,63 @@ export function getRecentGames(limit: number): Promise<Game[]> {
   return request<Game[]>(`/games?limit=${encodeURIComponent(String(limit))}`);
 }
 
+// ---- W16 L2 (Leia) — schedule (upcoming games) ----
+
+export interface ScheduleGame {
+  id: number;
+  homeTeamId: number | null;
+  awayTeamId: number | null;
+  homeTeamName: string;
+  awayTeamName: string;
+  homeTeamSlug: string | null;
+  awayTeamSlug: string | null;
+  homeLogoUrl: string | null;
+  awayLogoUrl: string | null;
+  gameDate: string;
+  gameTime: string | null;
+  location: string | null;
+  source: string;
+  sourceUrl: string | null;
+  season: number;
+}
+
+export interface ScheduleByDate {
+  date: string;
+  games: ScheduleGame[];
+}
+
+export interface ScheduleResponse {
+  from: string;
+  to: string | null;
+  season: number | null;
+  total: number;
+  byDate: ScheduleByDate[];
+}
+
+export interface ScheduleQuery {
+  season?: number;
+  from?: string;
+  to?: string;
+  team?: number;
+  limit?: number;
+}
+
+export function getSchedule(params?: ScheduleQuery): Promise<ScheduleResponse> {
+  return request<ScheduleResponse>(`/schedule${buildQuery(params)}`);
+}
+
+export interface TeamUpcomingResponse {
+  teamId: number;
+  from: string;
+  games: ScheduleGame[];
+}
+
+export function getTeamUpcoming(teamId: number | string, limit = 3): Promise<TeamUpcomingResponse> {
+  return request<TeamUpcomingResponse>(
+    `/schedule/team/${encodeURIComponent(String(teamId))}/upcoming?limit=${limit}`,
+  );
+}
+
 // ---- W4 (Luke+Han) additive types matching real /api/players and /api/teams/:id/topScorers ----
 
 export interface PlayerSeasonStats {
@@ -425,6 +482,7 @@ export interface PlayerLeaderRow {
   teamId: number;
   teamName: string;
   teamLogoUrl: string | null;
+  teamPrimaryColor?: string | null;
   gamesPlayed: number;
   goals: number;
   assists: number;
@@ -450,6 +508,7 @@ export interface TeamLeaderRow {
   teamId: number;
   teamName: string;
   logoUrl: string | null;
+  primaryColor?: string | null;
   gamesPlayed: number;
   wins: number;
   losses: number;

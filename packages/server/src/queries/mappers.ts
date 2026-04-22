@@ -20,6 +20,9 @@ export interface TeamRow {
   division: string;
   logo_url: string | null;
   maxpreps_slug: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+  nickname: string | null;
   piaa_name_official?: string | null;
   piaa_classification?: string | null;
   piaa_seed?: number | null;
@@ -161,6 +164,9 @@ export function mapTeam(r: TeamRow): Team {
     slug: r.slug,
     division: r.division as Team['division'],
     logoUrl: r.logo_url ? `/logos/${r.logo_url}` : null,
+    primaryColor: r.primary_color,
+    secondaryColor: r.secondary_color,
+    nickname: r.nickname,
     piaa: hasPiaa
       ? {
           wins: r.piaa_wins as number,

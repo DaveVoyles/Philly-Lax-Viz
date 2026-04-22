@@ -22,6 +22,9 @@ import { ingestSummariesPost } from '../pipelines/summaries.js';
 import { ingestRankingsPost } from '../pipelines/rankings.js';
 import { ingestCommitsPost } from '../pipelines/commits.js';
 import { clearAnomaliesForPost } from '../pipelines/anomalies.js';
+import { ingestScheduleRows } from '../pipelines/schedule.js';
+import { parseScheduleCsv } from '../parsers/scheduleCsv.js';
+import { fetchPiaaScheduleCsv } from '../sources/piaaSchedule.js';
 import { DEFAULT_SEASON, seasonFromUrl } from '../crawler.js';
 
 interface CliArgs {
@@ -30,10 +33,19 @@ interface CliArgs {
   reparse: boolean;
   dbPath?: string;
   cacheDir?: string;
+  schedule: boolean;
+  scheduleSeason: number;
+  scheduleForce: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { category: 'all', reparse: false };
+  const args: CliArgs = {
+    category: 'all',
+    reparse: false,
+    schedule: false,
+    scheduleSeason: DEFAULT_SEASON,
+    scheduleForce: false,
+  };
   for (const a of argv) {
     if (a.startsWith('--limit=')) {
       const v = parseInt(a.slice('--limit='.length), 10);
@@ -51,6 +63,14 @@ function parseArgs(argv: string[]): CliArgs {
       args.dbPath = a.slice('--db='.length);
     } else if (a.startsWith('--cache-dir=')) {
       args.cacheDir = a.slice('--cache-dir='.length);
+    } else if (a === '--schedule') {
+      args.schedule = true;
+    } else if (a.startsWith('--season=')) {
+      const v = parseInt(a.slice('--season='.length), 10);
+      if (!Number.isInteger(v) || v < 1900 || v > 3000) throw new Error(`Invalid --season: ${a}`);
+      args.scheduleSeason = v;
+    } else if (a === '--force-fetch') {
+      args.scheduleForce = true;
     } else if (a === '--help' || a === '-h') {
       printHelp();
       process.exit(0);
@@ -305,6 +325,31 @@ async function main(): Promise<void> {
   );
 
   const db = openDb(dbPath);
+
+  // Wave 16 Lane 2 (Leia) — schedule path runs independently of the
+  // post-cache walker. Skips the recap pipeline entirely.
+  if (args.schedule) {
+    const scheduleCacheDir = path.join(repoRoot, 'data', 'schedule-cache');
+    console.log(`[ingest:schedule] season=${args.scheduleSeason} cacheDir=${scheduleCacheDir} force=${args.scheduleForce}`);
+    const fetched = await fetchPiaaScheduleCsv({
+      season: args.scheduleSeason,
+      cacheDir: scheduleCacheDir,
+      force: args.scheduleForce,
+    });
+    console.log(`[ingest:schedule] csv source=${fetched.source} bytes=${fetched.csv.length} url=${fetched.url}`);
+    const parsed = parseScheduleCsv(fetched.csv);
+    const r = ingestScheduleRows(db, {
+      source: 'piaa-d1',
+      sourceUrl: fetched.url,
+      season: args.scheduleSeason,
+      rows: parsed.rows,
+    });
+    console.log(`[ingest:schedule] parsed_rows=${parsed.rows.length} malformed=${parsed.malformed.length}`);
+    console.log(`[ingest:schedule] upserted=${r.scheduleRowsUpserted} skipped_completed=${r.scheduleRowsSkippedCompleted} home_unresolved=${r.homeUnresolved} away_unresolved=${r.awayUnresolved} anomalies_added=${r.anomaliesAdded}`);
+    db.close();
+    return;
+  }
+
   const start = Date.now();
   const summary = newSummary();
 

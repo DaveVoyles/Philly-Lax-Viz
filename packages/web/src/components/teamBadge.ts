@@ -6,6 +6,14 @@ export type TeamBadgeSize = 'sm' | 'md' | 'lg' | 'xl';
 export interface TeamBadgeOptions {
   name: string;
   logoUrl: string | null;
+  /** Wave 16: hand-curated brand color (7-char hex). When present:
+   *    * the initials-fallback circle uses this instead of the deterministic
+   *      hash palette
+   *    * a small color swatch appears next to the name (even when a logo
+   *      image is shown), so leaderboards / chips have a visible team tint.
+   *  Falsy / null leaves all behavior identical to pre-W16.
+   */
+  primaryColor?: string | null;
   size?: TeamBadgeSize;
   href?: string;
 }
@@ -54,7 +62,11 @@ function initialsFor(name: string): string {
   return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
 }
 
-function buildInitialsEl(name: string, px: number): HTMLElement {
+function isHex(s: string | null | undefined): s is string {
+  return !!s && /^#[0-9A-Fa-f]{6}$/.test(s);
+}
+
+function buildInitialsEl(name: string, px: number, brand?: string | null): HTMLElement {
   const span = document.createElement('span');
   span.className = 'team-badge__initials';
   span.setAttribute('aria-hidden', 'true');
@@ -63,7 +75,7 @@ function buildInitialsEl(name: string, px: number): HTMLElement {
   span.style.height = `${px}px`;
   span.style.lineHeight = `${px}px`;
   span.style.fontSize = `${Math.max(10, Math.round(px * 0.42))}px`;
-  span.style.background = colorForName(name);
+  span.style.background = isHex(brand) ? brand : colorForName(name);
   return span;
 }
 
@@ -82,14 +94,31 @@ function buildLogoEl(opts: TeamBadgeOptions, px: number): HTMLElement {
     img.addEventListener(
       'error',
       () => {
-        const fallback = buildInitialsEl(opts.name, px);
+        const fallback = buildInitialsEl(opts.name, px, opts.primaryColor);
         img.replaceWith(fallback);
       },
       { once: true },
     );
     return img;
   }
-  return buildInitialsEl(opts.name, px);
+  return buildInitialsEl(opts.name, px, opts.primaryColor);
+}
+
+/** Tiny vertical color bar rendered next to the name when a brand color is
+ *  available. Inline styles keep this self-contained -- no CSS file edit. */
+function buildSwatchEl(color: string, px: number): HTMLElement {
+  const el = document.createElement('span');
+  el.className = 'team-badge__swatch';
+  el.setAttribute('aria-hidden', 'true');
+  el.style.display = 'inline-block';
+  el.style.width = '4px';
+  el.style.height = `${Math.max(12, Math.round(px * 0.6))}px`;
+  el.style.background = color;
+  el.style.borderRadius = '2px';
+  el.style.marginRight = '6px';
+  el.style.verticalAlign = 'middle';
+  el.style.flex = '0 0 4px';
+  return el;
 }
 
 export function renderTeamBadge(opts: TeamBadgeOptions): HTMLElement {
@@ -99,12 +128,23 @@ export function renderTeamBadge(opts: TeamBadgeOptions): HTMLElement {
   const wrap = document.createElement('span');
   wrap.className = `team-badge team-badge--${size}`;
 
+  if (isHex(opts.primaryColor)) {
+    wrap.appendChild(buildSwatchEl(opts.primaryColor, px));
+  }
+
   const logoEl = buildLogoEl(opts, px);
   wrap.appendChild(logoEl);
 
   const label = document.createElement('span');
   label.className = 'team-badge__name';
   label.textContent = opts.name;
+  if (isHex(opts.primaryColor)) {
+    // Tint the team name with the brand color so the row has visible
+    // identity even when the logo is a generic placeholder. Slight darken
+    // via filter to keep contrast on light/dark themes.
+    label.style.color = opts.primaryColor;
+    label.style.fontWeight = '600';
+  }
   wrap.appendChild(label);
 
   if (opts.href) {

@@ -16,6 +16,7 @@ const EXPECTED_TABLES = [
   'piaa_official_teams',
   'player_aliases',
   'commits',
+  'schedule_games',
 ];
 
 function tableNames(db: ReturnType<typeof openDb>): string[] {
@@ -32,19 +33,19 @@ describe('openDb', () => {
     for (const t of EXPECTED_TABLES) {
       expect(names, `missing table: ${t}`).toContain(t);
     }
-    // user_version tracks the highest applied migration. Wave-15 added 007.
-    expect(db.pragma('user_version', { simple: true })).toBe(7);
+    // user_version tracks the highest applied migration. Wave-16 added 008+009.
+    expect(db.pragma('user_version', { simple: true })).toBe(9);
     db.close();
   });
 
   it('is idempotent — re-opening does not re-apply migrations', () => {
     const db1 = openDb(':memory:');
-    expect(db1.pragma('user_version', { simple: true })).toBe(7);
+    expect(db1.pragma('user_version', { simple: true })).toBe(9);
     db1.close();
 
     // Run migrations a second time on a brand-new DB and confirm same end state.
     const db2 = openDb(':memory:');
-    expect(db2.pragma('user_version', { simple: true })).toBe(7);
+    expect(db2.pragma('user_version', { simple: true })).toBe(9);
     db2.close();
   });
 
@@ -65,6 +66,17 @@ describe('openDb', () => {
       .sort();
     expect(cols).toContain('logo_url');
     expect(cols).toContain('maxpreps_slug');
+    db.close();
+  });
+
+  it('teams table has wave-16 branding columns (primary_color, secondary_color, nickname)', () => {
+    const db = openDb(':memory:');
+    const cols = (db.prepare('PRAGMA table_info(teams)').all() as Array<{ name: string }>)
+      .map((c) => c.name)
+      .sort();
+    expect(cols).toContain('primary_color');
+    expect(cols).toContain('secondary_color');
+    expect(cols).toContain('nickname');
     db.close();
   });
 

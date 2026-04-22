@@ -3,6 +3,8 @@ import {
   getTeamDetail,
   getTeams,
   getTeamTopScorers,
+  getTeamUpcoming,
+  type ScheduleGame,
   type TeamDetail,
   type TopScorerEntry,
 } from '../api.js';
@@ -64,6 +66,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     renderTeamBadge({
       name: detail.team.name,
       logoUrl: detail.team.logoUrl,
+      primaryColor: detail.team.primaryColor,
       size: 'xl',
     }),
   );
@@ -226,6 +229,14 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   gamesHeader.textContent = 'Season Games';
   root.appendChild(gamesHeader);
 
+  // W16 L2 (Leia) — show the next 3 upcoming games for this team if the
+  // schedule scrape has populated them. Lazy-fetched so a missing endpoint
+  // never blocks the rest of the page.
+  const upcomingSlot = document.createElement('div');
+  upcomingSlot.className = 'team-upcoming-slot';
+  root.appendChild(upcomingSlot);
+  void loadUpcoming(upcomingSlot, teamId);
+
   const gamesPlayed = detail.games.filter((g) => !g.postponed);
   if (gamesPlayed.length === 0 && detail.games.length === 0) {
     const empty = document.createElement('p');
@@ -260,6 +271,58 @@ async function loadTopScorers(slot: HTMLElement, teamId: number): Promise<void> 
     slot,
     scorers.map((s) => ({ playerName: s.playerName, goals: s.goals, assists: s.assists })),
   );
+}
+
+async function loadUpcoming(slot: HTMLElement, teamId: number): Promise<void> {
+  let games: ScheduleGame[];
+  try {
+    const res = await getTeamUpcoming(teamId, 3);
+    games = res.games;
+  } catch {
+    // Silent — upcoming widget is best-effort, never blocks page render.
+    return;
+  }
+  if (games.length === 0) return;
+
+  const heading = document.createElement('h2');
+  heading.textContent = 'Upcoming Games';
+  slot.appendChild(heading);
+
+  const ul = document.createElement('ul');
+  ul.className = 'team-upcoming-list';
+  ul.style.cssText = 'list-style:none; padding:0; margin:0 0 1rem; display:flex; flex-direction:column; gap:0.4rem;';
+  for (const g of games) {
+    const li = document.createElement('li');
+    li.style.cssText =
+      'display:flex; align-items:center; justify-content:space-between; gap:0.75rem; padding:0.5rem 0.75rem; border:1px solid var(--border, #2a2a2a); border-radius:6px; background:var(--card-bg, #181818);';
+    const isHome = g.homeTeamId === teamId;
+    const oppName = isHome ? g.awayTeamName : g.homeTeamName;
+    const oppKey = isHome ? (g.awayTeamSlug ?? g.awayTeamId) : (g.homeTeamSlug ?? g.homeTeamId);
+    const left = document.createElement('span');
+    const date = document.createElement('strong');
+    date.textContent = formatDate(g.gameDate);
+    left.appendChild(date);
+    const sep = document.createTextNode(isHome ? ' vs ' : ' at ');
+    left.appendChild(sep);
+    if (oppKey != null) {
+      const a = document.createElement('a');
+      a.href = `#/teams/${encodeURIComponent(String(oppKey))}`;
+      a.textContent = oppName;
+      left.appendChild(a);
+    } else {
+      const span = document.createElement('span');
+      span.textContent = oppName;
+      left.appendChild(span);
+    }
+    const meta = document.createElement('span');
+    meta.className = 'muted';
+    meta.style.cssText = 'font-size:0.85rem;';
+    meta.textContent = g.source;
+    li.appendChild(left);
+    li.appendChild(meta);
+    ul.appendChild(li);
+  }
+  slot.appendChild(ul);
 }
 
 function buildGamesTable(games: Game[], teamId: number, teamsById: Map<number, string>): HTMLElement {

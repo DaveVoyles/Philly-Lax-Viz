@@ -35,6 +35,7 @@ export interface PlayerLeaderRow {
   team_id: number;
   team_name: string;
   team_logo_url: string | null;
+  team_primary_color: string | null;
   games_played: number;
   goals: number;
   assists: number;
@@ -55,6 +56,7 @@ export interface TeamLeaderRow {
   team_name: string;
   team_slug: string;
   team_logo_url: string | null;
+  team_primary_color: string | null;
   games_played: number;
   wins: number;
   losses: number;
@@ -175,6 +177,7 @@ export function getPlayerLeaders(
       p.team_id                                 AS team_id,
       t.name                                    AS team_name,
       t.logo_url                                AS team_logo_url,
+      t.primary_color                           AS team_primary_color,
       COUNT(ps.id)                              AS games_played,
       COALESCE(SUM(ps.goals), 0)                AS goals,
       COALESCE(SUM(ps.assists), 0)              AS assists,
@@ -196,7 +199,7 @@ export function getPlayerLeaders(
     JOIN teams       t  ON t.id          = p.team_id
     LEFT JOIN recent r  ON r.player_id   = p.id
     ${whereSql}
-    GROUP BY p.id, p.name, p.team_id, t.name, t.logo_url, r.recent_goals
+    GROUP BY p.id, p.name, p.team_id, t.name, t.logo_url, t.primary_color, r.recent_goals
     HAVING ${havingClauses.join(' AND ')}
     ORDER BY ${playerOrderBy(metric)}
     LIMIT @limit
@@ -242,6 +245,7 @@ export function getTeamLeaders(db: Database, opts: TeamLeadersOpts): TeamLeaderR
         t.name AS team_name,
         t.slug AS team_slug,
         t.logo_url AS team_logo_url,
+        t.primary_color AS team_primary_color,
         COALESCE(SUM(CASE WHEN tg.postponed = 0 THEN 1 ELSE 0 END), 0)                                            AS games_played,
         COALESCE(SUM(CASE WHEN tg.postponed = 0 AND tg.goals_for >  tg.goals_against THEN 1 ELSE 0 END), 0)       AS wins,
         COALESCE(SUM(CASE WHEN tg.postponed = 0 AND tg.goals_for <  tg.goals_against THEN 1 ELSE 0 END), 0)       AS losses,
@@ -250,10 +254,10 @@ export function getTeamLeaders(db: Database, opts: TeamLeadersOpts): TeamLeaderR
         COALESCE(SUM(CASE WHEN tg.postponed = 0 THEN tg.goals_against ELSE 0 END), 0)                             AS goals_against
       FROM teams t
       LEFT JOIN team_games tg ON tg.team_id = t.id
-      GROUP BY t.id, t.name, t.slug, t.logo_url
+      GROUP BY t.id, t.name, t.slug, t.logo_url, t.primary_color
     )
     SELECT
-      team_id, team_name, team_slug, team_logo_url, games_played, wins, losses, ties, goals_for, goals_against,
+      team_id, team_name, team_slug, team_logo_url, team_primary_color, games_played, wins, losses, ties, goals_for, goals_against,
       (goals_for - goals_against)                                              AS goal_diff,
       CASE WHEN (wins + losses) > 0 THEN wins * 1.0 / (wins + losses) ELSE NULL END AS win_pct,
       CASE WHEN games_played > 0 THEN goals_for     * 1.0 / games_played ELSE NULL END AS gpg,

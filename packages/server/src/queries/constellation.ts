@@ -10,8 +10,9 @@ export interface ConstellationPlayer {
   name: string;
   teamId: number;
   teamName: string;
-  /** No team-color column in the schema yet; always null today. Web view
-   *  hashes the team name to a hue when this is null. */
+  /** Hand-curated brand color from teams.primary_color when set. NULL when
+   *  the team is uncurated; the web client falls back to a deterministic
+   *  name-hash hue in that case. (Wave 16 L3.) */
   teamColor: string | null;
   gamesPlayed: number;
   goals: number;
@@ -31,6 +32,7 @@ interface Row {
   name: string;
   team_id: number;
   team_name: string;
+  team_primary_color: string | null;
   games_played: number;
   goals: number;
   assists: number;
@@ -46,6 +48,7 @@ export function getConstellation(
            p.name                            AS name,
            p.team_id                         AS team_id,
            t.name                            AS team_name,
+           t.primary_color                   AS team_primary_color,
            COUNT(DISTINCT ps.game_id)        AS games_played,
            COALESCE(SUM(ps.goals), 0)        AS goals,
            COALESCE(SUM(ps.assists), 0)      AS assists
@@ -55,7 +58,7 @@ export function getConstellation(
       JOIN games g         ON g.id = ps.game_id AND g.postponed = 0
      WHERE 1=1
        ${seasonFilter}
-     GROUP BY p.id, p.name, p.team_id, t.name
+     GROUP BY p.id, p.name, p.team_id, t.name, t.primary_color
      HAVING games_played >= 1
      ORDER BY (goals + assists) DESC, p.name COLLATE NOCASE ASC
   `;
@@ -71,7 +74,7 @@ export function getConstellation(
       name: r.name,
       teamId: r.team_id,
       teamName: r.team_name,
-      teamColor: null,
+      teamColor: r.team_primary_color,
       gamesPlayed: r.games_played,
       goals: r.goals,
       assists: r.assists,
