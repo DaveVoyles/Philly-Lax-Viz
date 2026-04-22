@@ -180,6 +180,34 @@ export function getAnomalySummary(opts?: { limit?: number; reason?: string }): P
   return request<AnomalySummaryResponse>(`/anomalies/summary${buildQuery(params)}`);
 }
 
+// ---- Rivalries graph (W12 L2, Han) ----
+
+export interface RivalryNode {
+  id: number;
+  name: string;
+  wins: number;
+  losses: number;
+  games: number;
+  logo: string | null;
+}
+
+export interface RivalryEdge {
+  source: number;
+  target: number;
+  games: number;
+  totalMarginSum: number;
+  avgMargin: number;
+}
+
+export interface RivalryGraphResponse {
+  nodes: RivalryNode[];
+  edges: RivalryEdge[];
+}
+
+export function getRivalries(): Promise<RivalryGraphResponse> {
+  return request<RivalryGraphResponse>('/rivalries');
+}
+
 // ---- PIAA cross-check (Leia, W2 lane 3) ----
 
 export interface PiaaMismatchSummary {

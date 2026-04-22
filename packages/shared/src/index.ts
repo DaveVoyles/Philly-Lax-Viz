@@ -218,4 +218,4 @@ export interface ParseListResult<T> {
 
 // Current parser version. Bump when grammar changes so re-runs can target
 // affected rows via player_stats.parser_version.
-export const PARSER_VERSION = '0.2.2';
+export const PARSER_VERSION = '0.2.4';

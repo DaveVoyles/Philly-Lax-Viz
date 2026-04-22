@@ -6,6 +6,7 @@ import * as playerDetail from './views/playerDetail.js';
 import * as dataQuality from './views/dataQuality.js';
 import * as leaders from './views/leaders.js';
 import * as anomalies from './views/anomalies.js';
+import * as graph from './views/graph.js';
 
 interface NavLink {
   href: string;
@@ -16,6 +17,7 @@ interface NavLink {
 const NAV: NavLink[] = [
   { href: '#/', label: 'Dashboard', match: 'dashboard' },
   { href: '#/leaders', label: 'Leaders', match: 'leaders' },
+  { href: '#/graph', label: 'Network', match: 'graph' },
   { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
 ];
@@ -55,6 +57,9 @@ function mountShell(app: HTMLElement): { main: HTMLElement; setActive: (name: Ro
 }
 
 function dispatch(main: HTMLElement, match: RouteMatch): void {
+  // Tear down any active GPU/pixi resources from the previous view before
+  // mounting the next one.
+  graph.destroy();
   switch (match.name) {
     case 'dashboard':
       dashboard.render(main, match.params);
@@ -76,6 +81,9 @@ function dispatch(main: HTMLElement, match: RouteMatch): void {
       return;
     case 'anomalies':
       anomalies.render(main, match.params);
+      return;
+    case 'graph':
+      void graph.render(main, match.params);
       return;
     case 'notFound':
       main.innerHTML = `<h1>Not found</h1><p>No route for <code>${match.path}</code>. <a href="#/">Go home</a>.</p>`;

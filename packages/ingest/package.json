@@ -12,6 +12,7 @@
     "sync:logos": "tsx src/scripts/syncLogos.ts",
     "test:db:seed": "tsx src/scripts/seedTestDb.ts",
     "dedup:players": "tsx src/scripts/dedupPlayers.ts",
+    "players:dedup": "tsx src/scripts/dedupPlayers.ts",
     "dedup:teams": "tsx src/scripts/dedupTeams.ts",
     "cleanup:junk": "tsx src/scripts/cleanupJunkPlayers.ts",
     "aliases:seed": "tsx src/scripts/seedTeamAliases.ts",

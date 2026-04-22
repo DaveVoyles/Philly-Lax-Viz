@@ -152,4 +152,129 @@ describe('ingestSummariesPost (live fixture)', () => {
     expect(sfPlayers).toBe(2);
     expect(btnPlayers).toBe(2);
   });
+
+  it('Wave 12: 3 consecutive game blocks attribute stats to correct game', () => {
+    const html = [
+      '<p>Spring-Ford 10, Boyertown 5</p>',
+      '<p>Spring-Ford</p>',
+      '<p>Player A 4g 1a</p>',
+      '<p>Boyertown</p>',
+      '<p>Player B 3g 0a</p>',
+      '<p>Methacton 8, Owen J. Roberts 7</p>',
+      '<p>Methacton</p>',
+      '<p>Player C 2g 1a</p>',
+      '<p>OJR</p>',
+      '<p>Player D 1g 0a</p>',
+      '<p>Radnor 12, Marple Newtown 4</p>',
+      '<p>Radnor</p>',
+      '<p>Player E 5g</p>',
+      '<p>Marple Newtown</p>',
+      '<p>Player F 1g</p>',
+    ].join('\n');
+    db.prepare(`INSERT INTO teams (name, slug) VALUES ('Owen J. Roberts','owen-j-roberts')`).run();
+    db.prepare(`INSERT INTO team_aliases (alias, team_id, source) VALUES ('ojr',(SELECT id FROM teams WHERE slug='owen-j-roberts'),'manual')`).run();
+    const parsed = parseSummariesPost(html);
+    expect(parsed.games.length).toBe(3);
+    const r = ingestSummariesPost(db, {
+      postId: 'w12-3blocks', postUrl: 'u', postDate: '2026-04-22', parsed,
+    });
+    expect(r.gamesUpserted).toBe(3);
+    expect(r.playerStatsUpserted).toBe(6);
+    const anomalies = (db.prepare(`SELECT COUNT(*) c FROM ingest_anomalies WHERE reason LIKE '%sub-header%'`).get() as { c: number }).c;
+    expect(anomalies).toBe(0);
+  });
+
+  it('Wave 12: sub-header "Haverford" attributes to "Haverford School" home (partial-prefix match)', () => {
+    // Pre-create both Haverford teams to reproduce the bug: findTeamByName
+    // would resolve "Haverford" to "Haverford High" if the partial-match
+    // preference for current-game teams isn't applied.
+    db.prepare(`INSERT INTO teams (name, slug) VALUES ('Haverford School','haverford-school')`).run();
+    db.prepare(`INSERT INTO teams (name, slug) VALUES ('Haverford High','haverford-high')`).run();
+    db.prepare(`INSERT INTO teams (name, slug) VALUES ('Penn Charter','penn-charter')`).run();
+    const html = [
+      '<p>Haverford School 15, Penn Charter 4</p>',
+      '<p>Haverford</p>',
+      '<p>Conor Morsell 3g 3a</p>',
+      '<p>Chris Burnetta 2g 1a</p>',
+      '<p>Penn Charter</p>',
+      '<p>Brady Place 2g</p>',
+    ].join('\n');
+    const parsed = parseSummariesPost(html);
+    const r = ingestSummariesPost(db, {
+      postId: 'w12-haverford', postUrl: 'u', postDate: '2026-04-22', parsed,
+    });
+    expect(r.playerStatsUpserted).toBe(3);
+    const havSchoolPlayers = (db.prepare(`SELECT COUNT(*) c FROM players WHERE team_id=(SELECT id FROM teams WHERE slug='haverford-school')`).get() as { c: number }).c;
+    const havHighPlayers = (db.prepare(`SELECT COUNT(*) c FROM players WHERE team_id=(SELECT id FROM teams WHERE slug='haverford-high')`).get() as { c: number }).c;
+    expect(havSchoolPlayers).toBe(2);
+    expect(havHighPlayers).toBe(0);
+    const anomalies = (db.prepare(`SELECT COUNT(*) c FROM ingest_anomalies WHERE reason LIKE '%sub-header%'`).get() as { c: number }).c;
+    expect(anomalies).toBe(0);
+  });
+
+  it('Wave 12: sub-header "WC Henderson" attributes to abbreviated "Henderson" home (suffix-word match)', () => {
+    db.prepare(`INSERT INTO teams (name, slug) VALUES ('Henderson','henderson'),('Kennett','kennett'),('WC Henderson','wc-henderson')`).run();
+    const html = [
+      '<p>Henderson 12, Kennett 4</p>',
+      '<p>WC Henderson</p>',
+      '<p>Zach Abrahams 2g 4a</p>',
+      '<p>Kennett</p>',
+      '<p>Dylan Hartmann 1g</p>',
+    ].join('\n');
+    const parsed = parseSummariesPost(html);
+    const r = ingestSummariesPost(db, {
+      postId: 'w12-wch', postUrl: 'u', postDate: '2026-04-22', parsed,
+    });
+    expect(r.playerStatsUpserted).toBe(2);
+    const hendPlayers = (db.prepare(`SELECT COUNT(*) c FROM players WHERE team_id=(SELECT id FROM teams WHERE slug='henderson')`).get() as { c: number }).c;
+    expect(hendPlayers).toBe(1);
+    const anomalies = (db.prepare(`SELECT COUNT(*) c FROM ingest_anomalies WHERE reason LIKE '%sub-header%'`).get() as { c: number }).c;
+    expect(anomalies).toBe(0);
+  });
+
+  it('Wave 12: sub-header initials "PV" / "DB" attribute via initials match', () => {
+    db.prepare(`INSERT INTO teams (name, slug) VALUES ('Perkiomen Valley','perkiomen-valley'),('Souderton','souderton')`).run();
+    const html = [
+      '<p>Perkiomen Valley 8, Souderton 7</p>',
+      '<p>PV</p>',
+      '<p>Player A 3g</p>',
+      '<p>Souderton</p>',
+      '<p>Player B 2g</p>',
+    ].join('\n');
+    const parsed = parseSummariesPost(html);
+    const r = ingestSummariesPost(db, {
+      postId: 'w12-pv', postUrl: 'u', postDate: '2026-04-22', parsed,
+    });
+    expect(r.playerStatsUpserted).toBe(2);
+    const pvPlayers = (db.prepare(`SELECT COUNT(*) c FROM players WHERE team_id=(SELECT id FROM teams WHERE slug='perkiomen-valley')`).get() as { c: number }).c;
+    expect(pvPlayers).toBe(1);
+  });
+
+  it('Wave 12: NULL_HEADER (stats with no preceding sub-header) default to home, not anomaly', () => {
+    db.prepare(`INSERT INTO teams (name, slug) VALUES ('Devon Prep','devon-prep'),('Kennett','kennett')`).run();
+    // Devon Prep has stats interleaved with quirky lines that previously
+    // desynced the parallel walk's psIdx, leaving stats with no resolved hint.
+    const html = [
+      '<p>Devon Prep 6, Kennett 5</p>',
+      '<p>DP 1-1-3-1-6</p>',
+      '<p>Kennett: 2-1-1-1- 5</p>',
+      '<p>Devon Prep</p>',
+      '<p>Riley Brennan: 18 Saves</p>',
+      '<p>Andrew Murray: 8/14 F/O</p>',
+      '<p>Owen Raymond: 2CT, 5GBs</p>',
+      '<p>Declan Sullivan: 4G</p>',
+      '<p>Manny Strid: 2G, 2A</p>',
+      '<p>Deji Abodunde: 2A</p>',
+    ].join('\n');
+    const parsed = parseSummariesPost(html);
+    const r = ingestSummariesPost(db, {
+      postId: 'w12-null-header', postUrl: 'u', postDate: '2026-04-22', parsed,
+    });
+    // All Devon Prep stats should attribute, none dropped as uncertain.
+    const dropped = (db.prepare(`SELECT COUNT(*) c FROM ingest_anomalies WHERE reason LIKE '%sub-header%'`).get() as { c: number }).c;
+    expect(dropped).toBe(0);
+    expect(r.playerStatsUpserted).toBe(parsed.games[0]!.playerStats.length);
+    const dpPlayers = (db.prepare(`SELECT COUNT(*) c FROM players WHERE team_id=(SELECT id FROM teams WHERE slug='devon-prep')`).get() as { c: number }).c;
+    expect(dpPlayers).toBeGreaterThanOrEqual(5);
+  });
 });

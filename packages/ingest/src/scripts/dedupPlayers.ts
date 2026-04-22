@@ -345,18 +345,390 @@ function printResult(r: DedupResult): void {
   console.log('──────────────────────────────');
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// Wave 12 — Fuzzy / Levenshtein-based candidate finder + safe merge.
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Motivation: the existing buildPlan/applyPlan only catches duplicates whose
+// names normalize to byte-identical keys (Patterns 1/2/3) plus single-token
+// last-name partials (Pattern 7). Real-world spelling variants like
+//   "Pierce Merill"  vs  "Peirce Merrill"
+//   "Yusef Abbas"    vs  "Yusuf Abbas"
+//   "Colin Ward"     vs  "Collin Ward"
+// fall through because their normalized keys differ by 1-2 characters.
+//
+// This module adds Levenshtein-based candidate detection scoped to the same
+// team_id, plus a safe merge path that records every drop in
+// `player_aliases` for audit. Cross-team merges are NEVER suggested.
+
+/** O(n*m) Levenshtein distance with two-row buffer. Pure. */
+export function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  let prev = new Array(b.length + 1);
+  let curr = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(
+        curr[j - 1] + 1,
+        prev[j] + 1,
+        prev[j - 1] + cost,
+      );
+    }
+    const tmp = prev;
+    prev = curr;
+    curr = tmp;
+  }
+  return prev[b.length];
+}
+
+/**
+ * Aggressive normalization for fuzzy match. Distinct from the indexable
+ * `normalizePlayerName` because we additionally:
+ *   - strip jersey numbers (`#12`, `12`) and parenthetical groups
+ *   - drop position annotations (goalie/attack/midfield/defense)
+ *   - drop name suffixes (jr/sr/ii/iii/iv)
+ *   - collapse hyphens to spaces
+ */
+export function normalizeForFuzzy(raw: string): string {
+  if (typeof raw !== 'string') return '';
+  let s = raw
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u2013\u2014-]/g, ' ')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/#?\b\d+\b/g, ' ')
+    .replace(/[^a-z\s']/g, ' ');
+  const tokens = s
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((t) => !/^(goalie|attack|midfield|defense|jr|sr|ii|iii|iv)$/.test(t));
+  return tokens.join(' ').trim();
+}
+
+export interface Candidate {
+  teamId: number;
+  teamName: string;
+  leftId: number;
+  leftName: string;
+  leftStatCount: number;
+  rightId: number;
+  rightName: string;
+  rightStatCount: number;
+  editDistance: number;
+  /** 'high' = edit ≤ threshold, 'medium' = first-name + last-initial heuristic. */
+  confidence: 'high' | 'medium';
+}
+
+interface CandidateRow {
+  id: number;
+  team_id: number;
+  team_name: string;
+  name: string;
+  stat_count: number;
+}
+
+export interface CandidateOptions {
+  /** Max Levenshtein distance for a "high"-confidence match (default 2). */
+  threshold?: number;
+  /** Minimum length of the shorter normalized name (default 5; avoids Tim/Tom). */
+  minLength?: number;
+}
+
+/**
+ * Find near-duplicate player pairs WITHIN the same team. Returns one
+ * Candidate per unordered pair, deduplicated, sorted by team then by
+ * descending combined stat count (juiciest merges first).
+ */
+export function findDuplicateCandidates(
+  db: Database,
+  opts: CandidateOptions = {},
+): Candidate[] {
+  const threshold = opts.threshold ?? 2;
+  const minLength = opts.minLength ?? 5;
+
+  const rows = db
+    .prepare(
+      `SELECT p.id, p.team_id, t.name AS team_name, p.name,
+              (SELECT COUNT(*) FROM player_stats ps WHERE ps.player_id = p.id) AS stat_count
+       FROM players p
+       JOIN teams t ON t.id = p.team_id
+       ORDER BY p.team_id, p.id`,
+    )
+    .all() as CandidateRow[];
+
+  // Group by team.
+  const byTeam = new Map<number, CandidateRow[]>();
+  for (const r of rows) {
+    const list = byTeam.get(r.team_id) ?? [];
+    list.push(r);
+    byTeam.set(r.team_id, list);
+  }
+
+  const out: Candidate[] = [];
+  for (const [, players] of byTeam) {
+    // Pre-compute normalized form once per row.
+    const norm = players.map((p) => normalizeForFuzzy(p.name));
+    for (let i = 0; i < players.length; i++) {
+      const a = players[i]!;
+      const na = norm[i]!;
+      if (!na) continue;
+      for (let j = i + 1; j < players.length; j++) {
+        const b = players[j]!;
+        const nb = norm[j]!;
+        if (!nb) continue;
+        if (na === nb) continue; // exact-normalize handled by buildPlan
+        const minLen = Math.min(na.length, nb.length);
+        // Cheap length-prefilter: distance is bounded below by len-diff.
+        if (Math.abs(na.length - nb.length) > Math.max(threshold, 2)) {
+          // still consider for the medium-confidence first+last-initial path
+        }
+
+        const dist = levenshtein(na, nb);
+
+        let confidence: 'high' | 'medium' | null = null;
+        if (dist <= threshold && minLen >= minLength) {
+          // Reject when the divergence falls within a SHORT token. e.g.
+          // "tim smith" vs "tom smith" has dist=1, total length 9, but
+          // the only differing token is 3 chars — almost certainly two
+          // different people. Compare token-by-token when token counts
+          // match; otherwise fall back to the total-length check.
+          const aTokensH = na.split(/\s+/);
+          const bTokensH = nb.split(/\s+/);
+          let differingTokenOk = true;
+          if (aTokensH.length === bTokensH.length) {
+            for (let k = 0; k < aTokensH.length; k++) {
+              if (aTokensH[k] === bTokensH[k]) continue;
+              const shorter = Math.min(aTokensH[k]!.length, bTokensH[k]!.length);
+              if (shorter < minLength) {
+                differingTokenOk = false;
+                break;
+              }
+            }
+          }
+          if (differingTokenOk) confidence = 'high';
+        }
+        if (!confidence) {
+          // First-name + last-name initial heuristic (transposition catcher).
+          const aTokens = na.split(/\s+/);
+          const bTokens = nb.split(/\s+/);
+          if (aTokens.length >= 2 && bTokens.length >= 2) {
+            const aFirst = aTokens[0]!;
+            const bFirst = bTokens[0]!;
+            const aLastInit = aTokens[aTokens.length - 1]![0]!;
+            const bLastInit = bTokens[bTokens.length - 1]![0]!;
+            const firstDist = levenshtein(aFirst, bFirst);
+            if (
+              aLastInit === bLastInit &&
+              aFirst.length >= 4 &&
+              bFirst.length >= 4 &&
+              firstDist <= 2
+            ) {
+              confidence = 'medium';
+            }
+          }
+        }
+        if (!confidence) continue;
+
+        out.push({
+          teamId: a.team_id,
+          teamName: a.team_name,
+          leftId: a.id,
+          leftName: a.name,
+          leftStatCount: a.stat_count,
+          rightId: b.id,
+          rightName: b.name,
+          rightStatCount: b.stat_count,
+          editDistance: dist,
+          confidence,
+        });
+      }
+    }
+  }
+
+  out.sort((x, y) => {
+    if (x.teamId !== y.teamId) return x.teamId - y.teamId;
+    const xs = x.leftStatCount + x.rightStatCount;
+    const ys = y.leftStatCount + y.rightStatCount;
+    return ys - xs;
+  });
+  return out;
+}
+
+export interface MergeResult {
+  keptId: number;
+  droppedId: number;
+  statRowsReassigned: number;
+  duplicateStatsDropped: number;
+  aliasesRepointed: number;
+}
+
+/**
+ * Merge `dropId` into `keepId` within a single transaction:
+ *   1. UPDATE OR IGNORE player_stats to keepId (UNIQUE collisions get IGNORE'd
+ *      then DELETEd as per-game duplicates, matching applyPlan semantics).
+ *   2. Repoint any existing player_aliases.player_id rows from drop → keep.
+ *   3. INSERT (or IGNORE) the dropped player's name as an alias on keepId.
+ *   4. DELETE the dropped player row.
+ *
+ * Idempotent: a second call with the same args is a no-op (the player is
+ * already gone). The UNIQUE(alias, player_id) constraint prevents
+ * double-inserting the same alias.
+ */
+export function mergePlayers(
+  db: Database,
+  keepId: number,
+  dropId: number,
+  source = 'auto-dedup-w12',
+  confidence = 1.0,
+): MergeResult {
+  if (keepId === dropId) {
+    throw new Error(`mergePlayers: keepId === dropId (${keepId})`);
+  }
+  let statRowsReassigned = 0;
+  let duplicateStatsDropped = 0;
+  let aliasesRepointed = 0;
+
+  const tx = db.transaction(() => {
+    const dropped = db
+      .prepare('SELECT id, name FROM players WHERE id = ?')
+      .get(dropId) as { id: number; name: string } | undefined;
+    const kept = db
+      .prepare('SELECT id, name FROM players WHERE id = ?')
+      .get(keepId) as { id: number; name: string } | undefined;
+    if (!dropped || !kept) {
+      // Already merged or doesn't exist — no-op.
+      return;
+    }
+
+    const beforeKeep = (
+      db
+        .prepare('SELECT COUNT(*) AS c FROM player_stats WHERE player_id = ?')
+        .get(keepId) as { c: number }
+    ).c;
+    db.prepare(
+      'UPDATE OR IGNORE player_stats SET player_id = ? WHERE player_id = ?',
+    ).run(keepId, dropId);
+    const afterKeep = (
+      db
+        .prepare('SELECT COUNT(*) AS c FROM player_stats WHERE player_id = ?')
+        .get(keepId) as { c: number }
+    ).c;
+    statRowsReassigned = afterKeep - beforeKeep;
+
+    const stillOnDrop = (
+      db
+        .prepare('SELECT COUNT(*) AS c FROM player_stats WHERE player_id = ?')
+        .get(dropId) as { c: number }
+    ).c;
+    if (stillOnDrop > 0) {
+      db.prepare('DELETE FROM player_stats WHERE player_id = ?').run(dropId);
+      duplicateStatsDropped = stillOnDrop;
+    }
+
+    // Repoint aliases from drop → keep (UNIQUE(alias, player_id) handles dups).
+    const repoint = db
+      .prepare(
+        'UPDATE OR IGNORE player_aliases SET player_id = ? WHERE player_id = ?',
+      )
+      .run(keepId, dropId);
+    aliasesRepointed = repoint.changes;
+    // Anything that collided is dropped along with the player row by
+    // ON DELETE CASCADE — prune now to keep the audit table clean.
+    db.prepare('DELETE FROM player_aliases WHERE player_id = ?').run(dropId);
+
+    // Record the dropped name as an alias of the kept player.
+    db.prepare(
+      `INSERT OR IGNORE INTO player_aliases (alias, player_id, source, confidence)
+       VALUES (?, ?, ?, ?)`,
+    ).run(dropped.name, keepId, source, confidence);
+
+    db.prepare('DELETE FROM players WHERE id = ?').run(dropId);
+  });
+
+  tx();
+  return { keptId: keepId, droppedId: dropId, statRowsReassigned, duplicateStatsDropped, aliasesRepointed };
+}
+
+/** Decide which side of a candidate to keep: more stats wins; tie-break lower id. */
+export function pickKeepFromCandidate(c: Candidate): { keepId: number; dropId: number } {
+  if (c.leftStatCount !== c.rightStatCount) {
+    return c.leftStatCount > c.rightStatCount
+      ? { keepId: c.leftId, dropId: c.rightId }
+      : { keepId: c.rightId, dropId: c.leftId };
+  }
+  return c.leftId <= c.rightId
+    ? { keepId: c.leftId, dropId: c.rightId }
+    : { keepId: c.rightId, dropId: c.leftId };
+}
+
+function printCandidates(cands: Candidate[]): void {
+  console.log(`\n──────── Fuzzy candidates (${cands.length}) ────────`);
+  const byConf = { high: 0, medium: 0 };
+  for (const c of cands) byConf[c.confidence]++;
+  console.log(`  high: ${byConf.high}   medium: ${byConf.medium}`);
+  for (const c of cands) {
+    const tag = c.confidence === 'high' ? '[H]' : '[M]';
+    const { keepId, dropId } = pickKeepFromCandidate(c);
+    const keepName = keepId === c.leftId ? c.leftName : c.rightName;
+    const dropName = dropId === c.leftId ? c.leftName : c.rightName;
+    const keepStats = keepId === c.leftId ? c.leftStatCount : c.rightStatCount;
+    const dropStats = dropId === c.leftId ? c.leftStatCount : c.rightStatCount;
+    console.log(
+      `  ${tag} d=${c.editDistance} team=${c.teamId} "${c.teamName}"  ` +
+        `KEEP #${keepId} "${keepName}" (${keepStats} stats)  ←  ` +
+        `DROP #${dropId} "${dropName}" (${dropStats} stats)`,
+    );
+  }
+}
+
+function parseArgs(argv: string[]): {
+  apply: boolean;
+  fuzzy: boolean;
+  threshold: number;
+  minConfidence: 'high' | 'medium';
+} {
+  const apply = argv.includes('--apply');
+  // Fuzzy is the default for this command (Wave 12 contract). Use
+  // `--no-fuzzy` to skip the fuzzy pass and only run the legacy
+  // normalize/pattern7 plan.
+  const fuzzy = !argv.includes('--no-fuzzy');
+  let threshold = 2;
+  let minConfidence: 'high' | 'medium' = 'high';
+  for (const a of argv) {
+    const m = /^--threshold=(\d+)$/.exec(a);
+    if (m) threshold = Number(m[1]);
+    if (a === '--include-medium') minConfidence = 'medium';
+  }
+  return { apply, fuzzy, threshold, minConfidence };
+}
+
 function main(): void {
-  const apply = process.argv.includes('--apply');
+  const args = parseArgs(process.argv);
   const here = dirname(fileURLToPath(import.meta.url));
   const dbPath = resolve(here, '..', '..', '..', '..', 'data', 'lacrosse.db');
-  console.log(`[dedupPlayers] opening ${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
+  console.log(`[dedupPlayers] opening ${dbPath} (${args.apply ? 'APPLY' : 'dry-run'})`);
   const db = openDb(dbPath);
   db.pragma('foreign_keys = ON');
 
+  // Pass 1 — legacy normalize / pattern-7 plan (unchanged).
   const plan = buildPlan(db);
-  printPlan(plan, apply);
+  printPlan(plan, args.apply);
 
-  if (!apply) {
+  // Pass 2 — fuzzy candidates.
+  let fuzzyCands: Candidate[] = [];
+  if (args.fuzzy) {
+    fuzzyCands = findDuplicateCandidates(db, { threshold: args.threshold });
+    printCandidates(fuzzyCands);
+  }
+
+  if (!args.apply) {
     console.log('\n(Dry-run only. Re-run with --apply to write.)');
     db.close();
     return;
@@ -365,14 +737,51 @@ function main(): void {
   const result = applyPlan(db, plan);
   printResult(result);
 
-  // FK integrity sanity.
-  const fkIssues = db.pragma('foreign_key_check') as unknown[];
-  if (fkIssues.length > 0) {
-    console.error('FOREIGN KEY CHECK reported issues:');
-    console.error(fkIssues);
+  if (args.fuzzy && fuzzyCands.length > 0) {
+    let merged = 0;
+    let skipped = 0;
+    for (const c of fuzzyCands) {
+      if (c.confidence !== 'high' && args.minConfidence === 'high') {
+        skipped++;
+        continue;
+      }
+      const { keepId, dropId } = pickKeepFromCandidate(c);
+      // Either side may have been merged out by the legacy plan above.
+      const stillThere = (
+        db
+          .prepare('SELECT COUNT(*) AS c FROM players WHERE id IN (?, ?)')
+          .get(keepId, dropId) as { c: number }
+      ).c;
+      if (stillThere < 2) {
+        skipped++;
+        continue;
+      }
+      mergePlayers(db, keepId, dropId);
+      merged++;
+    }
+    console.log(`\n──────── Fuzzy merges ────────`);
+    console.log(`merged : ${merged}`);
+    console.log(`skipped: ${skipped} (already merged or below confidence cutoff)`);
+  }
+
+  // FK integrity sanity. Only fail on issues in tables this script touches
+  // (players, player_stats, player_aliases) — pre-existing orphan rows in
+  // unrelated tables (e.g. rankings → deleted teams) are out of scope and
+  // logged at warning level only.
+  const fkIssues = db.pragma('foreign_key_check') as Array<{ table: string }>;
+  const ourTables = new Set(['players', 'player_stats', 'player_aliases']);
+  const ours = fkIssues.filter((i) => ourTables.has(i.table));
+  if (ours.length > 0) {
+    console.error('FOREIGN KEY CHECK reported issues in tables this script touches:');
+    console.error(ours);
     process.exitCode = 1;
   } else {
-    console.log('foreign_key_check: clean ✓');
+    console.log('foreign_key_check: clean ✓ (for players/player_stats/player_aliases)');
+    if (fkIssues.length > 0) {
+      console.log(
+        `  (${fkIssues.length} pre-existing FK issues in unrelated tables — ignored)`,
+      );
+    }
   }
 
   db.close();

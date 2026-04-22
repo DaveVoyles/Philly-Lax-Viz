@@ -15,6 +15,19 @@ export interface ParsedSummariesGameBlock {
   scoreLine: ParsedScoreLine;
   periods: ParsedQuarterLine[];
   playerStats: ParsedPlayerStat[];
+  /**
+   * Parallel array to `playerStats`: the most recent sub-header text observed
+   * before each stat line, or `null` if no sub-header had appeared yet in the
+   * block (in which case the consumer should default to the home team).
+   *
+   * Wave 12 Lane 1 (Darth 😈⚡): the previous architecture re-walked
+   * `rawLines` in `summaries.ts` with its own `looksLikePlayer` heuristic to
+   * map stats back to sub-headers. That heuristic disagreed with
+   * `parsePlayerStatLine` on inputs like `"Andrew Murray: 8/14 F/O"`, causing
+   * `psIdx` desync and producing 148 NULL_HEADER anomalies. Recording the
+   * hint at parse time eliminates the parallel walk entirely.
+   */
+  playerStatTeamHints: (string | null)[];
   /** raw lines that comprised this block (for anomaly attribution / debug) */
   rawLines: string[];
 }
@@ -27,9 +40,10 @@ export interface ParsedSummariesPost {
 const SCORE_LINE_PROBE = /^[A-Za-z][^,:=\d]*\d+\s*,\s*[A-Za-z][^,:=\d]*\d+/;
 // Comma-less probe: title-cased team + int + title-cased team + int.
 // Mirrors SCORE_RE_NOCOMMA in scoreLine.ts but kept loose enough to be a probe;
-// parseScoreLine performs the strict match.
+// parseScoreLine performs the strict match. Allows an optional `(XX)` state
+// suffix on either team (Wave 12 Lane 1 — Darth 😈⚡).
 const SCORE_LINE_PROBE_NOCOMMA =
-  /^[A-Z][A-Za-z'.\-]*(?:\s+[A-Za-z'.\-]+)*\s+\d+\s+[A-Z][A-Za-z'.\-]*(?:\s+[A-Za-z'.\-]+)*\s+\d+\.?$/;
+  /^[A-Z][A-Za-z'.\-]*(?:\s+[A-Za-z'.\-]+)*(?:\s*\([A-Z]{2,3}\))?\s+\d+\s+[A-Z][A-Za-z'.\-]*(?:\s+[A-Za-z'.\-]+)*(?:\s*\([A-Z]{2,3}\))?\s+\d+\.?$/;
 
 /**
  * Walk a summaries-post HTML body. Split into game blocks at every line that
@@ -43,6 +57,17 @@ export function parseSummariesPost(html: string): ParsedSummariesPost {
 
   let current: ParsedSummariesGameBlock | null = null;
   let knownTeams: [string, string] | null = null;
+  // Most recent sub-header line (raw, untrimmed) seen since the last score
+  // line — recorded onto each player stat as it's pushed so the pipeline can
+  // attribute it without re-walking. `null` until the first sub-header in the
+  // block, in which case stats default to the home team.
+  let currentSubHeader: string | null = null;
+  // Aggregated-list lines carry their own team mention in the header. We pass
+  // that through as the hint for each item produced by the line.
+  // Sub-header detection regex (matches "Devon Prep", "O'Hara", "DV Scoring:",
+  // "Penn Charter", etc.) — bare team-ish word(s) optionally followed by a
+  // single trailing colon.
+  const SUB_HEADER_RE = /^[A-Za-z][A-Za-z'.\-\s&]*\s*:?$/;
 
   for (const line of lines) {
     // 1. Score line? Start a new block.
@@ -53,6 +78,7 @@ export function parseSummariesPost(html: string): ParsedSummariesPost {
           // Skip postponed games entirely.
           current = null;
           knownTeams = null;
+          currentSubHeader = null;
           continue;
         }
         let teamA = sl.result.teamA;
@@ -64,9 +90,11 @@ export function parseSummariesPost(html: string): ParsedSummariesPost {
           scoreLine: normalized,
           periods: [],
           playerStats: [],
+          playerStatTeamHints: [],
           rawLines: [line],
         };
         knownTeams = [teamA, teamB];
+        currentSubHeader = null;
         games.push(current);
         continue;
       }
@@ -81,10 +109,17 @@ export function parseSummariesPost(html: string): ParsedSummariesPost {
     current.rawLines.push(line);
 
     // 2. Aggregated-list line? "<Team> goals: ..."
-    if (/^[A-Za-z][A-Za-z'.\-\s&]*\s+(?:goals?|assists?|saves?|gbs?|ground\s*balls?|ctos?)\s*:/i.test(line)) {
+    const aggHeaderMatch = line.match(
+      /^([A-Za-z][A-Za-z'.\-\s&]*?)\s+(?:goals?|assists?|saves?|gbs?|ground\s*balls?|ctos?)\s*:/i,
+    );
+    if (aggHeaderMatch) {
       const agg = parseAggregatedList(line);
       if (agg.results.length > 0) {
-        current.playerStats.push(...agg.results);
+        const aggTeamMention = (aggHeaderMatch[1] ?? '').trim();
+        for (const r of agg.results) {
+          current.playerStats.push(r);
+          current.playerStatTeamHints.push(aggTeamMention || currentSubHeader);
+        }
         continue;
       }
       anomalies.push(...agg.anomalies);
@@ -104,8 +139,10 @@ export function parseSummariesPost(html: string): ParsedSummariesPost {
       // fall through: maybe it's actually a player line
     }
 
-    // 4. Team subsection header? Bare team name with no digits — skip.
-    if (/^[A-Za-z][A-Za-z'.\-\s&]*$/.test(line) && line.length < 60) {
+    // 4. Team subsection header? Bare team name with no digits — record as
+    //    hint for subsequent stats and move on.
+    if (SUB_HEADER_RE.test(line) && line.length < 60) {
+      currentSubHeader = line;
       continue;
     }
 
@@ -113,6 +150,7 @@ export function parseSummariesPost(html: string): ParsedSummariesPost {
     const ps = parsePlayerStatLine(line);
     if (ps.result) {
       current.playerStats.push(ps.result);
+      current.playerStatTeamHints.push(currentSubHeader);
       continue;
     }
     // Don't spam anomalies for noise lines (e.g. coach quotes). Only if the

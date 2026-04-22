@@ -265,27 +265,29 @@ interface AssignArgs {
 }
 
 /**
- * Attribute player_stat lines to the home or away team. Strategy:
+ * Attribute player_stat lines to the home or away team.
  *
- *   We walk the block's `rawLines` in order. We track which team the parser
- *   most recently saw — initially the home team. When a raw line matches one
- *   of the two team display names (sub-header), we switch the running team.
- *   Each ParsedPlayerStat in `block.playerStats` is assumed to have been
- *   produced in the same line order as `rawLines`, so we re-walk and match by
- *   index.
+ * Wave 12 Lane 1 (Darth 😈⚡): replaces the prior parallel-walk strategy,
+ * which re-iterated `block.rawLines` with a `looksLikePlayer` heuristic that
+ * disagreed with `parsePlayerStatLine`, causing `psIdx` desync (148
+ * NULL_HEADER anomalies). The parser now records the most recent sub-header
+ * onto each player stat directly via `playerStatTeamHints`. Resolution:
  *
- *   This isn't perfect, but it captures the common pattern:
- *       "Spring-Ford 10, Boyertown 5"
- *       "Spring-Ford 3 1 5 1 - 10"
- *       "Boyertown 1 0 2 2 - 5"
- *       "Spring-Ford"
- *       "Player A 2g"
- *       ...
- *       "Boyertown"
- *       "Player Z 1g"
- *
- *   When we can't tie a stat line back to a sub-header we attribute to home
- *   and flag the player as low confidence.
+ *   1. Hint == null → home (the canonical default for "stats appearing
+ *      before any sub-header was seen").
+ *   2. Direct normalized match against home / away.
+ *   3. Partial match (substring word-prefix or initials abbrev) against home
+ *      or away display name. Examples:
+ *         - "Haverford" ⊂ "Haverford School"            (game 0 home)
+ *         - "WC Henderson" ⊃ "Henderson"                (game 12 home)
+ *         - "PV"        = initials of "Perkiomen Valley" (game 23 home)
+ *         - "DB"        = initials of "Daniel Boone"     (game 10 away)
+ *      If exactly one of {home, away} matches, attribute to that team.
+ *   4. Fall back to `findTeamByName`. If it returns a team that IS one of the
+ *      two in this game, use it. If it returns a team OUTSIDE the game but a
+ *      partial match (step 3) was ambiguous, prefer the partial match if it
+ *      exists for one team and the fallback for the other.
+ *   5. Else null = uncertain anomaly with the unresolved sub-header recorded.
  */
 function assignAndUpsertPlayerStats(a: AssignArgs): void {
   const { db, block, gameId, homeTeam, awayTeam, input, counters,
@@ -293,92 +295,63 @@ function assignAndUpsertPlayerStats(a: AssignArgs): void {
 
   const homeNorm = normalizeTeamName(block.scoreLine.teamA);
   const awayNorm = normalizeTeamName(block.scoreLine.teamB);
+  const homeDisplayNorm = normalizeTeamName(homeTeam.name);
+  const awayDisplayNorm = normalizeTeamName(awayTeam.name);
 
-  // Build a parallel array attributing each playerStat to home, away, or null
-  // (null = uncertain; we saw a sub-header that doesn't belong to this game,
-  // so we refuse to silently default to home — emit an anomaly instead).
-  const attributions: (TeamRow | null)[] = [];
-  let currentTeam: TeamRow | null = homeTeam;
-  // The parser walks rawLines and pushes into playerStats in encounter order.
-  // We replicate that walk here using the same heuristics so our index lines
-  // up.
-  let psIdx = 0;
-  // Track the most recent unresolved sub-header that triggered a null
-  // currentTeam — surfaced in anomalies so future audits can target the
-  // missing alias / suffix without re-reading the source HTML.
-  const attributionFailToken: (string | null)[] = [];
-  let lastUnresolvedHeader: string | null = null;
-  for (const line of block.rawLines) {
-    // Sub-header detection (bare team name, optionally followed by a
-    // "Scorers"/"Scoring"/"Stats:"/etc. suffix and trailing colon).
-    const trimmed = line.trim();
-    if (
-      /^[A-Za-z][A-Za-z'.\-\s&]*\s*:?$/.test(trimmed) &&
-      trimmed.length < 60
-    ) {
-      // Strip "Scorers"/"Scoring"/"Stats"/etc. suffix + trailing colon BEFORE
-      // normalization so "DV Scorers" → "DV", "Episcopal Scorers:" → "Episcopal",
-      // "CB South:" → "CB South" all flow into the alias / normalized-name
-      // lookup paths cleanly. (Wave 11 Lane 1 — Chewy 🐻💪)
-      const cleaned = normalizeTeamToken(trimmed);
-      if (!cleaned) continue;
-      const norm = normalizeTeamName(cleaned);
-      if (norm === homeNorm) { currentTeam = homeTeam; lastUnresolvedHeader = null; continue; }
-      if (norm === awayNorm) { currentTeam = awayTeam; lastUnresolvedHeader = null; continue; }
-      const t = findTeamByName(db, cleaned);
-      if (!t) {
-        currentTeam = null;
-        lastUnresolvedHeader = trimmed;
-        continue;
-      }
-      if (t.id !== homeTeam.id && t.id !== awayTeam.id) {
-        currentTeam = null;
-        lastUnresolvedHeader = trimmed;
-        continue;
-      }
-      currentTeam = t.id === homeTeam.id ? homeTeam : awayTeam;
-      lastUnresolvedHeader = null;
-      continue;
+  function resolveHint(rawHint: string | null): {
+    team: TeamRow | null;
+    failToken: string | null;
+  } {
+    if (rawHint === null) return { team: homeTeam, failToken: null };
+    const trimmed = rawHint.trim();
+    const cleaned = normalizeTeamToken(trimmed);
+    if (!cleaned) return { team: homeTeam, failToken: null };
+    const norm = normalizeTeamName(cleaned);
+
+    // (2) direct normalized match against either team (score-line-derived
+    //     names AND DB display names — covers cases where the score line uses
+    //     an alias but the DB has the canonical full name).
+    if (norm === homeNorm || norm === homeDisplayNorm) {
+      return { team: homeTeam, failToken: null };
     }
-    // Aggregated-list line: "<Team> goals: ..." — switches team for all items
-    // produced from this single raw line.
-    const aggHeader = trimmed.match(
-      /^([A-Za-z][A-Za-z'.\-\s&]*?)\s+(?:goals?|assists?|saves?|gbs?|ground\s*balls?|ctos?)\s*:/i,
-    );
-    if (aggHeader) {
-      const teamMention = normalizeTeamName(aggHeader[1] ?? '');
-      const aggTeam: TeamRow | null =
-        teamMention === homeNorm ? homeTeam
-        : teamMention === awayNorm ? awayTeam
-        : currentTeam;
-      // Consume all consecutive playerStats produced by this single line. We
-      // don't know how many, so we count items by splitting the body.
-      const bodyMatch = trimmed.match(/:\s*(.+)$/);
-      const itemCount = bodyMatch ? bodyMatch[1]!.split(',').filter((s: string) => s.trim()).length : 0;
-      for (let k = 0; k < itemCount && psIdx < block.playerStats.length; k++) {
-        attributions[psIdx++] = aggTeam;
-      }
-      continue;
+    if (norm === awayNorm || norm === awayDisplayNorm) {
+      return { team: awayTeam, failToken: null };
     }
-    // Player-stat line: a single playerStat is produced when the parser
-    // matches; we attribute to currentTeam (which may be null = uncertain).
-    if (psIdx < block.playerStats.length) {
-      // Heuristic: matches lines like "Name 1g", "Name 5g, 2a", "Name 12/13 FO",
-      // "Name 3 goals". Looks for digit-adjacent-to-stat-token OR full word.
-      const looksLikePlayer =
-        /\d\s*(?:g|a|gb|sv|fo|cto|goals?|assists?|saves?|ground\s*balls?)\b/i.test(trimmed) ||
-        /\b(?:goals?|assists?|saves?|ground\s*balls?)\b/i.test(trimmed);
-      if (looksLikePlayer) {
-        attributions[psIdx] = currentTeam;
-        attributionFailToken[psIdx] = currentTeam ? null : lastUnresolvedHeader;
-        psIdx++;
-      }
+
+    // (3) partial match (substring word-prefix or initials).
+    const homeMatch = partialMatchesTeam(cleaned, homeTeam.name)
+      || partialMatchesTeam(cleaned, block.scoreLine.teamA);
+    const awayMatch = partialMatchesTeam(cleaned, awayTeam.name)
+      || partialMatchesTeam(cleaned, block.scoreLine.teamB);
+    if (homeMatch && !awayMatch) return { team: homeTeam, failToken: null };
+    if (awayMatch && !homeMatch) return { team: awayTeam, failToken: null };
+
+    // (4) DB lookup — but ONLY accept the result if it's one of the two
+    //     teams in the current game. Otherwise it's a foreign team match
+    //     (e.g. "Haverford" → "Haverford High" when the home is
+    //     "Haverford School"); treat as unresolved.
+    const t = findTeamByName(db, cleaned);
+    if (t) {
+      if (t.id === homeTeam.id) return { team: homeTeam, failToken: null };
+      if (t.id === awayTeam.id) return { team: awayTeam, failToken: null };
     }
+
+    // If both home and away partial-matched (ambiguous), default to home —
+    // the most common pattern is sub-headers appearing in home-then-away
+    // order, and the home team is where unresolved stats historically went.
+    if (homeMatch && awayMatch) return { team: homeTeam, failToken: null };
+
+    return { team: null, failToken: trimmed };
   }
-  // Backfill: any unattributed slot stays null (uncertain). We will NOT default
-  // to home — that was the bug that bled foreign players into Harriton.
+
+  const hints = block.playerStatTeamHints;
+  const attributions: (TeamRow | null)[] = [];
+  const attributionFailToken: (string | null)[] = [];
   for (let i = 0; i < block.playerStats.length; i++) {
-    if (attributions[i] === undefined) attributions[i] = null;
+    const hint = i < hints.length ? hints[i]! : null;
+    const r = resolveHint(hint);
+    attributions.push(r.team);
+    attributionFailToken.push(r.failToken);
   }
 
   for (let i = 0; i < block.playerStats.length; i++) {
@@ -442,4 +415,78 @@ function assignAndUpsertPlayerStats(a: AssignArgs): void {
     );
     counters.playerStatsUpserted++;
   }
+}
+
+/**
+ * Does the sub-header string `sub` plausibly refer to the team `teamName`,
+ * even though their normalized forms differ? Three strategies:
+ *
+ *   (a) Word-prefix subset: every word of the shorter side is a prefix of the
+ *       corresponding word of the longer side, when the shorter side is
+ *       aligned at either the start or the end of the longer side.
+ *       "Haverford" vs "Haverford School" → match (sub at start).
+ *       "WC Henderson" vs "Henderson"     → match (team at end of sub).
+ *       "Springfield" vs "Springfield-Delco" → match (after dash split).
+ *   (b) Initials: a single 2-5 char alphabetic token whose chars equal the
+ *       leading character of each word of the team name.
+ *       "PV" vs "Perkiomen Valley", "NHS" vs "New Hope-Solebury",
+ *       "DB" vs "Daniel Boone".
+ *   (c) Concatenated initials with the first word spelled out:
+ *       "UMoreland" vs "Upper Moreland" — handled by stripping a leading
+ *       single capital letter and comparing the rest to the second word.
+ */
+export function partialMatchesTeam(sub: string, teamName: string): boolean {
+  const subNorm = normalizeTeamName(sub);
+  const teamNorm = normalizeTeamName(teamName);
+  if (!subNorm || !teamNorm || subNorm === teamNorm) return subNorm === teamNorm;
+
+  const splitWords = (s: string): string[] =>
+    s.split(/[\s\-]+/).filter(w => w.length > 0);
+  const subWords = splitWords(subNorm);
+  const teamWords = splitWords(teamNorm);
+  if (subWords.length === 0 || teamWords.length === 0) return false;
+
+  // (a) word-prefix subset, aligned at start
+  const wordsAligned = (short: string[], long: string[]): boolean => {
+    if (short.length > long.length) return false;
+    for (let i = 0; i < short.length; i++) {
+      if (long[i] !== short[i] && !long[i]!.startsWith(short[i]!)) return false;
+    }
+    return true;
+  };
+  if (wordsAligned(subWords, teamWords)) return true;
+  if (wordsAligned(teamWords, subWords)) return true;
+  // aligned at end
+  const wordsAlignedEnd = (short: string[], long: string[]): boolean => {
+    if (short.length > long.length) return false;
+    const off = long.length - short.length;
+    for (let i = 0; i < short.length; i++) {
+      if (long[off + i] !== short[i] && !long[off + i]!.startsWith(short[i]!)) return false;
+    }
+    return true;
+  };
+  if (wordsAlignedEnd(subWords, teamWords)) return true;
+  if (wordsAlignedEnd(teamWords, subWords)) return true;
+
+  // (b) initials
+  if (subWords.length === 1 && /^[a-z]{2,5}$/.test(subWords[0]!) && teamWords.length >= 2) {
+    const initials = teamWords.map(w => w[0] ?? '').join('');
+    if (initials === subWords[0]) return true;
+  }
+  if (teamWords.length === 1 && /^[a-z]{2,5}$/.test(teamWords[0]!) && subWords.length >= 2) {
+    const initials = subWords.map(w => w[0] ?? '').join('');
+    if (initials === teamWords[0]) return true;
+  }
+
+  // (c) leading-initial + spelled-out form: "umoreland" vs "upper moreland"
+  if (subWords.length === 1 && teamWords.length === 2) {
+    const w = subWords[0]!;
+    if (w.length >= 3 && w[0] === teamWords[0]![0] && w.slice(1) === teamWords[1]) return true;
+  }
+  if (teamWords.length === 1 && subWords.length === 2) {
+    const w = teamWords[0]!;
+    if (w.length >= 3 && w[0] === subWords[0]![0] && w.slice(1) === subWords[1]) return true;
+  }
+
+  return false;
 }

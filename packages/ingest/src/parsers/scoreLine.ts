@@ -1,11 +1,13 @@
 import type { ParseResult, ParsedScoreLine } from '@pll/shared';
 import { normalizeUnicodeQuotes, normalizeWhitespace } from './text.js';
 
-// Score line: "Team A 14, Team B 7" with optional "(3OT)" / ", OT" / ", ppd".
+// Score line: "Team A 14, Team B 7" with optional "(3OT)" / ", OT" / ", ppd"
+// or trailing bare " 2OT" / " OT" (Wave 12 Lane 1 — Darth 😈⚡: catches
+// "Avon Grove 9, West Chester East 8 2OT").
 // Strict shape: team names cannot contain `:`, `=`, or digits — this prevents
 // quarter lines like "Easton: 6, 3, 3, 2 – 14" from being misread as scores.
 const SCORE_RE =
-  /^([A-Za-z][^,:=\d]*?)\s+(\d+)\s*,\s*([A-Za-z][^,:=\d]*?)\s+(\d+)(?:\s*[,;]?\s*\((\d+)?\s*OT\))?(?:\s*,\s*OT)?(?:\s*[,;]\s*(ppd|postponed))?\.?$/i;
+  /^([A-Za-z][^,:=\d]*?)\s+(\d+)\s*,\s*([A-Za-z][^,:=\d]*?)\s+(\d+)(?:\s*[,;]?\s*\((\d+)?\s*OT\)|\s*,\s*OT|\s+(\d+)?\s*OT)?(?:\s*[,;]\s*(ppd|postponed))?\.?$/i;
 
 // Comma-less form: "Twin Valley 17 Daniel Boone 1". Both team names must be
 // title-cased multi-word phrases (every word starts with a capital letter or is
@@ -16,9 +18,15 @@ const SCORE_RE =
 // multi-word phrase. Single-word 1-2 char tokens like "TV", "DV", "AC" are
 // rejected — those are sub-headers / abbreviations, not full team names, and
 // matching them creates ghost team rows in the database.
+//
+// Wave 12 Lane 1 (Darth 😈⚡): allow an optional state-suffix parenthetical
+// `(NJ)` / `(NY)` / `(MD)` after either team name to catch lines like
+// "Notre Dame (NJ) 21 Pennsbury 10" that previously slipped through and
+// caused the Bishop Shanahan / Pennsbury cross-game contamination.
 const TEAM_TOKEN = `(?:[A-Z][A-Za-z'.\\-]{2,}|[A-Z][A-Za-z'.\\-]*(?:\\s+(?:[A-Z][A-Za-z'.\\-]*|of|the|at))+)`;
+const STATE_SUFFIX = `(?:\\s*\\([A-Z]{2,3}\\))?`;
 const SCORE_RE_NOCOMMA = new RegExp(
-  `^(${TEAM_TOKEN})\\s+(\\d+)\\s+(${TEAM_TOKEN})\\s+(\\d+)\\.?$`,
+  `^(${TEAM_TOKEN})${STATE_SUFFIX}\\s+(\\d+)\\s+(${TEAM_TOKEN})${STATE_SUFFIX}\\s+(\\d+)\\.?$`,
 );
 
 export function parseScoreLine(rawLine: string): ParseResult<ParsedScoreLine> {
@@ -54,14 +62,17 @@ export function parseScoreLine(rawLine: string): ParseResult<ParsedScoreLine> {
   const teamB = (m[3] ?? '').trim();
   const scoreA = Number(m[2]);
   const scoreB = Number(m[4]);
-  const otRaw = usedNoComma ? undefined : m[5];
-  const ppdToken = usedNoComma ? undefined : m[6];
+  // m[5] = parenthesized OT count; m[6] = bare-suffix OT count
+  // (Wave 12 Lane 1 — Darth 😈⚡); m[7] = ppd token.
+  const otRaw = usedNoComma ? undefined : (m[5] ?? m[6]);
+  const ppdToken = usedNoComma ? undefined : m[7];
 
-  // OT periods: "(3OT)" → 3, "(OT)" → 1, ", OT" → 1, none → 0.
+  // OT periods: "(3OT)" → 3, "(OT)" → 1, ", OT" → 1, " 2OT" → 2, none → 0.
   let otPeriods = 0;
   if (otRaw !== undefined) otPeriods = Number(otRaw);
   else if (/,\s*OT\b/i.test(cleaned)) otPeriods = 1;
   else if (/\(OT\)/i.test(cleaned)) otPeriods = 1;
+  else if (/\s+OT$/i.test(cleaned)) otPeriods = 1;
 
   const postponed = !!ppdToken;
 

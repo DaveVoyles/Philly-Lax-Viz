@@ -95,4 +95,41 @@ describe('parseScoreLine — comma-less form', () => {
     const r = parseScoreLine('Easton: 6, 3, 3, 2 - 14');
     expect(r.result).toBeNull();
   });
+
+  // Wave 12 Lane 1 (Darth 😈⚡): probe widening
+  it('parses comma-less line with state suffix on team A', () => {
+    const r = parseScoreLine('Notre Dame (NJ) 21 Pennsbury 10');
+    expect(r.result).toMatchObject({
+      teamA: 'Notre Dame',
+      scoreA: 21,
+      teamB: 'Pennsbury',
+      scoreB: 10,
+    });
+  });
+
+  it('parses comma-less line with state suffix on team B', () => {
+    const r = parseScoreLine('Pennsbury 12 Notre Dame (NJ) 9');
+    expect(r.result).toMatchObject({
+      teamA: 'Pennsbury',
+      teamB: 'Notre Dame',
+      scoreA: 12,
+      scoreB: 9,
+    });
+  });
+
+  it('parses bare trailing " 2OT" suffix without parens', () => {
+    const r = parseScoreLine('Avon Grove 9, West Chester East 8 2OT');
+    expect(r.result).toMatchObject({
+      teamA: 'Avon Grove',
+      teamB: 'West Chester East',
+      scoreA: 9,
+      scoreB: 8,
+      otPeriods: 2,
+    });
+  });
+
+  it('parses bare trailing " OT" suffix without count', () => {
+    const r = parseScoreLine('Avon Grove 9, West Chester East 8 OT');
+    expect(r.result?.otPeriods).toBe(1);
+  });
 });
