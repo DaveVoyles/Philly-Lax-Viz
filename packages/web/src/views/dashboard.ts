@@ -12,6 +12,7 @@ import {
 import type { Game, Team } from '@pll/shared';
 import { formatDate } from '../util/format.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
+import { renderPiaaBadge } from '../components/piaaBadge.js';
 import { renderHorizontalLeaderboard } from '../charts/index.js';
 import type { ChartHandle } from '../charts/types.js';
 
@@ -330,6 +331,18 @@ function buildTeamsGrid(
     const a = document.createElement('a');
     a.href = `#/teams/${t.id}`;
     a.appendChild(renderTeamBadge({ name: t.name, logoUrl: t.logoUrl, size: 'sm' }));
+    if (t.piaaValidation) {
+      const badge = renderPiaaBadge({
+        validation: t.piaaValidation,
+        derived: t.derivedRecord ?? null,
+        piaa: t.piaa ?? null,
+        hideUnmapped: false,
+      });
+      if (badge) {
+        badge.style.marginLeft = '.35rem';
+        a.appendChild(badge);
+      }
+    }
     a.appendChild(buildGapBadge(t));
     li.appendChild(a);
     ul.appendChild(li);

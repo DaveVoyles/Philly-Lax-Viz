@@ -5,6 +5,7 @@ import * as gameDetail from './views/gameDetail.js';
 import * as playerDetail from './views/playerDetail.js';
 import * as dataQuality from './views/dataQuality.js';
 import * as leaders from './views/leaders.js';
+import * as anomalies from './views/anomalies.js';
 
 interface NavLink {
   href: string;
@@ -16,6 +17,7 @@ const NAV: NavLink[] = [
   { href: '#/', label: 'Dashboard', match: 'dashboard' },
   { href: '#/leaders', label: 'Leaders', match: 'leaders' },
   { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
+  { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
 ];
 
 function mountShell(app: HTMLElement): { main: HTMLElement; setActive: (name: RouteMatch['name']) => void } {
@@ -71,6 +73,9 @@ function dispatch(main: HTMLElement, match: RouteMatch): void {
       return;
     case 'leaders':
       leaders.render(main, match.params);
+      return;
+    case 'anomalies':
+      anomalies.render(main, match.params);
       return;
     case 'notFound':
       main.innerHTML = `<h1>Not found</h1><p>No route for <code>${match.path}</code>. <a href="#/">Go home</a>.</p>`;

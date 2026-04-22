@@ -35,6 +35,36 @@ export function normalizeTeamName(raw: string): string {
   return s;
 }
 
+/**
+ * Strip trailing "Scorers / Scoring / Stats / Goals / Leaders / Notes"
+ * sub-header suffixes (with optional trailing colon) from a raw team token.
+ *
+ * Wave 11 Lane 1 (Chewy 🐻💪): summaries posts use sub-headers like
+ *   "DV Scorers", "Episcopal Scorers:", "Haverford Stats:", "CBW Scoring"
+ * to introduce a per-team player block. The bare team token ("DV", "CBW")
+ * is what aliases / `teams.name` map against, but the suffix words and
+ * punctuation prevent the lookup from succeeding. Stripping happens BEFORE
+ * `normalizeTeamName` so callers can pass raw header lines directly.
+ *
+ * Idempotent and case-insensitive.
+ */
+const SUB_HEADER_SUFFIX_RE =
+  /\s+(?:scorers?|scoring|stats?|goals?|assists?|saves?|leaders?|notes?)\s*:?\s*$/i;
+export function normalizeTeamToken(raw: string): string {
+  if (!raw) return '';
+  let s = raw.replace(/\u00A0/g, ' ').trim();
+  // Peel suffix words; loop in case of e.g. "X Scoring Stats".
+  for (let i = 0; i < 3; i++) {
+    const next = s.replace(SUB_HEADER_SUFFIX_RE, '').trim();
+    if (next === s) break;
+    s = next;
+  }
+  // Drop trailing punctuation (": .,;") that survives suffix stripping —
+  // e.g. "CB South:" → "CB South".
+  s = s.replace(/[\s:.,;]+$/u, '').trim();
+  return s;
+}
+
 /** Slug from a normalized team name: spaces → "-", strip non-[a-z0-9-]. */
 export function slugifyTeamName(normalized: string): string {
   return normalized
@@ -61,7 +91,10 @@ interface AliasRow {
  * what may be a stray abbreviation or noise token.
  */
 export function findTeamByName(db: Database, rawName: string): TeamRow | null {
-  const normalized = normalizeTeamName(rawName);
+  // Strip sub-header suffix words ("X Scorers:", "X Stats") before
+  // normalization so alias/exact-name lookups see just the team token.
+  const cleaned = normalizeTeamToken(rawName);
+  const normalized = normalizeTeamName(cleaned);
   if (!normalized) return null;
 
   const aliasRow = db
@@ -88,7 +121,8 @@ export function findTeamByName(db: Database, rawName: string): TeamRow | null {
  * order: alias → existing team (normalized name match) → insert new team.
  */
 export function resolveTeam(db: Database, rawName: string): TeamRow {
-  const normalized = normalizeTeamName(rawName);
+  const cleaned = normalizeTeamToken(rawName);
+  const normalized = normalizeTeamName(cleaned);
   if (!normalized) {
     throw new Error(`resolveTeam: empty team name (raw=${JSON.stringify(rawName)})`);
   }
@@ -110,7 +144,7 @@ export function resolveTeam(db: Database, rawName: string): TeamRow {
     if (normalizeTeamName(t.name) === normalized) return t;
   }
 
-  const displayName = rawName.trim().replace(/\s+/g, ' ');
+  const displayName = (cleaned || rawName).trim().replace(/\s+/g, ' ');
   const baseSlug = slugifyTeamName(normalized) || `team-${Date.now()}`;
   let slug = baseSlug;
   let suffix = 2;

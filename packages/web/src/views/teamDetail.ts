@@ -11,6 +11,7 @@ import { formatDate, formatRecord, gameResult } from '../util/format.js';
 import { renderSeasonRecord, renderTopScorers } from '../charts/index.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderProvenanceBadge } from '../components/provenanceBadge.js';
+import { renderPiaaBadge, piaaBadgeTooltip } from '../components/piaaBadge.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   root.replaceChildren();
@@ -82,6 +83,15 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     const piaaLabelText = document.createElement('span');
     piaaLabelText.textContent = 'PIAA Record';
     piaaLabel.append(piaaLabelText, renderProvenanceBadge({ source: 'piaa' }));
+    if (detail.team.piaaValidation) {
+      const badge = renderPiaaBadge({
+        validation: detail.team.piaaValidation,
+        derived: detail.team.derivedRecord ?? { wins: detail.record.wins, losses: detail.record.losses, ties: detail.record.ties },
+        piaa,
+        linkToSource: true,
+      });
+      if (badge) piaaLabel.appendChild(badge);
+    }
     const piaaValue = document.createElement('span');
     piaaValue.className = 'callout-value';
     const piaaWl = `${piaa.wins}-${piaa.losses}` + (piaa.ties > 0 ? `-${piaa.ties}` : '');
@@ -129,18 +139,51 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
 
   root.appendChild(callouts);
 
-  if (piaa) {
-    const ourW = detail.record.wins;
-    const ourL = detail.record.losses;
-    const piaaDiffers = ourW !== piaa.wins || ourL !== piaa.losses;
-    if (piaaDiffers) {
-      const note = document.createElement('p');
-      note.className = 'muted';
-      note.style.cssText = 'margin:.25rem 0 1rem; font-size:.9rem;';
-      note.textContent =
-        'Note: PhillyLacrosse coverage may be partial; PIAA is authoritative for win/loss totals.';
-      root.appendChild(note);
-    }
+  // PIAA cross-validation panel — replaces the Wave 7 ad-hoc note.
+  // Uses the server-computed `piaaValidation` block so the badge here matches
+  // the dashboard cards exactly.
+  const validation = detail.team.piaaValidation ?? null;
+  if (piaa && validation && validation.status !== 'unmapped') {
+    const panel = document.createElement('div');
+    panel.className = `piaa-validation-panel piaa-validation-panel--${validation.status}`;
+    const heading = document.createElement('strong');
+    heading.style.cssText = 'display:flex; align-items:center; gap:.4rem;';
+    const inlineBadge = renderPiaaBadge({
+      validation,
+      derived: detail.team.derivedRecord ?? { wins: detail.record.wins, losses: detail.record.losses, ties: detail.record.ties },
+      piaa,
+      linkToSource: false,
+    });
+    if (inlineBadge) heading.appendChild(inlineBadge);
+    const headingText = document.createElement('span');
+    headingText.textContent = piaaBadgeTooltip(
+      validation,
+      detail.team.derivedRecord ?? { wins: detail.record.wins, losses: detail.record.losses, ties: detail.record.ties },
+      piaa,
+    );
+    heading.appendChild(headingText);
+    panel.appendChild(heading);
+
+    const sub = document.createElement('div');
+    sub.className = 'muted';
+    sub.style.cssText = 'font-size:.9rem; margin-top:.25rem;';
+    const ourWl = `${detail.record.wins}-${detail.record.losses}`;
+    const piaaWl = `${piaa.wins}-${piaa.losses}`;
+    const classBits = [piaa.classification ? `Class ${piaa.classification}` : null]
+      .filter((x): x is string => x !== null)
+      .join(', ');
+    sub.textContent =
+      `Our derived record: ${ourWl} · PIAA official: ${piaaWl}` +
+      (classBits ? ` (${classBits})` : '') +
+      ' · ';
+    const link = document.createElement('a');
+    link.href = validation.sourceUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = 'verify on PIAA D1 →';
+    sub.appendChild(link);
+    panel.appendChild(sub);
+    root.appendChild(panel);
   }
 
   const coverage = detail.team.coverage ?? null;

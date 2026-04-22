@@ -9,7 +9,7 @@ import type { Database } from 'better-sqlite3';
 import type { ParsedPlayerStat } from '@pll/shared';
 import { PARSER_VERSION } from '@pll/shared';
 import type { ParsedSummariesPost } from '../parsers/summariesPost.js';
-import { normalizeTeamName, resolveTeam, findTeamByName, type TeamRow } from './teamResolver.js';
+import { normalizeTeamName, normalizeTeamToken, resolveTeam, findTeamByName, type TeamRow } from './teamResolver.js';
 import { normalizePlayerName } from '../normalize/playerName.js';
 import { insertAnomaly } from './anomalies.js';
 
@@ -166,7 +166,7 @@ export function ingestSummariesPost(
     // Quarter lines.
     for (const period of block.periods) {
       // Resolve the period's teamHint to one of the two teams in the game.
-      const hintNorm = normalizeTeamName(period.teamHint);
+      const hintNorm = normalizeTeamName(normalizeTeamToken(period.teamHint));
       let teamId: number | null = null;
       if (hintNorm === normalizeTeamName(block.scoreLine.teamA)) teamId = homeTeam.id;
       else if (hintNorm === normalizeTeamName(block.scoreLine.teamB)) teamId = awayTeam.id;
@@ -303,37 +303,41 @@ function assignAndUpsertPlayerStats(a: AssignArgs): void {
   // We replicate that walk here using the same heuristics so our index lines
   // up.
   let psIdx = 0;
+  // Track the most recent unresolved sub-header that triggered a null
+  // currentTeam — surfaced in anomalies so future audits can target the
+  // missing alias / suffix without re-reading the source HTML.
+  const attributionFailToken: (string | null)[] = [];
+  let lastUnresolvedHeader: string | null = null;
   for (const line of block.rawLines) {
-    // Sub-header detection (bare team name).
+    // Sub-header detection (bare team name, optionally followed by a
+    // "Scorers"/"Scoring"/"Stats:"/etc. suffix and trailing colon).
     const trimmed = line.trim();
-    if (/^[A-Za-z][A-Za-z'.\-\s&]*$/.test(trimmed) && trimmed.length < 60) {
-      const norm = normalizeTeamName(trimmed);
-      if (norm === homeNorm) { currentTeam = homeTeam; continue; }
-      if (norm === awayNorm) { currentTeam = awayTeam; continue; }
-      // Could be a sub-header like "Spring-Ford Scoring" — handled by parser stripping.
-      const stripped = norm.replace(/\s+(?:scoring|scorers|stats)$/i, '');
-      if (stripped === homeNorm) { currentTeam = homeTeam; continue; }
-      if (stripped === awayNorm) { currentTeam = awayTeam; continue; }
-      // Try alias resolution against this line — it may be an abbreviation
-      // ("TV" -> Twin Valley) for a team NOT in this game. If it resolves to a
-      // team that's neither home nor away, this is a strong signal that the
-      // post structure transitioned to a new game block that the score-line
-      // parser missed (e.g., comma-less score line). Mark currentTeam=null so
-      // subsequent player lines become anomalies instead of silently bleeding
-      // into the home team's roster. Use lookup-only (findTeamByName) so we
-      // don't pollute the teams table with stray abbreviation tokens like
-      // "DV" or "AC" that happen to appear as bare lines.
-      const t = findTeamByName(db, trimmed);
+    if (
+      /^[A-Za-z][A-Za-z'.\-\s&]*\s*:?$/.test(trimmed) &&
+      trimmed.length < 60
+    ) {
+      // Strip "Scorers"/"Scoring"/"Stats"/etc. suffix + trailing colon BEFORE
+      // normalization so "DV Scorers" → "DV", "Episcopal Scorers:" → "Episcopal",
+      // "CB South:" → "CB South" all flow into the alias / normalized-name
+      // lookup paths cleanly. (Wave 11 Lane 1 — Chewy 🐻💪)
+      const cleaned = normalizeTeamToken(trimmed);
+      if (!cleaned) continue;
+      const norm = normalizeTeamName(cleaned);
+      if (norm === homeNorm) { currentTeam = homeTeam; lastUnresolvedHeader = null; continue; }
+      if (norm === awayNorm) { currentTeam = awayTeam; lastUnresolvedHeader = null; continue; }
+      const t = findTeamByName(db, cleaned);
       if (!t) {
-        // Not a known team. Conservative: treat as uncertain boundary marker.
         currentTeam = null;
+        lastUnresolvedHeader = trimmed;
         continue;
       }
       if (t.id !== homeTeam.id && t.id !== awayTeam.id) {
         currentTeam = null;
+        lastUnresolvedHeader = trimmed;
         continue;
       }
       currentTeam = t.id === homeTeam.id ? homeTeam : awayTeam;
+      lastUnresolvedHeader = null;
       continue;
     }
     // Aggregated-list line: "<Team> goals: ..." — switches team for all items
@@ -365,7 +369,9 @@ function assignAndUpsertPlayerStats(a: AssignArgs): void {
         /\d\s*(?:g|a|gb|sv|fo|cto|goals?|assists?|saves?|ground\s*balls?)\b/i.test(trimmed) ||
         /\b(?:goals?|assists?|saves?|ground\s*balls?)\b/i.test(trimmed);
       if (looksLikePlayer) {
-        attributions[psIdx++] = currentTeam;
+        attributions[psIdx] = currentTeam;
+        attributionFailToken[psIdx] = currentTeam ? null : lastUnresolvedHeader;
+        psIdx++;
       }
     }
   }
@@ -379,14 +385,12 @@ function assignAndUpsertPlayerStats(a: AssignArgs): void {
     const ps: ParsedPlayerStat = block.playerStats[i]!;
     const team = attributions[i];
     if (!team) {
-      // Uncertain attribution — refuse to write a stat row that would
-      // misattribute a player. Record as anomaly so it surfaces on the
-      // data-quality page and can be resolved (often by extending the
-      // score-line parser or seeding a team alias).
+      const failToken = attributionFailToken[i];
+      const tokenSuffix = failToken ? ` [unresolved sub-header: "${failToken}"]` : '';
       counters.anomaliesAdded += insertAnomaly(db, {
         sourcePostId: input.postId,
         sourceUrl: input.postUrl,
-        rawLine: `player stat dropped — uncertain team: ${ps.name} ${ps.goals}g ${ps.assists}a`,
+        rawLine: `player stat dropped — uncertain team: ${ps.name} ${ps.goals}g ${ps.assists}a${tokenSuffix}`,
         parentGameId: gameId,
         strategyAttempted: 'player-stat-line',
         reason: 'sub-header did not match either game team; likely a score line the parser missed',

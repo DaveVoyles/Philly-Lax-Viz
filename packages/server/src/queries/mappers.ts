@@ -7,6 +7,8 @@ import type {
   IngestAnomaly,
   Player,
   PlayerStat,
+  PiaaValidation,
+  PiaaValidationStatus,
   Ranking,
   Team,
 } from '@pll/shared';
@@ -27,6 +29,9 @@ export interface TeamRow {
   piaa_total_points?: number | null;
   piaa_ranking?: number | null;
   our_games_count?: number | null;
+  derived_wins?: number | null;
+  derived_losses?: number | null;
+  derived_ties?: number | null;
 }
 
 export interface GameRow {
@@ -96,6 +101,37 @@ export interface AnomalyRow {
   created_at: string;
 }
 
+// Public PIAA District 1 boys lacrosse scores+rankings page. Used as the
+// click-through "verify" link for PIAA validation badges.
+export const PIAA_SOURCE_URL =
+  'https://www.piaad1.org/sports/spring-sports/lacrosse-b/scores-and-rankings/';
+
+/** Pure classifier: turns derived & PIAA W-L into a validation block. */
+export function classifyPiaaValidation(
+  derivedW: number,
+  derivedL: number,
+  piaaW: number | null,
+  piaaL: number | null,
+): PiaaValidation {
+  if (piaaW === null || piaaL === null) {
+    return {
+      status: 'unmapped',
+      winDiff: null,
+      lossDiff: null,
+      totalDiff: null,
+      sourceUrl: PIAA_SOURCE_URL,
+    };
+  }
+  const winDiff = piaaW - derivedW;
+  const lossDiff = piaaL - derivedL;
+  const totalDiff = Math.abs(winDiff) + Math.abs(lossDiff);
+  let status: PiaaValidationStatus;
+  if (totalDiff === 0) status = 'match';
+  else if (totalDiff <= 2) status = 'close';
+  else status = 'divergent';
+  return { status, winDiff, lossDiff, totalDiff, sourceUrl: PIAA_SOURCE_URL };
+}
+
 export function mapTeam(r: TeamRow): Team {
   const hasPiaa =
     r.piaa_name_official != null &&
@@ -110,6 +146,15 @@ export function mapTeam(r: TeamRow): Team {
     ? (r.piaa_wins as number) + (r.piaa_losses as number) + (r.piaa_ties as number)
     : null;
   const gap = piaaGames === null ? null : piaaGames - ourGames;
+  const derivedWins = r.derived_wins ?? 0;
+  const derivedLosses = r.derived_losses ?? 0;
+  const derivedTies = r.derived_ties ?? 0;
+  const piaaValidation = classifyPiaaValidation(
+    derivedWins,
+    derivedLosses,
+    hasPiaa ? (r.piaa_wins as number) : null,
+    hasPiaa ? (r.piaa_losses as number) : null,
+  );
   return {
     id: r.id,
     name: r.name,
@@ -133,6 +178,12 @@ export function mapTeam(r: TeamRow): Team {
       piaaGames,
       gap,
     },
+    derivedRecord: {
+      wins: derivedWins,
+      losses: derivedLosses,
+      ties: derivedTies,
+    },
+    piaaValidation,
   };
 }
 

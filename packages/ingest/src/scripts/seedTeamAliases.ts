@@ -114,6 +114,39 @@ export const PARSER_ABBREVIATIONS: readonly AliasMapping[] = [
   // against raw-cache HTML; no other PA-area program shares these tokens
   // in our dataset, so confidence remains high).
   { alias: 'ryan', teamId: 62, teamName: 'Archbishop Ryan' },
+
+  // ─── Wave 11 Lane 1 — high-frequency sub-header tokens ────────────────
+  // Added after Chewy 🐻💪's parser suffix-strip pass surfaced ~1,720
+  // remaining sub-header anomalies. Each token below was verified against
+  // the live anomaly table by joining `ingest_anomalies.parent_game_id`
+  // back to `games` and confirming the token's team appears as either
+  // home or away in EVERY anomaly row (i.e. unambiguous, in-game).
+  { alias: 'pv', teamId: 13, teamName: 'Perkiomen Valley' },
+  { alias: 'rustin', teamId: 45, teamName: 'WC Rustin' },
+  { alias: 'mn', teamId: 35, teamName: 'Marple Newtown' },
+  { alias: 'hgp', teamId: 16, teamName: 'Holy Ghost Prep' },
+  { alias: 'wiss', teamId: 76, teamName: 'Wissahickon' },
+  { alias: 'moravian', teamId: 89, teamName: 'Moravian Academy' },
+  { alias: 'wood', teamId: 59, teamName: 'Archbishop Wood' },
+  { alias: 'barrack', teamId: 53, teamName: 'Jack Barrack' },
+  { alias: 'jba', teamId: 53, teamName: 'Jack Barrack' },
+  { alias: 'hill', teamId: 106, teamName: 'Hill School' },
+  { alias: 'new hope', teamId: 10, teamName: 'New Hope-Solebury' },
+  { alias: 'springfield-d', teamId: 37, teamName: 'Springfield-Delco' },
+  { alias: 'd east', teamId: 43, teamName: 'Downingtown East' },
+  { alias: 'perk school', teamId: 115, teamName: 'Perkiomen School' },
+  { alias: 'shipley', teamId: 116, teamName: 'Shipley School' },
+  { alias: 'west chester east', teamId: 188, teamName: 'West Chester East' },
+  // Second batch — disambiguated by anomaly→game join (≥85% one team).
+  { alias: 'pw', teamId: 61, teamName: 'Plymouth Whitemarsh' },
+  { alias: 'hh', teamId: 100, teamName: 'Hatboro-Horsham' },
+  { alias: 'lc', teamId: 186, teamName: 'Lansdale Catholic' },
+  { alias: 'anc', teamId: 110, teamName: 'Academy of the New Church' },
+  { alias: 'stoga', teamId: 33, teamName: 'Conestoga' },
+  { alias: 'tvalley', teamId: 48, teamName: 'Twin Valley' },
+  { alias: 'carroll', teamId: 94, teamName: 'Archbishop Carroll' },
+  { alias: 'arch carroll', teamId: 94, teamName: 'Archbishop Carroll' },
+  { alias: 'ag', teamId: 77, teamName: 'Avon Grove' },
 ];
 
 export const PARSER_ABBREV_SOURCE = 'parser-abbrev-w10';
@@ -131,6 +164,9 @@ export const SKIPPED_AMBIGUOUS: readonly SkippedAmbiguousNote[] = [
   { token: 'mr', rationale: 'Marple-Newtown? Methacton Reserves? Manor? Insufficient context to disambiguate.' },
   { token: 'ac', rationale: 'Archmere vs Avon Grove vs Athletic Club — sub-header context did not lean to any single team.' },
   { token: 'ag', rationale: 'Avon Grove vs Archbishop Goretti — both plausible PA programs, leave for manual triage.' },
+  // ─── W11 (Chewy 🐻💪) — surfaced by suffix-strip but still ambiguous ───
+  { token: 'prep', rationale: 'Malvern Prep vs SJP vs Holy Ghost Prep vs La Salle College Prep — context-dependent.' },
+  { token: 'nhs', rationale: 'Could be New Hope-Solebury or Neshaminy — risk of mis-attribution to wrong NHS.' },
 ];
 
 export interface SeedResult {

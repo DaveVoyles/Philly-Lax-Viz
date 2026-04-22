@@ -102,4 +102,54 @@ describe('ingestSummariesPost (live fixture)', () => {
     expect(game.away_score).toBe(99);
     expect(game.recap_url).toBe('u');
   });
+
+  it('resolves "<Team> Scorers:" sub-headers via suffix-strip and aliases (Wave 11)', () => {
+    // Construct a synthetic two-game body where one block uses an aliased
+    // abbreviation + "Scorers:" suffix to exercise the W11 sub-header
+    // normalization path in `assignAndUpsertPlayerStats`.
+    const html = [
+      '<p>Spring-Ford 10, Boyertown 5</p>',
+      '<p>Spring-Ford 3 1 5 1 - 10</p>',
+      '<p>Boyertown 1 0 2 2 - 5</p>',
+      '<p>SF Scorers:</p>',
+      '<p>Player A 4g 1a</p>',
+      '<p>Player B 3g 0a</p>',
+      '<p>BTN Scoring</p>',
+      '<p>Player C 2g 1a</p>',
+      '<p>Player D 1g 0a</p>',
+    ].join('\n');
+
+    // Pre-create teams + aliases for the abbreviations.
+    const sf = db.prepare(`INSERT INTO teams (name, slug) VALUES ('Spring-Ford', 'spring-ford') RETURNING id`).get() as { id: number };
+    const btn = db.prepare(`INSERT INTO teams (name, slug) VALUES ('Boyertown', 'boyertown') RETURNING id`).get() as { id: number };
+    db.prepare(`INSERT INTO team_aliases (alias, team_id, source) VALUES ('sf', ?, 'manual'), ('btn', ?, 'manual')`).run(sf.id, btn.id);
+
+    const parsed = parseSummariesPost(html);
+    expect(parsed.games.length).toBe(1);
+    expect(parsed.games[0]!.playerStats.length).toBe(4);
+
+    const r = ingestSummariesPost(db, {
+      postId: 'w11-suffix-test',
+      postUrl: 'https://example/w11',
+      postDate: '2026-04-22',
+      parsed,
+    });
+
+    expect(r.gamesUpserted).toBe(1);
+    expect(r.playerStatsUpserted).toBe(4);
+    // No "uncertain team" anomalies should remain.
+    const anomalyCount = (db
+      .prepare(`SELECT COUNT(*) c FROM ingest_anomalies WHERE reason LIKE '%sub-header%'`)
+      .get() as { c: number }).c;
+    expect(anomalyCount).toBe(0);
+
+    const sfPlayers = (db
+      .prepare(`SELECT COUNT(*) c FROM players WHERE team_id = ?`)
+      .get(sf.id) as { c: number }).c;
+    const btnPlayers = (db
+      .prepare(`SELECT COUNT(*) c FROM players WHERE team_id = ?`)
+      .get(btn.id) as { c: number }).c;
+    expect(sfPlayers).toBe(2);
+    expect(btnPlayers).toBe(2);
+  });
 });

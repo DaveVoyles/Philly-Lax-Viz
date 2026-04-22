@@ -160,6 +160,26 @@ export function getAnomalies(): Promise<IngestAnomaly[]> {
   return request<IngestAnomaly[]>('/anomalies');
 }
 
+// Maintainer browser endpoint (W11 L3, Luke). Aggregate response used by
+// the /anomalies web page; the legacy list endpoint above is unchanged.
+export interface AnomalySummaryResponse {
+  totalCount: number;
+  byReason: { reason: string; count: number }[];
+  topRawLines: {
+    rawLine: string;
+    reason: string;
+    count: number;
+    exampleSourceUrl: string | null;
+  }[];
+}
+
+export function getAnomalySummary(opts?: { limit?: number; reason?: string }): Promise<AnomalySummaryResponse> {
+  const params: Record<string, string | number> = {};
+  if (opts?.limit !== undefined) params['limit'] = opts.limit;
+  if (opts?.reason !== undefined) params['reason'] = opts.reason;
+  return request<AnomalySummaryResponse>(`/anomalies/summary${buildQuery(params)}`);
+}
+
 // ---- PIAA cross-check (Leia, W2 lane 3) ----
 
 export interface PiaaMismatchSummary {

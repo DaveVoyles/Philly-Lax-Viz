@@ -363,3 +363,34 @@ a.team-badge-link:hover .team-badge__name { text-decoration: underline; color: v
 /* Site-wide footer attribution (Wave 3 Lane 3) */
 .site-footer .attribution { display: block; }
 .site-footer .attribution a { color: var(--muted); text-decoration: underline; }
+
+/* === Wave 11 Lane 2 (R2) — PIAA validation badge === */
+.piaa-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95em;
+  line-height: 1;
+  cursor: help;
+  user-select: none;
+}
+.piaa-badge--unmapped { opacity: 0.5; font-size: 0.7em; }
+a.piaa-badge-link { text-decoration: none; cursor: pointer; }
+a.piaa-badge-link:hover { text-decoration: none; }
+
+.piaa-validation-panel {
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 6px;
+  padding: 0.6rem 0.85rem;
+  margin: 0.5rem 0 1rem;
+  background: var(--table-stripe);
+  font-size: 0.95rem;
+}
+.piaa-validation-panel--match     { border-left-color: #15803d; }
+.piaa-validation-panel--close     { border-left-color: #b45309; }
+.piaa-validation-panel--divergent { border-left-color: var(--error); }
+@media (prefers-color-scheme: dark) {
+  .piaa-validation-panel--match     { border-left-color: #4ade80; }
+  .piaa-validation-panel--close     { border-left-color: #fbbf24; }
+}

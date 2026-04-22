@@ -32,6 +32,28 @@ export interface CoverageRecord {
   gap: number | null; // piaaGames - ourGames; null if no PIAA
 }
 
+// Derived season W/L/T computed from non-postponed games in our DB.
+export interface DerivedRecord {
+  wins: number;
+  losses: number;
+  ties: number;
+}
+
+// PIAA cross-validation status. Compares our derivedRecord vs PIAA snapshot.
+//   match     -> totalDiff == 0
+//   close     -> totalDiff in [1, 2]   (likely missing a non-Philly opponent)
+//   divergent -> totalDiff >= 3        (data quality concern)
+//   unmapped  -> no PIAA row joined
+export type PiaaValidationStatus = 'match' | 'close' | 'divergent' | 'unmapped';
+
+export interface PiaaValidation {
+  status: PiaaValidationStatus;
+  winDiff: number | null;   // piaaW - derivedW; null when unmapped
+  lossDiff: number | null;
+  totalDiff: number | null; // |winDiff| + |lossDiff|
+  sourceUrl: string;        // public PIAA D1 scores+rankings page
+}
+
 export interface Team {
   id: number;
   name: string;
@@ -40,6 +62,8 @@ export interface Team {
   logoUrl: string | null;
   piaa?: PiaaRecord | null;
   coverage?: CoverageRecord;
+  derivedRecord?: DerivedRecord;
+  piaaValidation?: PiaaValidation;
 }
 
 export interface Game {
@@ -194,4 +218,4 @@ export interface ParseListResult<T> {
 
 // Current parser version. Bump when grammar changes so re-runs can target
 // affected rows via player_stats.parser_version.
-export const PARSER_VERSION = '0.2.1';
+export const PARSER_VERSION = '0.2.2';

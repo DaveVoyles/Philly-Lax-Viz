@@ -61,7 +61,24 @@ export function getStatements(db: Database): Statements {
               p.total_points    AS piaa_total_points,
               p.ranking         AS piaa_ranking,
               (SELECT COUNT(*) FROM games
-                WHERE home_team_id = t.id OR away_team_id = t.id) AS our_games_count
+                WHERE home_team_id = t.id OR away_team_id = t.id) AS our_games_count,
+              (SELECT COALESCE(SUM(CASE
+                  WHEN g.postponed = 0 AND (
+                    (g.home_team_id = t.id AND g.home_score > g.away_score) OR
+                    (g.away_team_id = t.id AND g.away_score > g.home_score)
+                  ) THEN 1 ELSE 0 END), 0)
+                 FROM games g WHERE g.home_team_id = t.id OR g.away_team_id = t.id) AS derived_wins,
+              (SELECT COALESCE(SUM(CASE
+                  WHEN g.postponed = 0 AND (
+                    (g.home_team_id = t.id AND g.home_score < g.away_score) OR
+                    (g.away_team_id = t.id AND g.away_score < g.home_score)
+                  ) THEN 1 ELSE 0 END), 0)
+                 FROM games g WHERE g.home_team_id = t.id OR g.away_team_id = t.id) AS derived_losses,
+              (SELECT COALESCE(SUM(CASE
+                  WHEN g.postponed = 0 AND g.home_score = g.away_score AND
+                       (g.home_team_id = t.id OR g.away_team_id = t.id)
+                  THEN 1 ELSE 0 END), 0)
+                 FROM games g WHERE g.home_team_id = t.id OR g.away_team_id = t.id) AS derived_ties
        FROM teams t
        LEFT JOIN piaa_official_teams p ON
          p.name_normalized = LOWER(t.name)
@@ -87,7 +104,24 @@ export function getStatements(db: Database): Statements {
               p.total_points    AS piaa_total_points,
               p.ranking         AS piaa_ranking,
               (SELECT COUNT(*) FROM games
-                WHERE home_team_id = t.id OR away_team_id = t.id) AS our_games_count
+                WHERE home_team_id = t.id OR away_team_id = t.id) AS our_games_count,
+              (SELECT COALESCE(SUM(CASE
+                  WHEN g.postponed = 0 AND (
+                    (g.home_team_id = t.id AND g.home_score > g.away_score) OR
+                    (g.away_team_id = t.id AND g.away_score > g.home_score)
+                  ) THEN 1 ELSE 0 END), 0)
+                 FROM games g WHERE g.home_team_id = t.id OR g.away_team_id = t.id) AS derived_wins,
+              (SELECT COALESCE(SUM(CASE
+                  WHEN g.postponed = 0 AND (
+                    (g.home_team_id = t.id AND g.home_score < g.away_score) OR
+                    (g.away_team_id = t.id AND g.away_score < g.home_score)
+                  ) THEN 1 ELSE 0 END), 0)
+                 FROM games g WHERE g.home_team_id = t.id OR g.away_team_id = t.id) AS derived_losses,
+              (SELECT COALESCE(SUM(CASE
+                  WHEN g.postponed = 0 AND g.home_score = g.away_score AND
+                       (g.home_team_id = t.id OR g.away_team_id = t.id)
+                  THEN 1 ELSE 0 END), 0)
+                 FROM games g WHERE g.home_team_id = t.id OR g.away_team_id = t.id) AS derived_ties
        FROM teams t
        LEFT JOIN piaa_official_teams p ON
          p.name_normalized = LOWER(t.name)
