@@ -218,4 +218,21 @@ export interface ParseListResult<T> {
 
 // Current parser version. Bump when grammar changes so re-runs can target
 // affected rows via player_stats.parser_version.
-export const PARSER_VERSION = '0.2.4';
+export const PARSER_VERSION = '0.2.5';
+
+// ===== Leaderboards =====
+// Minimal contract shared with the web client. Server-side query rows include
+// many more fields (see packages/server/src/queries/leaderboards.ts); this
+// interface exposes the cross-package fields that views care about.
+export interface Leader {
+  playerId: number;
+  playerName: string;
+  teamId: number;
+  teamName: string;
+  goals: number;
+  assists: number;
+  points: number;
+  // True when a player has scored more than 2 goals across their last 3
+  // (non-postponed) games. Optional so older payloads remain valid.
+  onFire?: boolean;
+}

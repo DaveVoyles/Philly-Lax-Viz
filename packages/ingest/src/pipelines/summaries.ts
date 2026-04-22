@@ -12,11 +12,18 @@ import type { ParsedSummariesPost } from '../parsers/summariesPost.js';
 import { normalizeTeamName, normalizeTeamToken, resolveTeam, findTeamByName, type TeamRow } from './teamResolver.js';
 import { normalizePlayerName } from '../normalize/playerName.js';
 import { insertAnomaly } from './anomalies.js';
+import { DEFAULT_SEASON } from '../crawler.js';
 
 export interface SummariesPipelineInput {
   postId: string;
   postUrl: string;
   postDate: string; // ISO YYYY-MM-DD; used as game date for all blocks
+  /**
+   * Season (year) the games belong to — derived from the post URL path. If
+   * omitted, defaults to {@link DEFAULT_SEASON} (2026, the W12-and-earlier
+   * behavior).
+   */
+  season?: number;
   parsed: ParsedSummariesPost;
 }
 
@@ -54,12 +61,13 @@ export function ingestSummariesPost(
   const insertGame = db.prepare(
     `INSERT INTO games
        (date, home_team_id, away_team_id, home_score, away_score,
-        ot_periods, postponed, source_post_id, recap_url, parsed_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ot_periods, postponed, source_post_id, recap_url, parsed_at, season)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(date, home_team_id, away_team_id) DO UPDATE SET
        ot_periods = excluded.ot_periods,
        recap_url  = COALESCE(games.recap_url, excluded.recap_url),
-       parsed_at  = excluded.parsed_at`,
+       parsed_at  = excluded.parsed_at,
+       season     = excluded.season`,
   );
   const selectGame = db.prepare(
     `SELECT id, home_team_id, away_team_id FROM games
@@ -91,8 +99,8 @@ export function ingestSummariesPost(
   const upsertPlayerStat = db.prepare(
     `INSERT INTO player_stats
        (game_id, player_id, goals, assists, ground_balls, caused_turnovers,
-        saves, fo_won, fo_taken, source, parser_version, confidence)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'summary', ?, ?)
+        saves, fo_won, fo_taken, source, parser_version, confidence, season)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'summary', ?, ?, ?)
      ON CONFLICT(game_id, player_id) DO UPDATE SET
        goals            = excluded.goals,
        assists          = excluded.assists,
@@ -102,7 +110,8 @@ export function ingestSummariesPost(
        fo_won           = excluded.fo_won,
        fo_taken         = excluded.fo_taken,
        parser_version   = excluded.parser_version,
-       confidence       = excluded.confidence`,
+       confidence       = excluded.confidence,
+       season           = excluded.season`,
   );
 
   for (const block of input.parsed.games) {
@@ -144,6 +153,7 @@ export function ingestSummariesPost(
       input.postId,
       input.postUrl,
       now,
+      input.season ?? DEFAULT_SEASON,
     );
     const gameRow = selectGame.get(input.postDate, homeTeam.id, awayTeam.id) as
       | ExistingGameRow
@@ -166,18 +176,37 @@ export function ingestSummariesPost(
     // Quarter lines.
     for (const period of block.periods) {
       // Resolve the period's teamHint to one of the two teams in the game.
-      const hintNorm = normalizeTeamName(normalizeTeamToken(period.teamHint));
+      const cleanedHint = normalizeTeamToken(period.teamHint);
+      const hintNorm = normalizeTeamName(cleanedHint || period.teamHint);
       let teamId: number | null = null;
       if (hintNorm === normalizeTeamName(block.scoreLine.teamA)) teamId = homeTeam.id;
       else if (hintNorm === normalizeTeamName(block.scoreLine.teamB)) teamId = awayTeam.id;
+      else if (hintNorm === normalizeTeamName(homeTeam.name)) teamId = homeTeam.id;
+      else if (hintNorm === normalizeTeamName(awayTeam.name)) teamId = awayTeam.id;
       else {
-        // Last-ditch: see if the hint matches an existing team via alias.
-        // Use lookup-only (findTeamByName) to avoid creating ghost team rows
-        // from stray abbreviation hints like "DV:" or "AC:".
-        const t = findTeamByName(db, period.teamHint);
-        if (t) {
-          if (t.id === homeTeam.id) teamId = homeTeam.id;
-          else if (t.id === awayTeam.id) teamId = awayTeam.id;
+        // Wave 13 Lane 1 (Chewy 🐻💪): same partial-match strategy as the
+        // player-stat hint resolver — catches "PR" → "Pennridge",
+        // "QT" → "Quakertown", "PJP II" → "Pope John Paul II", etc.
+        const homeMatch =
+          (cleanedHint && partialMatchesTeam(cleanedHint, homeTeam.name)) ||
+          (cleanedHint && partialMatchesTeam(cleanedHint, block.scoreLine.teamA));
+        const awayMatch =
+          (cleanedHint && partialMatchesTeam(cleanedHint, awayTeam.name)) ||
+          (cleanedHint && partialMatchesTeam(cleanedHint, block.scoreLine.teamB));
+        if (homeMatch && !awayMatch) teamId = homeTeam.id;
+        else if (awayMatch && !homeMatch) teamId = awayTeam.id;
+        else {
+          // Last-ditch: see if the hint matches an existing team via alias.
+          // Use lookup-only (findTeamByName) to avoid creating ghost team rows
+          // from stray abbreviation hints like "DV:" or "AC:".
+          const t = findTeamByName(db, cleanedHint || period.teamHint);
+          if (t) {
+            if (t.id === homeTeam.id) teamId = homeTeam.id;
+            else if (t.id === awayTeam.id) teamId = awayTeam.id;
+          }
+          // If still ambiguous (both partial-matched), default to home —
+          // mirrors the player-stat hint resolver fallback.
+          if (teamId === null && homeMatch && awayMatch) teamId = homeTeam.id;
         }
       }
       if (teamId === null) {
@@ -412,6 +441,7 @@ function assignAndUpsertPlayerStats(a: AssignArgs): void {
       ps.foTaken,
       PARSER_VERSION,
       ps.confidence,
+      a.input.season ?? DEFAULT_SEASON,
     );
     counters.playerStatsUpserted++;
   }

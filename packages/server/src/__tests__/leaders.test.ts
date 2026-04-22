@@ -316,3 +316,37 @@ describe('GET /api/leaders/teams', () => {
     expect(res.json()).toHaveProperty('error');
   });
 });
+
+describe('on-fire badge (last 3 games >2 goals)', () => {
+  it('marks players on fire when their last 3 games sum to >2 goals', async () => {
+    // Sam Smith (100): last 3 games goals = 4+2+5 = 11 → on fire.
+    // Alex Doe (101): last 3 games goals = 3+4+1 = 8 → on fire.
+    // Chris Lee (102): last 3 games goals = 1+2+1 = 4 → on fire.
+    const res = await app.inject({ method: 'GET', url: '/api/leaders/players?metric=points' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    const sam = body.rows.find((r: { playerId: number }) => r.playerId === 100);
+    const alex = body.rows.find((r: { playerId: number }) => r.playerId === 101);
+    expect(sam).toBeDefined();
+    expect(sam.onFire).toBe(true);
+    expect(alex).toBeDefined();
+    expect(alex.onFire).toBe(true);
+  });
+
+  it('does NOT mark players on fire when last 3 games sum to ≤2 goals', async () => {
+    // Jordan Park (103): only 2 games with 1+0=1 goal → not on fire.
+    // Taylor Quinn (104): only 2 games with 0+1=1 goal → not on fire.
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/leaders/players?metric=fo_pct&minAttempts=5',
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    const jordan = body.rows.find((r: { playerId: number }) => r.playerId === 103);
+    const taylor = body.rows.find((r: { playerId: number }) => r.playerId === 104);
+    expect(jordan).toBeDefined();
+    expect(jordan.onFire).toBe(false);
+    expect(taylor).toBeDefined();
+    expect(taylor.onFire).toBe(false);
+  });
+});

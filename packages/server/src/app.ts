@@ -16,6 +16,8 @@ import { anomaliesRoutes } from './routes/anomalies.js';
 import { leadersRoutes } from './routes/leaders.js';
 import { piaaRoutes } from './routes/piaa.js';
 import { rivalriesRoutes } from './routes/rivalries.js';
+import { h2hRoutes } from './routes/h2h.js';
+import { seasonsRoutes } from './routes/seasons.js';
 
 export interface BuildOptions {
   logger?: boolean;
@@ -65,6 +67,8 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   await leadersRoutes(app, db);
   await piaaRoutes(app, db);
   await rivalriesRoutes(app, db);
+  await h2hRoutes(app, db);
+  await seasonsRoutes(app, db);
 
   return app;
 }

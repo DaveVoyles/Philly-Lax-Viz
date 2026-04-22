@@ -8,6 +8,7 @@ import {
   type PlayerMetric,
   type TeamMetric,
 } from '../queries/leaderboards.js';
+import { resolveSeason } from '../queries/seasons.js';
 
 const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 25;
@@ -49,6 +50,7 @@ export async function leadersRoutes(app: FastifyInstance, db: Database): Promise
       minGames?: string;
       minAttempts?: string;
       teamId?: string;
+      season?: string;
     };
   }>('/api/leaders/players', async (req, reply) => {
     const metricRaw = req.query.metric ?? 'points';
@@ -81,7 +83,16 @@ export async function leadersRoutes(app: FastifyInstance, db: Database): Promise
     const teamIdParsed = parsePosInt(req.query.teamId);
     const teamId = teamIdParsed !== null && teamIdParsed > 0 ? teamIdParsed : undefined;
 
-    const rows = getPlayerLeaders(db, { metric, limit, minGames, minAttempts, teamId });
+    let season: number | undefined;
+    try {
+      const s = resolveSeason(db, req.query.season);
+      season = s ?? undefined;
+    } catch (e) {
+      reply.code(400);
+      return { error: (e as Error).message };
+    }
+
+    const rows = getPlayerLeaders(db, { metric, limit, minGames, minAttempts, teamId, season });
 
     const shaped = rows.map((r, idx) => {
       const ppg = r.points_per_game === null ? null : round2(r.points_per_game);
@@ -115,15 +126,16 @@ export async function leadersRoutes(app: FastifyInstance, db: Database): Promise
         foTaken: r.fo_taken,
         foPct: foPct,
         pointsPerGame: ppg,
+        onFire: r.on_fire === 1,
         value,
       };
     });
 
-    return { metric, minGames, rows: shaped };
+    return { metric, minGames, season: season ?? null, rows: shaped };
   });
 
   app.get<{
-    Querystring: { metric?: string; limit?: string };
+    Querystring: { metric?: string; limit?: string; season?: string };
   }>('/api/leaders/teams', async (req, reply) => {
     const metricRaw = req.query.metric ?? 'wins';
     if (!(TEAM_METRICS as readonly string[]).includes(metricRaw)) {
@@ -135,7 +147,16 @@ export async function leadersRoutes(app: FastifyInstance, db: Database): Promise
     const metric = metricRaw as TeamMetric;
     const limit = clampLimit(req.query.limit);
 
-    const rows = getTeamLeaders(db, { metric, limit });
+    let season: number | undefined;
+    try {
+      const s = resolveSeason(db, req.query.season);
+      season = s ?? undefined;
+    } catch (e) {
+      reply.code(400);
+      return { error: (e as Error).message };
+    }
+
+    const rows = getTeamLeaders(db, { metric, limit, season });
 
     const shaped = rows.map((r, idx) => {
       const goalDiff = r.goals_for - r.goals_against;
@@ -173,6 +194,6 @@ export async function leadersRoutes(app: FastifyInstance, db: Database): Promise
       };
     });
 
-    return { metric, rows: shaped };
+    return { metric, season: season ?? null, rows: shaped };
   });
 }

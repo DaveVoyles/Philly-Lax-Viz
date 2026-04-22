@@ -250,31 +250,68 @@ describe('ingestSummariesPost (live fixture)', () => {
     expect(pvPlayers).toBe(1);
   });
 
-  it('Wave 12: NULL_HEADER (stats with no preceding sub-header) default to home, not anomaly', () => {
-    db.prepare(`INSERT INTO teams (name, slug) VALUES ('Devon Prep','devon-prep'),('Kennett','kennett')`).run();
-    // Devon Prep has stats interleaved with quirky lines that previously
-    // desynced the parallel walk's psIdx, leaving stats with no resolved hint.
+  it('Wave 13: bare section sub-header "Goalie" defaults to home (no anomaly)', () => {
+    db.prepare(`INSERT INTO teams (name, slug) VALUES ('Delaware Valley','delaware-valley'),('Wilkes-Barre','wilkes-barre')`).run();
     const html = [
-      '<p>Devon Prep 6, Kennett 5</p>',
-      '<p>DP 1-1-3-1-6</p>',
-      '<p>Kennett: 2-1-1-1- 5</p>',
-      '<p>Devon Prep</p>',
-      '<p>Riley Brennan: 18 Saves</p>',
-      '<p>Andrew Murray: 8/14 F/O</p>',
-      '<p>Owen Raymond: 2CT, 5GBs</p>',
-      '<p>Declan Sullivan: 4G</p>',
-      '<p>Manny Strid: 2G, 2A</p>',
-      '<p>Deji Abodunde: 2A</p>',
+      '<p>Delaware Valley 14, Wilkes-Barre 3</p>',
+      '<p>Delaware Valley</p>',
+      '<p>Player A 4g 1a</p>',
+      '<p>Goalie</p>',
+      '<p>Riley Smith 0g 0a</p>',
+      '<p>Goalies:</p>',
+      '<p>Nick Haag 0g 0a</p>',
     ].join('\n');
     const parsed = parseSummariesPost(html);
     const r = ingestSummariesPost(db, {
-      postId: 'w12-null-header', postUrl: 'u', postDate: '2026-04-22', parsed,
+      postId: 'w13-goalie', postUrl: 'u', postDate: '2026-04-22', parsed,
     });
-    // All Devon Prep stats should attribute, none dropped as uncertain.
+    expect(r.playerStatsUpserted).toBe(3);
+    const dvPlayers = (db.prepare(`SELECT COUNT(*) c FROM players WHERE team_id=(SELECT id FROM teams WHERE slug='delaware-valley')`).get() as { c: number }).c;
+    expect(dvPlayers).toBe(3);
     const dropped = (db.prepare(`SELECT COUNT(*) c FROM ingest_anomalies WHERE reason LIKE '%sub-header%'`).get() as { c: number }).c;
     expect(dropped).toBe(0);
-    expect(r.playerStatsUpserted).toBe(parsed.games[0]!.playerStats.length);
-    const dpPlayers = (db.prepare(`SELECT COUNT(*) c FROM players WHERE team_id=(SELECT id FROM teams WHERE slug='devon-prep')`).get() as { c: number }).c;
-    expect(dpPlayers).toBeGreaterThanOrEqual(5);
+  });
+
+  it('Wave 13: "CBW FACEOFFS:" strips section keyword, resolves CBW via partial match', () => {
+    db.prepare(`INSERT INTO teams (name, slug) VALUES ('Central Bucks West','central-bucks-west'),('Neshaminy','neshaminy')`).run();
+    db.prepare(`INSERT INTO team_aliases (alias, team_id, source) VALUES ('cbw',(SELECT id FROM teams WHERE slug='central-bucks-west'),'manual')`).run();
+    const html = [
+      '<p>Central Bucks West 11, Neshaminy 6</p>',
+      '<p>Central Bucks West</p>',
+      '<p>Player A 4g</p>',
+      '<p>CBW FACEOFFS:</p>',
+      '<p>Ben Hutchinson 0g 0a</p>',
+      '<p>Dominic Boyer 0g 0a</p>',
+    ].join('\n');
+    const parsed = parseSummariesPost(html);
+    const r = ingestSummariesPost(db, {
+      postId: 'w13-cbw-fo', postUrl: 'u', postDate: '2026-04-22', parsed,
+    });
+    expect(r.playerStatsUpserted).toBe(3);
+    const cbwPlayers = (db.prepare(`SELECT COUNT(*) c FROM players WHERE team_id=(SELECT id FROM teams WHERE slug='central-bucks-west')`).get() as { c: number }).c;
+    expect(cbwPlayers).toBe(3);
+    const dropped = (db.prepare(`SELECT COUNT(*) c FROM ingest_anomalies WHERE reason LIKE '%sub-header%'`).get() as { c: number }).c;
+    expect(dropped).toBe(0);
+  });
+
+  it('Wave 13: quarter-line teamHint resolves via partial match (Penn → Pennridge, PV initials → Perkiomen Valley)', () => {
+    db.prepare(`INSERT INTO teams (name, slug) VALUES ('Pennridge','pennridge'),('Perkiomen Valley','perkiomen-valley')`).run();
+    const html = [
+      '<p>Pennridge 9, Perkiomen Valley 8</p>',
+      '<p>Penn 2-3-1-3=9</p>',
+      '<p>PV 1-2-3-2=8</p>',
+    ].join('\n');
+    const parsed = parseSummariesPost(html);
+    const r = ingestSummariesPost(db, {
+      postId: 'w13-ql-partial', postUrl: 'u', postDate: '2026-04-22', parsed,
+    });
+    // Quarter-line teamHint anomalies should be zero — "Penn" word-prefix
+    // matches "Pennridge"; "PV" initials-match "Perkiomen Valley".
+    const qlAnomalies = (db
+      .prepare(`SELECT COUNT(*) c FROM ingest_anomalies WHERE reason LIKE '%team hint did not resolve%'`)
+      .get() as { c: number }).c;
+    expect(qlAnomalies).toBe(0);
+    // 4 periods × 2 teams = 8 period rows.
+    expect(r.periodsUpserted).toBe(8);
   });
 });

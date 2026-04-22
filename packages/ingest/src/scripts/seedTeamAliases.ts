@@ -147,6 +147,13 @@ export const PARSER_ABBREVIATIONS: readonly AliasMapping[] = [
   { alias: 'carroll', teamId: 94, teamName: 'Archbishop Carroll' },
   { alias: 'arch carroll', teamId: 94, teamName: 'Archbishop Carroll' },
   { alias: 'ag', teamId: 77, teamName: 'Avon Grove' },
+
+  // ─── Wave 13 Lane 1 — section-only headers + remaining unambiguous abbrevs ──
+  // Verified against live anomaly→game joins on 2026-04-22 (Chewy 🐻💪).
+  // "Pburg" appears only in Easton vs Phillipsburg games → id 232.
+  // "Solehi" appears only in Parkland vs Southern Lehigh games → id 87.
+  { alias: 'pburg', teamId: 232, teamName: 'Phillipsburg' },
+  { alias: 'solehi', teamId: 87, teamName: 'Southern Lehigh' },
 ];
 
 export const PARSER_ABBREV_SOURCE = 'parser-abbrev-w10';
@@ -167,6 +174,9 @@ export const SKIPPED_AMBIGUOUS: readonly SkippedAmbiguousNote[] = [
   // ─── W11 (Chewy 🐻💪) — surfaced by suffix-strip but still ambiguous ───
   { token: 'prep', rationale: 'Malvern Prep vs SJP vs Holy Ghost Prep vs La Salle College Prep — context-dependent.' },
   { token: 'nhs', rationale: 'Could be New Hope-Solebury or Neshaminy — risk of mis-attribution to wrong NHS.' },
+  // ─── W13 (Chewy 🐻💪) — Darth's hint list, but verification rejected ───
+  { token: 'lc-extra', rationale: 'Already aliased to Lansdale Catholic in W11; Darth recommended Lower Merion but no anomaly samples support that — keep existing mapping.' },
+  { token: 'pburg-extra', rationale: 'Darth suggested Phoenixville/Pottsville; live data shows the only "Pburg" usage is Phillipsburg (verified by anomaly→game join). Seeded id=232.' },
 ];
 
 export interface SeedResult {

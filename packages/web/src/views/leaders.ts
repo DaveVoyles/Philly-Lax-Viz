@@ -281,7 +281,7 @@ async function loadPlayers(
     activeChart = renderHorizontalLeaderboard(
       chartEl,
       top.map((r) => ({
-        label: r.playerName,
+        label: r.onFire ? `${r.playerName} 🔥` : r.playerName,
         value: r.value,
         href: `#/players/${r.playerId}`,
         sublabel: r.teamName,
@@ -343,7 +343,26 @@ interface ColDef<T> {
 
 const PLAYER_COLS: ReadonlyArray<ColDef<PlayerLeaderRow>> = [
   { key: 'rank', label: '#', get: (r) => r.rank, fmt: (v) => String(v), numeric: true },
-  { key: 'playerName', label: 'Player', get: (r) => r.playerName, fmt: (v) => String(v), numeric: false },
+  {
+    key: 'playerName',
+    label: 'Player',
+    get: (r) => r.playerName,
+    fmt: (v) => String(v),
+    numeric: false,
+    render: (r) => {
+      const wrap = document.createElement('span');
+      wrap.textContent = r.playerName;
+      if (r.onFire) {
+        const flame = document.createElement('span');
+        flame.textContent = ' 🔥';
+        flame.title = 'Hot streak: 3+ goals in last 3 games';
+        flame.setAttribute('aria-label', 'On fire: 3+ goals in last 3 games');
+        flame.style.cursor = 'help';
+        wrap.appendChild(flame);
+      }
+      return wrap;
+    },
+  },
   {
     key: 'teamName',
     label: 'Team',

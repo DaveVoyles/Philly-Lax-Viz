@@ -20,6 +20,7 @@ import { ingestScoreboardPost } from '../pipelines/scoreboard.js';
 import { ingestSummariesPost } from '../pipelines/summaries.js';
 import { ingestRankingsPost } from '../pipelines/rankings.js';
 import { clearAnomaliesForPost } from '../pipelines/anomalies.js';
+import { DEFAULT_SEASON, seasonFromUrl } from '../crawler.js';
 
 interface CliArgs {
   limit?: number;
@@ -145,7 +146,7 @@ function processPost(
 
   const htmlPath = path.join(cacheDir, `${meta.post_id}.html`);
   if (!fs.existsSync(htmlPath)) {
-    upsertPostLog(db, meta.post_id, 'unknown', 'error', `cache file missing: ${htmlPath}`, 0, 0, 0);
+    upsertPostLog(db, meta.post_id, 'unknown', 'error', `cache file missing: ${htmlPath}`, 0, 0, 0, DEFAULT_SEASON);
     summary.postsErrored++;
     return;
   }
@@ -153,7 +154,7 @@ function processPost(
 
   const cat = categorizePost(meta.post_id, html);
   if (!cat) {
-    upsertPostLog(db, meta.post_id, 'skipped', 'skipped', 'post does not match any pipeline category', 0, 0, 0);
+    upsertPostLog(db, meta.post_id, 'skipped', 'skipped', 'post does not match any pipeline category', 0, 0, 0, DEFAULT_SEASON);
     summary.postsSkippedUncategorized++;
     return;
   }
@@ -165,6 +166,11 @@ function processPost(
   }
 
   const postDate = extractPostDate(html) ?? meta.fetched_at.slice(0, 10);
+  // Derive season from the post URL path (/2024/, /2025/, /2026/...). Fall
+  // back to the year of the post date, then to DEFAULT_SEASON.
+  const season =
+    seasonFromUrl(meta.url) ??
+    (Number(postDate.slice(0, 4)) || DEFAULT_SEASON);
 
   const tx = db.transaction(() => {
     // Replace prior anomalies for this post so re-runs don't accumulate.
@@ -176,10 +182,11 @@ function processPost(
         postId: meta.post_id,
         postUrl: meta.url,
         postDate,
+        season,
         parsed,
       });
       upsertPostLog(db, meta.post_id, 'scoreboard', 'ok', null,
-        r.gamesUpserted, 0, r.anomaliesAdded);
+        r.gamesUpserted, 0, r.anomaliesAdded, season);
       summary.scoreboardGames += r.gamesUpserted;
       summary.anomaliesAdded += r.anomaliesAdded;
     } else if (cat.category === 'hs-summaries') {
@@ -188,10 +195,11 @@ function processPost(
         postId: meta.post_id,
         postUrl: meta.url,
         postDate,
+        season,
         parsed,
       });
       upsertPostLog(db, meta.post_id, 'hs-summaries', 'ok', null,
-        r.gamesUpserted, r.playerStatsUpserted, r.anomaliesAdded);
+        r.gamesUpserted, r.playerStatsUpserted, r.anomaliesAdded, season);
       summary.summariesGames += r.gamesUpserted;
       summary.periodsAdded += r.periodsUpserted;
       summary.playerStatsAdded += r.playerStatsUpserted;
@@ -209,7 +217,7 @@ function processPost(
         parsed,
       });
       upsertPostLog(db, meta.post_id, 'rankings', 'ok', null,
-        0, r.rankingsUpserted, r.anomaliesAdded);
+        0, r.rankingsUpserted, r.anomaliesAdded, season);
       summary.rankingsAdded += r.rankingsUpserted;
       summary.anomaliesAdded += r.anomaliesAdded;
     }
@@ -219,7 +227,7 @@ function processPost(
     tx();
     summary.postsProcessed++;
   } catch (err) {
-    upsertPostLog(db, meta.post_id, cat.category, 'error', (err as Error).message, 0, 0, 0);
+    upsertPostLog(db, meta.post_id, cat.category, 'error', (err as Error).message, 0, 0, 0, season);
     summary.postsErrored++;
     console.error(`[ingest] post ${meta.post_id} failed: ${(err as Error).message}`);
   }
@@ -234,12 +242,13 @@ function upsertPostLog(
   gamesAdded: number,
   rowsAdded: number,
   anomaliesAdded: number,
+  season: number,
 ): void {
   db.prepare(
     `INSERT INTO ingest_post_log
        (post_id, parser_version, category, status, error_message,
-        games_added, rows_added, anomalies_added, processed_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        games_added, rows_added, anomalies_added, processed_at, season)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(post_id, parser_version) DO UPDATE SET
        category        = excluded.category,
        status          = excluded.status,
@@ -247,7 +256,8 @@ function upsertPostLog(
        games_added     = excluded.games_added,
        rows_added      = excluded.rows_added,
        anomalies_added = excluded.anomalies_added,
-       processed_at    = excluded.processed_at`,
+       processed_at    = excluded.processed_at,
+       season          = excluded.season`,
   ).run(
     postId,
     PARSER_VERSION,
@@ -258,6 +268,7 @@ function upsertPostLog(
     rowsAdded,
     anomaliesAdded,
     new Date().toISOString(),
+    season,
   );
 }
 

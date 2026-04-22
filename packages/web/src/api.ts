@@ -389,6 +389,7 @@ export interface PlayerLeaderRow {
   foTaken: number;
   foPct: number | null;
   value: number;
+  onFire?: boolean;
 }
 
 export interface PlayerLeadersResponse {
@@ -442,4 +443,82 @@ export function getTeamLeaders(
   params?: TeamLeadersQuery,
 ): Promise<TeamLeadersResponse> {
   return request<TeamLeadersResponse>(`/leaders/teams${buildQuery(params)}`);
+}
+
+// ---- Head-to-head (W13 L3, R2) ----
+
+export interface H2HTeamSide {
+  teamId: number;
+  teamName: string;
+  teamSlug: string;
+  logoUrl: string | null;
+  wins: number;
+  losses: number;
+  ties: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  gamesPlayed: number;
+}
+
+export interface H2HDirectMeeting {
+  gameId: number;
+  date: string;
+  homeTeamId: number;
+  awayTeamId: number;
+  homeScore: number;
+  awayScore: number;
+  aResult: 'W' | 'L' | 'T';
+}
+
+export interface H2HCommonOpponent {
+  opponentId: number;
+  opponentName: string;
+}
+
+export interface H2HTeamsResponse {
+  a: H2HTeamSide | null;
+  b: H2HTeamSide | null;
+  commonOpponents: H2HCommonOpponent[];
+  directMeetings: H2HDirectMeeting[];
+}
+
+export interface H2HPlayerSide {
+  playerId: number;
+  playerName: string;
+  teamId: number;
+  teamName: string;
+  gamesPlayed: number;
+  goals: number;
+  assists: number;
+  points: number;
+  groundBalls: number;
+  causedTurnovers: number;
+  saves: number;
+  goalsPerGame: number | null;
+  assistsPerGame: number | null;
+  pointsPerGame: number | null;
+}
+
+export interface H2HCategoryLead {
+  category: string;
+  key: string;
+  aValue: number;
+  bValue: number;
+  leader: 'a' | 'b' | 'tie';
+  diff: number;
+}
+
+export interface H2HPlayersResponse {
+  a: H2HPlayerSide | null;
+  b: H2HPlayerSide | null;
+  aLeads: H2HCategoryLead[];
+  bLeads: H2HCategoryLead[];
+}
+
+export function getH2HTeams(a: number, b: number): Promise<H2HTeamsResponse> {
+  return request<H2HTeamsResponse>(`/h2h/teams?a=${a}&b=${b}`);
+}
+
+export function getH2HPlayers(a: number, b: number): Promise<H2HPlayersResponse> {
+  return request<H2HPlayersResponse>(`/h2h/players?a=${a}&b=${b}`);
 }

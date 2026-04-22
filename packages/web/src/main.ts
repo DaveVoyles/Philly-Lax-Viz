@@ -17,6 +17,7 @@ interface NavLink {
 const NAV: NavLink[] = [
   { href: '#/', label: 'Dashboard', match: 'dashboard' },
   { href: '#/leaders', label: 'Leaders', match: 'leaders' },
+  { href: '#/h2h', label: 'Compare', match: 'h2h' },
   { href: '#/graph', label: 'Network', match: 'graph' },
   { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
@@ -84,6 +85,9 @@ function dispatch(main: HTMLElement, match: RouteMatch): void {
       return;
     case 'graph':
       void graph.render(main, match.params);
+      return;
+    case 'h2h':
+      void import('./views/h2h.js').then((m) => m.render(main, match.params));
       return;
     case 'notFound':
       main.innerHTML = `<h1>Not found</h1><p>No route for <code>${match.path}</code>. <a href="#/">Go home</a>.</p>`;

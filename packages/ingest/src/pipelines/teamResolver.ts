@@ -46,19 +46,37 @@ export function normalizeTeamName(raw: string): string {
  * punctuation prevent the lookup from succeeding. Stripping happens BEFORE
  * `normalizeTeamName` so callers can pass raw header lines directly.
  *
+ * Wave 13 Lane 1 (Chewy 🐻💪): also peel section-only keywords
+ * ("Goalie", "Goalies", "Faceoffs", "Ground Balls", "GBs", "Saves",
+ * "FACEOFFS:") from the trailing edge so headers like "CBW FACEOFFS:" or
+ * "Springfield Goalies:" reduce to the bare team token. A pure section
+ * header with no team prefix ("Goalie", "Goalies:") collapses to empty
+ * string — the caller treats that as "no hint, default to home".
+ *
  * Idempotent and case-insensitive.
  */
 const SUB_HEADER_SUFFIX_RE =
   /\s+(?:scorers?|scoring|stats?|goals?|assists?|saves?|leaders?|notes?)\s*:?\s*$/i;
+// Wave 13: section-only suffix words. Matched on the WHOLE remaining string
+// or as a leading/trailing word; a bare match collapses the token to ''.
+const SECTION_ONLY_RE =
+  /^(?:goalies?|faceoffs?|ground\s*balls?|gbs?|saves?|ctos?|caused\s*turnovers?|shots?)\s*:?\s*$/i;
+const SECTION_TRAILING_RE =
+  /\s+(?:goalies?|faceoffs?|ground\s*balls?|gbs?|ctos?|caused\s*turnovers?|shots?)\s*:?\s*$/i;
 export function normalizeTeamToken(raw: string): string {
   if (!raw) return '';
   let s = raw.replace(/\u00A0/g, ' ').trim();
   // Peel suffix words; loop in case of e.g. "X Scoring Stats".
   for (let i = 0; i < 3; i++) {
-    const next = s.replace(SUB_HEADER_SUFFIX_RE, '').trim();
+    const next = s
+      .replace(SUB_HEADER_SUFFIX_RE, '')
+      .replace(SECTION_TRAILING_RE, '')
+      .trim();
     if (next === s) break;
     s = next;
   }
+  // If what remains is itself a bare section keyword, collapse to empty.
+  if (SECTION_ONLY_RE.test(s)) return '';
   // Drop trailing punctuation (": .,;") that survives suffix stripping —
   // e.g. "CB South:" → "CB South".
   s = s.replace(/[\s:.,;]+$/u, '').trim();

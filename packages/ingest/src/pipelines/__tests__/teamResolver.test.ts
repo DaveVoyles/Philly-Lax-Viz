@@ -127,6 +127,30 @@ describe('normalizeTeamToken', () => {
   it('handles non-breaking space input', () => {
     expect(normalizeTeamToken('CB\u00A0South\u00A0Scorers:')).toBe('CB South');
   });
+
+  // ─── Wave 13 Lane 1 (Chewy 🐻💪) — section-only sub-headers ────────────
+  it('strips trailing section-only keywords (W13)', () => {
+    expect(normalizeTeamToken('CBW FACEOFFS:')).toBe('CBW');
+    expect(normalizeTeamToken('Springfield Goalies:')).toBe('Springfield');
+    expect(normalizeTeamToken('Methacton Ground Balls')).toBe('Methacton');
+    expect(normalizeTeamToken('PJP GBs:')).toBe('PJP');
+    expect(normalizeTeamToken('Garnet Valley Faceoffs:')).toBe('Garnet Valley');
+  });
+  it('collapses bare section-only keywords to empty string (W13)', () => {
+    // No team prefix at all — caller defaults to home team.
+    expect(normalizeTeamToken('Goalie')).toBe('');
+    expect(normalizeTeamToken('Goalies')).toBe('');
+    expect(normalizeTeamToken('Goalies:')).toBe('');
+    expect(normalizeTeamToken('FACEOFFS:')).toBe('');
+    expect(normalizeTeamToken('Saves')).toBe('');
+    expect(normalizeTeamToken('Ground Balls')).toBe('');
+    expect(normalizeTeamToken('GBs')).toBe('');
+  });
+  it('does not collapse section words that are part of a team name (W13)', () => {
+    // Defensive: "Save the Children HS" or just "Saver" should not collapse.
+    expect(normalizeTeamToken('Saver')).toBe('Saver');
+    expect(normalizeTeamToken('Goalies Club')).toBe('Goalies Club');
+  });
 });
 
 describe('findTeamByName with suffix tokens', () => {

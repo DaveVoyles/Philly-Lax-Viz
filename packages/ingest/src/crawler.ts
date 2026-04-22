@@ -18,8 +18,22 @@ export const ALL_CATEGORIES: readonly Category[] = [
 export const USER_AGENT = 'philly-lacrosse-vis/0.1 (local dev)';
 export const DEFAULT_DELAY_MS = 250;
 
-const POST_HREF_RE =
-  /^https?:\/\/phillylacrosse\.com\/2026\/[a-z0-9][a-z0-9-]*\/?$/i;
+/** Default season used when callers don't pass one (preserves W12 behavior). */
+export const DEFAULT_SEASON = 2026;
+
+/** Build the post-href regex for a given season year (e.g. 2024, 2025, 2026). */
+export function postHrefRegex(season: number): RegExp {
+  return new RegExp(
+    `^https?:\\/\\/phillylacrosse\\.com\\/${season}\\/[a-z0-9][a-z0-9-]*\\/?$`,
+    'i',
+  );
+}
+
+/** Extract the season year from a phillylacrosse.com post URL, or undefined. */
+export function seasonFromUrl(u: string): number | undefined {
+  const m = u.match(/\/(20\d{2})\//);
+  return m ? Number(m[1]) : undefined;
+}
 
 export interface FetchResponseLike {
   ok: boolean;
@@ -55,10 +69,17 @@ export interface CrawlOptions {
    * but older pages still contain uncached posts.
    */
   ignoreWatermark?: boolean;
+  /**
+   * Year segment in the post URL path (e.g. 2024). Defaults to {@link DEFAULT_SEASON}.
+   * Affects both the post-href filter and the watermark prefix so each season
+   * tracks its own idempotency state independently.
+   */
+  season?: number;
 }
 
 export interface CrawlSummary {
   category: Category;
+  season: number;
   pagesFetched: number;
   postsSeen: number;
   postsSkippedGirls: number;
@@ -74,13 +95,11 @@ export function categoryUrl(category: Category, page: number): string {
   return `https://phillylacrosse.com/category/${category}/page/${page}/`;
 }
 
-export function postUrlPrefix(category: Category): string {
-  // Watermark prefix isn't tied to category — post URLs all live under
-  // /YYYY/<slug>/. We use the bare origin as the prefix so the watermark
-  // covers every post we've ever cached. Categories are tracked separately by
-  // the URL pattern of the archive root.
+export function postUrlPrefix(category: Category, season: number = DEFAULT_SEASON): string {
+  // Watermark prefix is scoped per-season so historical backfill (2024, 2025)
+  // doesn't trip the "no new posts" stop condition for 2026 (or vice versa).
   void category;
-  return 'https://phillylacrosse.com/';
+  return `https://phillylacrosse.com/${season}/`;
 }
 
 /**
@@ -97,18 +116,19 @@ export function isGirlsSlug(slug: string): boolean {
 
 /**
  * Extract candidate post URLs from an archive page. We accept any link whose
- * href matches `https://phillylacrosse.com/2026/<slug>/`. Duplicates within a
- * page are de-duplicated, preserving first-seen order.
+ * href matches `https://phillylacrosse.com/<season>/<slug>/`. Duplicates within
+ * a page are de-duplicated, preserving first-seen order.
  */
-export function extractPostUrls(html: string): string[] {
+export function extractPostUrls(html: string, season: number = DEFAULT_SEASON): string[] {
   const $ = cheerio.load(html);
   const seen = new Set<string>();
   const out: string[] = [];
+  const re = postHrefRegex(season);
   $('a[href]').each((_, el) => {
     const raw = $(el).attr('href');
     if (!raw) return;
     let href = raw.trim();
-    if (!POST_HREF_RE.test(href)) return;
+    if (!re.test(href)) return;
     if (!href.endsWith('/')) href += '/';
     if (seen.has(href)) return;
     seen.add(href);
@@ -131,11 +151,13 @@ export async function crawlCategory(
     log = (m: string) => console.log(m),
   } = deps;
   const maxPages = opts.maxPages ?? 50;
+  const season = opts.season ?? DEFAULT_SEASON;
 
-  const watermark = await cache.latestFetchedAt(postUrlPrefix(opts.category));
+  const watermark = await cache.latestFetchedAt(postUrlPrefix(opts.category, season));
 
   const summary: CrawlSummary = {
     category: opts.category,
+    season,
     pagesFetched: 0,
     postsSeen: 0,
     postsSkippedGirls: 0,
@@ -152,7 +174,7 @@ export async function crawlCategory(
     if (!archiveRes.ok) {
       summary.stoppedReason = archiveRes.status === 404 ? 'empty-page' : 'http-error';
       log(
-        `[crawler:${opts.category}] page ${page} returned ${archiveRes.status}; stopping`,
+        `[crawler:${opts.category}/${season}] page ${page} returned ${archiveRes.status}; stopping`,
       );
       break;
     }
@@ -160,10 +182,10 @@ export async function crawlCategory(
     const archiveHtml = await archiveRes.text();
     if (delayMs > 0) await sleep(delayMs);
 
-    const allUrls = extractPostUrls(archiveHtml);
+    const allUrls = extractPostUrls(archiveHtml, season);
     if (allUrls.length === 0) {
       summary.stoppedReason = 'empty-page';
-      log(`[crawler:${opts.category}] page ${page} had no post URLs; stopping`);
+      log(`[crawler:${opts.category}/${season}] page ${page} had no post URLs; stopping`);
       break;
     }
 
@@ -212,7 +234,7 @@ export async function crawlCategory(
     if (newOnPage === 0 && watermark !== undefined && !opts.ignoreWatermark) {
       summary.stoppedReason = 'no-new-posts';
       log(
-        `[crawler:${opts.category}] page ${page} fully cached; stopping (watermark ${watermark})`,
+        `[crawler:${opts.category}/${season}] page ${page} fully cached; stopping (watermark ${watermark})`,
       );
       break;
     }
@@ -223,20 +245,28 @@ export async function crawlCategory(
 
 export async function crawlAll(
   categories: readonly Category[],
-  options: { maxPages?: number; ignoreWatermark?: boolean },
+  options: { maxPages?: number; ignoreWatermark?: boolean; seasons?: readonly number[] },
   deps: CrawlerDeps,
 ): Promise<CrawlSummary[]> {
-  // Concurrency = 1 per category, parallel across categories.
-  const tasks = categories.map((category) =>
-    crawlCategory(
-      {
-        category,
-        maxPages: options.maxPages,
-        ignoreWatermark: options.ignoreWatermark,
-      },
-      deps,
-    ),
-  );
+  const seasons = options.seasons ?? [DEFAULT_SEASON];
+  // Concurrency = 1 per category, parallel across categories. Seasons run
+  // sequentially within a category to keep the watermark semantics intuitive.
+  const tasks: Promise<CrawlSummary>[] = [];
+  for (const category of categories) {
+    for (const season of seasons) {
+      tasks.push(
+        crawlCategory(
+          {
+            category,
+            maxPages: options.maxPages,
+            ignoreWatermark: options.ignoreWatermark,
+            season,
+          },
+          deps,
+        ),
+      );
+    }
+  }
   return Promise.all(tasks);
 }
 

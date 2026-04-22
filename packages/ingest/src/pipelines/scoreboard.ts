@@ -7,12 +7,19 @@ import type { ParsedScoreboardPost } from '../parsers/scoreboardPost.js';
 import { resolveTeam } from './teamResolver.js';
 import { dateLabelToIso } from './postMeta.js';
 import { insertAnomaly } from './anomalies.js';
+import { DEFAULT_SEASON } from '../crawler.js';
 
 export interface ScoreboardPipelineInput {
   postId: string;
   postUrl: string;
   /** ISO YYYY-MM-DD of the post itself; used for "Today"/"Yesterday" labels. */
   postDate: string;
+  /**
+   * Season (year) the games belong to — derived from the post URL path. If
+   * omitted, defaults to {@link DEFAULT_SEASON} (2026, the W12-and-earlier
+   * behavior). Production callers in cli/ingest.ts always set this.
+   */
+  season?: number;
   parsed: ParsedScoreboardPost;
 }
 
@@ -36,8 +43,8 @@ export function ingestScoreboardPost(
   const upsertGame = db.prepare(
     `INSERT INTO games
        (date, home_team_id, away_team_id, home_score, away_score,
-        ot_periods, postponed, source_post_id, recap_url, parsed_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ot_periods, postponed, source_post_id, recap_url, parsed_at, season)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(date, home_team_id, away_team_id) DO UPDATE SET
        home_score     = excluded.home_score,
        away_score     = excluded.away_score,
@@ -45,7 +52,8 @@ export function ingestScoreboardPost(
        postponed      = excluded.postponed,
        source_post_id = excluded.source_post_id,
        recap_url      = COALESCE(games.recap_url, excluded.recap_url),
-       parsed_at      = excluded.parsed_at`,
+       parsed_at      = excluded.parsed_at,
+       season         = excluded.season`,
   );
 
   for (const game of input.parsed.games) {
@@ -89,6 +97,7 @@ export function ingestScoreboardPost(
       input.postId,
       null,
       now,
+      input.season ?? DEFAULT_SEASON,
     );
     gamesUpserted++;
   }

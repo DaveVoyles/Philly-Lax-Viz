@@ -31,20 +31,30 @@ describe('openDb', () => {
     for (const t of EXPECTED_TABLES) {
       expect(names, `missing table: ${t}`).toContain(t);
     }
-    // user_version tracks the highest applied migration. Wave-12 added 005.
-    expect(db.pragma('user_version', { simple: true })).toBe(5);
+    // user_version tracks the highest applied migration. Wave-13 added 006.
+    expect(db.pragma('user_version', { simple: true })).toBe(6);
     db.close();
   });
 
   it('is idempotent — re-opening does not re-apply migrations', () => {
     const db1 = openDb(':memory:');
-    expect(db1.pragma('user_version', { simple: true })).toBe(5);
+    expect(db1.pragma('user_version', { simple: true })).toBe(6);
     db1.close();
 
     // Run migrations a second time on a brand-new DB and confirm same end state.
     const db2 = openDb(':memory:');
-    expect(db2.pragma('user_version', { simple: true })).toBe(5);
+    expect(db2.pragma('user_version', { simple: true })).toBe(6);
     db2.close();
+  });
+
+  it('games / player_stats / ingest_post_log have a season column (W13)', () => {
+    const db = openDb(':memory:');
+    for (const tbl of ['games', 'player_stats', 'ingest_post_log']) {
+      const cols = (db.prepare(`PRAGMA table_info(${tbl})`).all() as Array<{ name: string }>)
+        .map((c) => c.name);
+      expect(cols, `missing season column in ${tbl}`).toContain('season');
+    }
+    db.close();
   });
 
   it('teams table has wave-3 logo columns', () => {

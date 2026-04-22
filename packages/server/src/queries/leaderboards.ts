@@ -46,6 +46,8 @@ export interface PlayerLeaderRow {
   fo_taken: number;
   fo_pct: number | null;
   points_per_game: number | null;
+  // Hot streak: >2 goals total across last 3 (non-postponed) games.
+  on_fire: 0 | 1;
 }
 
 export interface TeamLeaderRow {
@@ -67,11 +69,15 @@ export interface PlayerLeadersOpts {
   minGames: number;
   minAttempts: number;
   teamId?: number;
+  /** Filter to player_stats rows tagged with this season (W13). */
+  season?: number;
 }
 
 export interface TeamLeadersOpts {
   metric: TeamMetric;
   limit: number;
+  /** Filter to games tagged with this season (W13). */
+  season?: number;
 }
 
 // metric -> SQL ORDER BY tail (without LIMIT). Includes tiebreakers per plan.
@@ -121,7 +127,7 @@ export function getPlayerLeaders(
   db: Database,
   opts: PlayerLeadersOpts,
 ): PlayerLeaderRow[] {
-  const { metric, limit, minGames, minAttempts, teamId } = opts;
+  const { metric, limit, minGames, minAttempts, teamId, season } = opts;
 
   const havingClauses: string[] = ['COUNT(ps.id) >= @minGames'];
   if (metric === 'fo_pct') {
@@ -132,9 +138,37 @@ export function getPlayerLeaders(
   if (teamId !== undefined) {
     whereClauses.push('p.team_id = @teamId');
   }
+  if (season !== undefined) {
+    whereClauses.push('ps.season = @season');
+  }
   const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
   const sql = `
+    WITH per_game AS (
+      SELECT ps.player_id              AS player_id,
+             ps.game_id                AS game_id,
+             g.date                    AS game_date,
+             COALESCE(SUM(ps.goals),0) AS goals
+      FROM player_stats ps
+      JOIN games g ON g.id = ps.game_id
+      WHERE g.postponed = 0
+      GROUP BY ps.player_id, ps.game_id
+    ),
+    ranked AS (
+      SELECT player_id,
+             goals,
+             ROW_NUMBER() OVER (
+               PARTITION BY player_id
+               ORDER BY game_date DESC, game_id DESC
+             ) AS rn
+      FROM per_game
+    ),
+    recent AS (
+      SELECT player_id, COALESCE(SUM(goals),0) AS recent_goals
+      FROM ranked
+      WHERE rn <= 3
+      GROUP BY player_id
+    )
     SELECT
       p.id                                      AS player_id,
       p.name                                    AS player_name,
@@ -155,12 +189,14 @@ export function getPlayerLeaders(
            ELSE NULL END                        AS fo_pct,
       CASE WHEN COUNT(ps.id) > 0
            THEN SUM(ps.goals + ps.assists) * 1.0 / COUNT(ps.id)
-           ELSE NULL END                        AS points_per_game
+           ELSE NULL END                        AS points_per_game,
+      CASE WHEN COALESCE(r.recent_goals, 0) > 2 THEN 1 ELSE 0 END AS on_fire
     FROM players p
     JOIN player_stats ps ON ps.player_id = p.id
     JOIN teams       t  ON t.id          = p.team_id
+    LEFT JOIN recent r  ON r.player_id   = p.id
     ${whereSql}
-    GROUP BY p.id, p.name, p.team_id, t.name, t.logo_url
+    GROUP BY p.id, p.name, p.team_id, t.name, t.logo_url, r.recent_goals
     HAVING ${havingClauses.join(' AND ')}
     ORDER BY ${playerOrderBy(metric)}
     LIMIT @limit
@@ -169,17 +205,20 @@ export function getPlayerLeaders(
   const params: Record<string, number> = { minGames, limit };
   if (metric === 'fo_pct') params.minAttempts = minAttempts;
   if (teamId !== undefined) params.teamId = teamId;
+  if (season !== undefined) params.season = season;
 
   return db.prepare(sql).all(params) as PlayerLeaderRow[];
 }
 
 export function getTeamLeaders(db: Database, opts: TeamLeadersOpts): TeamLeaderRow[] {
-  const { metric, limit } = opts;
+  const { metric, limit, season } = opts;
 
   // win_pct is undefined when wins+losses=0; require at least one decided game.
   // Other metrics simply require games_played >= 1.
   const havingExtra =
     metric === 'win_pct' ? ' AND (wins + losses) >= 1' : '';
+
+  const seasonFilter = season !== undefined ? 'WHERE season = @season' : '';
 
   const sql = `
     WITH team_games AS (
@@ -188,12 +227,14 @@ export function getTeamLeaders(db: Database, opts: TeamLeadersOpts): TeamLeaderR
              away_score   AS goals_against,
              postponed    AS postponed
       FROM games
+      ${seasonFilter}
       UNION ALL
       SELECT away_team_id AS team_id,
              away_score   AS goals_for,
              home_score   AS goals_against,
              postponed    AS postponed
       FROM games
+      ${seasonFilter}
     ),
     base AS (
       SELECT
@@ -223,5 +264,7 @@ export function getTeamLeaders(db: Database, opts: TeamLeadersOpts): TeamLeaderR
     LIMIT @limit
   `;
 
-  return db.prepare(sql).all({ limit }) as TeamLeaderRow[];
+  const params: Record<string, number> = { limit };
+  if (season !== undefined) params.season = season;
+  return db.prepare(sql).all(params) as TeamLeaderRow[];
 }
