@@ -387,6 +387,42 @@ export function levenshtein(a: string, b: string): number {
 }
 
 /**
+ * Restricted Damerau-Levenshtein (Optimal String Alignment) distance.
+ * Same as Levenshtein but adjacent-character transpositions are counted as
+ * a single edit instead of two. Pure, O(n*m).
+ *
+ * Pattern 8 uses this per name-part to catch pairs like:
+ *   "peirce" ↔ "pierce"   (transposition ei→ie, DL=1 vs Lev=2)
+ *   "merrill" ↔ "merill"  (one deletion,          DL=1 = Lev=1)
+ */
+export function damerauLevenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const m = a.length;
+  const n = b.length;
+  // d[i][j] = distance between a[0..i-1] and b[0..j-1].
+  const d: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) d[i]![0] = i;
+  for (let j = 0; j <= n; j++) d[0]![j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i]![j] = Math.min(
+        d[i - 1]![j]! + 1,        // deletion
+        d[i]![j - 1]! + 1,        // insertion
+        d[i - 1]![j - 1]! + cost, // substitution
+      );
+      // Adjacent transposition: a[i-2..i-1] === b[j-1..j-2] swapped.
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        d[i]![j] = Math.min(d[i]![j]!, d[i - 2]![j - 2]! + cost);
+      }
+    }
+  }
+  return d[m]![n]!;
+}
+
+/**
  * Aggressive normalization for fuzzy match. Distinct from the indexable
  * `normalizePlayerName` because we additionally:
  *   - strip jersey numbers (`#12`, `12`) and parenthetical groups
@@ -531,6 +567,35 @@ export function findDuplicateCandidates(
               firstDist <= 2
             ) {
               confidence = 'medium';
+            }
+          }
+        }
+        // ── Pattern 8 — adjacent transposition tolerance (DL per name part) ──
+        // Catches pairs where BOTH first-name and last-name have Damerau-
+        // Levenshtein distance ≤ 1 (e.g. Peirce/Pierce + Merrill/Merill).
+        // Guard: at least ONE part must show an actual transposition (DL < Lev)
+        // to avoid widening the net to plain insertions/deletions that the
+        // medium-confidence heuristic already handles (e.g. James/Jaymes).
+        // Requires each part to be ≥ 4 / ≥ 3 chars to avoid short-name noise.
+        if (confidence !== 'high') {
+          const aTokensP8 = na.split(/\s+/);
+          const bTokensP8 = nb.split(/\s+/);
+          if (aTokensP8.length === 2 && bTokensP8.length === 2) {
+            const levFirstP8 = levenshtein(aTokensP8[0]!, bTokensP8[0]!);
+            const levLastP8  = levenshtein(aTokensP8[1]!, bTokensP8[1]!);
+            const dlFirst = damerauLevenshtein(aTokensP8[0]!, bTokensP8[0]!);
+            const dlLast  = damerauLevenshtein(aTokensP8[1]!, bTokensP8[1]!);
+            const firstLen = Math.min(aTokensP8[0]!.length, bTokensP8[0]!.length);
+            const lastLen  = Math.min(aTokensP8[1]!.length, bTokensP8[1]!.length);
+            // At least one part must show a transposition (DL strictly < Lev).
+            const hasTransposition = dlFirst < levFirstP8 || dlLast < levLastP8;
+            if (
+              dlFirst <= 1 && dlLast <= 1 &&
+              firstLen >= 4 && lastLen >= 3 &&
+              (dlFirst + dlLast) > 0 &&
+              hasTransposition
+            ) {
+              confidence = 'high';
             }
           }
         }

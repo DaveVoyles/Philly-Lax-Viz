@@ -19,7 +19,8 @@
     "aliases:seed": "tsx src/scripts/seedTeamAliases.ts",
     "branding:seed": "tsx src/scripts/seedTeamBranding.ts",
     "reattribute:junk": "tsx src/scripts/reattributeJunkStats.ts",
-    "anomaly:triage": "tsx src/scripts/anomalyTriage.ts"
+    "anomaly:triage": "tsx src/scripts/anomalyTriage.ts",
+    "player-aliases:seed": "tsx src/scripts/seedPlayerAliases.ts"
   },
   "dependencies": {
     "@pll/shared": "workspace:*",

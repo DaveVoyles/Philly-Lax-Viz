@@ -5,6 +5,7 @@ import {
   buildPlan,
   applyPlan,
   levenshtein,
+  damerauLevenshtein,
   normalizeForFuzzy,
   findDuplicateCandidates,
   mergePlayers,
@@ -412,5 +413,93 @@ describe('pickKeepFromCandidate', () => {
       editDistance: 1, confidence: 'high' as const,
     };
     expect(pickKeepFromCandidate(c)).toEqual({ keepId: 4, dropId: 9 });
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// Wave 18 W1L3 — damerauLevenshtein + Pattern 8 transposition dedup
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('damerauLevenshtein', () => {
+  it('returns 0 for equal strings', () => {
+    expect(damerauLevenshtein('abc', 'abc')).toBe(0);
+  });
+  it('handles empty strings', () => {
+    expect(damerauLevenshtein('', 'abc')).toBe(3);
+    expect(damerauLevenshtein('abc', '')).toBe(3);
+    expect(damerauLevenshtein('', '')).toBe(0);
+  });
+  it('counts single adjacent transposition as 1 (vs Levenshtein 2)', () => {
+    // "peirce" → "pierce": transpose e,i at positions 1-2
+    expect(damerauLevenshtein('peirce', 'pierce')).toBe(1);
+    expect(levenshtein('peirce', 'pierce')).toBe(2); // confirm Lev is 2
+  });
+  it('counts deletion as 1 (same as Levenshtein)', () => {
+    // "merrill" → "merill": one r deleted
+    expect(damerauLevenshtein('merrill', 'merill')).toBe(1);
+  });
+  it('handles standard edits the same as Levenshtein when no transpositions', () => {
+    expect(damerauLevenshtein('kitten', 'sitting')).toBe(3);
+    expect(damerauLevenshtein('colin', 'collin')).toBe(1);
+    expect(damerauLevenshtein('yusef', 'yusuf')).toBe(1);
+  });
+});
+
+// ── Pattern 8 — Harriton Merrill case + negative guards ──────────────────
+describe('Pattern 8 — adjacent transposition tolerance in findDuplicateCandidates', () => {
+  let db: ReturnType<typeof freshDb>;
+  beforeEach(() => { db = freshDb(); });
+
+  // Primary positive test: the actual Harriton / Pierce Merrill bug.
+  it('promotes Peirce/Merrill ↔ Pierce/Merill to high-confidence (Pattern 8)', () => {
+    // Simulate team 80 Harriton: player 50907 has more stats (canonical).
+    insertPlayer(db, 200, 1, 'Peirce Merrill', 'peirce merrill');
+    insertPlayer(db, 201, 1, 'Pierce Merill',  'pierce merill');
+    insertStat(db, 2000, 100, 200, 20); // 20g — canonical
+    insertStat(db, 2001, 101, 201, 3);  //  3g — dup
+
+    const cands = findDuplicateCandidates(db);
+    const pair = cands.find(
+      (c) => (c.leftId === 200 && c.rightId === 201) ||
+             (c.leftId === 201 && c.rightId === 200),
+    );
+    expect(pair).toBeDefined();
+    expect(pair!.confidence).toBe('high');
+
+    // Applying the merge collapses to one player.
+    const { keepId, dropId } = pickKeepFromCandidate(pair!);
+    expect(keepId).toBe(200); // more stats wins
+    mergePlayers(db, keepId, dropId);
+
+    const count = (db.prepare('SELECT COUNT(*) AS c FROM players').get() as { c: number }).c;
+    expect(count).toBe(1);
+    // Combined stats: 20 + 3 = 23 goals
+    const goals = (
+      db.prepare('SELECT COALESCE(SUM(goals),0) AS g FROM player_stats WHERE player_id = ?')
+        .get(keepId) as { g: number }
+    ).g;
+    expect(goals).toBe(23);
+  });
+
+  // Negative test 1: same last name, completely different first names → must NOT collapse.
+  it('does NOT collapse same-last-name-only pairs like Sam Smith vs Pat Smith', () => {
+    insertPlayer(db, 210, 1, 'Sam Smith', 'sam smith');
+    insertPlayer(db, 211, 1, 'Pat Smith', 'pat smith');
+
+    const cands = findDuplicateCandidates(db);
+    const pair = cands.find(
+      (c) => (c.leftId === 210 && c.rightId === 211) ||
+             (c.leftId === 211 && c.rightId === 210),
+    );
+    expect(pair).toBeUndefined();
+  });
+
+  // Negative test 2: cross-team — must never collapse even if names are transposition dups.
+  it('does NOT collapse transposition-dup names across different teams', () => {
+    insertPlayer(db, 220, 1, 'Peirce Merrill', 'peirce merrill');
+    insertPlayer(db, 221, 2, 'Pierce Merill',  'pierce merill');
+
+    const cands = findDuplicateCandidates(db);
+    expect(cands).toHaveLength(0);
   });
 });
