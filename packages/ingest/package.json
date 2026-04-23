@@ -20,7 +20,9 @@
     "branding:seed": "tsx src/scripts/seedTeamBranding.ts",
     "reattribute:junk": "tsx src/scripts/reattributeJunkStats.ts",
     "anomaly:triage": "tsx src/scripts/anomalyTriage.ts",
-    "player-aliases:seed": "tsx src/scripts/seedPlayerAliases.ts"
+    "player-aliases:seed": "tsx src/scripts/seedPlayerAliases.ts",
+    "audit-short-names": "tsx src/scripts/auditShortNames.ts",
+    "prune-backups": "tsx src/scripts/pruneBackups.ts"
   },
   "dependencies": {
     "@pll/shared": "workspace:*",

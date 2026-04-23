@@ -11,5 +11,8 @@ data/raw-cache/
 coverage/
 data/lacrosse.db-shm
 data/lacrosse.db-wal
+# SQLite backups & per-package ghost data dirs
 data/lacrosse.db.bak*
 data/lacrosse.db.bak.*
+data/*.db.bak*
+packages/*/data/

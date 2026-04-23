@@ -1,0 +1,162 @@
+[
+  {
+    "id": 59463,
+    "name": "Cobb",
+    "team": "Southern Lehigh",
+    "games": 2,
+    "goals": 1,
+    "assists": 2,
+    "sample_recap": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-2/",
+    "triage_decision": null
+  },
+  {
+    "id": 48564,
+    "name": "Kane",
+    "team": "Nazareth",
+    "games": 2,
+    "goals": 5,
+    "assists": 1,
+    "sample_recap": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-6/",
+    "triage_decision": null
+  },
+  {
+    "id": 77040,
+    "name": "Cobb",
+    "team": "S. Lehigh",
+    "games": 1,
+    "goals": 0,
+    "assists": 2,
+    "sample_recap": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-2/",
+    "triage_decision": null
+  },
+  {
+    "id": 52666,
+    "name": "Coor",
+    "team": "Conestoga",
+    "games": 1,
+    "goals": 1,
+    "assists": 1,
+    "sample_recap": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-2/",
+    "triage_decision": null
+  },
+  {
+    "id": 54227,
+    "name": "Dame",
+    "team": "Central York",
+    "games": 1,
+    "goals": 2,
+    "assists": 0,
+    "sample_recap": "https://phillylacrosse.com/2026/saturdays-boys-summaries-sponsored-by-fusion-lacrosse/",
+    "triage_decision": null
+  },
+  {
+    "id": 54229,
+    "name": "Doll",
+    "team": "Central York",
+    "games": 1,
+    "goals": 0,
+    "assists": 0,
+    "sample_recap": "https://phillylacrosse.com/2026/saturdays-boys-summaries-sponsored-by-fusion-lacrosse/",
+    "triage_decision": null
+  },
+  {
+    "id": 52670,
+    "name": "Ford",
+    "team": "Conestoga",
+    "games": 1,
+    "goals": 1,
+    "assists": 0,
+    "sample_recap": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-2/",
+    "triage_decision": null
+  },
+  {
+    "id": 50753,
+    "name": "Fry",
+    "team": "Northampton",
+    "games": 1,
+    "goals": 0,
+    "assists": 0,
+    "sample_recap": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-4/",
+    "triage_decision": null
+  },
+  {
+    "id": 50063,
+    "name": "Hume",
+    "team": "Freedom",
+    "games": 1,
+    "goals": 1,
+    "assists": 0,
+    "sample_recap": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-5/",
+    "triage_decision": null
+  },
+  {
+    "id": 48661,
+    "name": "Kobb",
+    "team": "Springfield-Delco",
+    "games": 1,
+    "goals": 1,
+    "assists": 1,
+    "sample_recap": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-6/",
+    "triage_decision": null
+  },
+  {
+    "id": 50749,
+    "name": "Nagy",
+    "team": "Northampton",
+    "games": 1,
+    "goals": 0,
+    "assists": 2,
+    "sample_recap": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-4/",
+    "triage_decision": null
+  },
+  {
+    "id": 51797,
+    "name": "Ray",
+    "team": "Freedom",
+    "games": 1,
+    "goals": 1,
+    "assists": 0,
+    "sample_recap": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-3/",
+    "triage_decision": null
+  },
+  {
+    "id": 49970,
+    "name": "Ryan",
+    "team": "Springfield-Delco",
+    "games": 1,
+    "goals": 2,
+    "assists": 2,
+    "sample_recap": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-5/",
+    "triage_decision": null
+  },
+  {
+    "id": 52621,
+    "name": "Ryan",
+    "team": "Parkland",
+    "games": 1,
+    "goals": 0,
+    "assists": 1,
+    "sample_recap": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-2/",
+    "triage_decision": null
+  },
+  {
+    "id": 49638,
+    "name": "Ward",
+    "team": "Pleasant Valley",
+    "games": 1,
+    "goals": 1,
+    "assists": 0,
+    "sample_recap": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-5/",
+    "triage_decision": null
+  },
+  {
+    "id": 51793,
+    "name": "Winn",
+    "team": "Parkland",
+    "games": 1,
+    "goals": 0,
+    "assists": 1,
+    "sample_recap": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-3/",
+    "triage_decision": null
+  }
+]

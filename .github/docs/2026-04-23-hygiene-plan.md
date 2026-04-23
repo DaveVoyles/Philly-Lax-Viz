@@ -1,0 +1,125 @@
+# Hygiene & Manual Review Plan — 2026-04-23
+
+> Goal: surface every cleanup item that's either (a) safe enough for an automated wave, or (b) needs a 30-second human decision so the agent can move fast on the next pass. Nothing here is functional/feature work — this is purely "make the system easier to operate".
+
+## 🚨 Top manual items (you decide; agent can't)
+
+These are the highest-leverage human-in-the-loop checks. ~5 minutes of your time will unblock hours of downstream agent work.
+
+### 1. **GitHub Actions billing — nightly cron is FAILING every night**
+- Last run (today 06:00 UTC): _"The job was not started because recent account payments have failed or your spending limit needs to be increased."_
+- Workflow: `.github/workflows/ingest-nightly.yml` on `DaveVoyles/Philly-Lax-Viz`.
+- **Action:** Check Settings → Billing on `DaveVoyles`. Either fix payment, raise spending limit, or move the workflow to `dvoyles_microsoft`/an org with a different plan.
+- **Impact:** Right now the DB only updates when we manually re-ingest. Every "the site is stale" question traces back to this.
+
+### 2. **LaxNumbers team-alias gaps (160 anomalies, ~30 distinct teams)**
+We're scraping LaxNumbers PA scoreboard but failing to map ~30 team names because they're spelled differently than our `teams` table. Examples:
+- `Bonner-Prendergast` (we have `Monsignor Bonner / Archbishop Prendergast`?)
+- `St Josephs Prep` (we have `St. Joseph's Prep`)
+- `Cardinal OHara` (we have `Cardinal O'Hara`)
+- `Upper St Clair`, `Meadville-Crawford Cty`, `Lampeter-Strasburg`, `Susquehannock`, `Spring Grove`, `Gateway`, `Ephrata`, `Conestoga Valley`, `Cedar Crest`, `Northeast`, `Kingston`, `West York`, …
+- **Action:** Decide which of these correspond to teams we already have in the DB. For ones that don't (Western PA / Central PA), confirm the rule: ignore them (don't expand the team set). I can dump a side-by-side `proposed_alias → existing_team` CSV for you to ✅/❌ in 60 seconds.
+- **Impact:** Fixing the 5–10 real aliases recovers cross-validation data for ~30+ games we're currently silently dropping.
+
+### 3. **Bonner-Prendergast wrong-team attribution (game_id=154)**
+Three players (`49412`, `49413`, `49414`) on `Pottsgrove` in the 2026-04-16 Spring-Ford vs Pottsgrove recap have goals greater than Pottsgrove's score. Almost certainly the parser attributed Spring-Ford goals to Pottsgrove (or vice versa). Recap: `https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-5/`.
+- **Action:** Open the recap, eyeball the right side, tell me "swap sides" or "delete those 3 rows" or "keep, real."
+- **Impact:** Fix removes 3 of the 12 cross-check anomalies + restores accurate per-team season totals.
+
+### 4. **Short-name "players" — real or parser garbage?**
+16 players have ≤4-char single-token names. Mix of real surnames and parser fragments:
+```
+Kane, Kobb, Ward, Ryan (x2), Hume, Nagy, Fry, Winn, Ray,
+Coor, Ford, Dame, Doll, Cobb (x2)
+```
+- **Action:** I'll diff each against its `team_id` and recap URL. You glance at the list and mark: keep / delete / rename. ~2 min.
+- **Impact:** Removes the long tail of "who is Doll?" rows from leaderboards.
+
+### 5. **Cross-check anomaly triage (12 items, 1 line each)**
+With v9 deployed, `/api/anomalies?strategy=cross-check-*` returns 12 entries. They're all currently flagged but not acted on. Decide:
+  - Auto-clamp player>team rows to 0 (high blast radius)? Or just leave flagged?
+  - Same for season-concentration outliers (Brady Flynn 7/11 goals in one game = legit hot game OR parser bug).
+- **Action:** One sentence per category — "auto-fix" or "flag only."
+
+---
+
+## 🧹 Safe-to-automate hygiene (no human input needed)
+
+Wave plan once you give Wave 1 the go-ahead.
+
+### Wave H1 — Quick wins (3 lanes, all S, parallelizable)
+
+| Lane | Fleet name | Effort | Scope | Blocked by | Status |
+| ---- | ---------- | ------ | ----- | ---------- | ------ |
+| 1 | Han 😉🚀 | S | DB-backup rotation: keep last 3 `.bak-*`, delete the other 31 (~58 MB freed). Add `data/lacrosse.db.bak*` to `.gitignore` if not already. Add a `pnpm --filter @pll/ingest run backup-prune` script. | — | 📋 planned |
+| 2 | Yoda 👽✨ | S | `auditCleanShortNames.ts`: idempotent script that flags (dry-run) and optionally deletes (--apply) players where name is single-token ≤4 chars AND no recap-page mention. Tests included. | — | 📋 planned |
+| 3 | Leia 👑💁‍♀️ | S | Audit-script README: one short doc at `packages/ingest/src/scripts/README.md` listing all `audit*.ts` scripts with one-liner + run command. Cuts onboarding time for next agent. | — | 📋 planned |
+
+### Wave H2 — LaxNumbers alias resolution (only after manual item #2 above)
+
+| Lane | Fleet name | Effort | Scope | Blocked by | Status |
+| ---- | ---------- | ------ | ----- | ---------- | ------ |
+| 1 | Han 😉🚀 | M | `seedLaxnumbersAliases.ts`: read user-approved alias mapping, insert into `team_aliases`, add idempotency guard. | manual #2 | ⏸ blocked |
+| 2 | Yoda 👽✨ | M | Re-run LaxNumbers ingest for the recent date range. Verify the 160 unknown-team anomalies drop to <20. | Lane 1 | ⏸ blocked |
+
+### Wave H3 — Cross-check remediation (only after manual items #3 and #5)
+
+| Lane | Fleet name | Effort | Scope | Blocked by | Status |
+| ---- | ---------- | ------ | ----- | ---------- | ------ |
+| 1 | Han 😉🚀 | M | Apply user's decisions from #3 + #5: surgical SQL fixes for game_id=154 + 8 other cross-check rows. Backup before. | manual #3, #5 | ⏸ blocked |
+
+### Wave H4 — Parser anomaly funnel (long-tail, not yet sized)
+
+The 212 `player-stat-line` anomalies and 223 `quarter-line` anomalies are the next-tier signal. Most of the player-stat-line ones say `sub-header did not match either game team`. That's a different parser class (score-line bleed) — likely a separate plan once H1–H3 land.
+
+---
+
+## 🔧 Smaller polish items (drop-in any time)
+
+These are too small to justify a wave — agent can fold them into the next opportunistic edit:
+
+- **`/api/leaders` 404** — the actual endpoints are `/api/leaders/players` and `/api/leaders/teams`. Either add a redirect/index endpoint at `/api/leaders` returning `{players: '...', teams: '...'}`, or update Leia's recon doc to use the correct paths. (5 min.)
+- **`packages/ingest/data/` ghost dir** — created when running `pnpm --filter @pll/ingest exec` from the wrong dir. Add `packages/*/data/` to `.gitignore` so it never sneaks into a commit again. (1 min.)
+- **34 backup files in git status noise** — already covered by Lane H1.1 but worth doing immediately if H1 is delayed.
+- **AGENTS.md / project-conventions skill drift** — `~/.copilot/skills/project-conventions/SKILL.md` may be stale relative to recent v8/v9 patterns (PROSE_MARKERS, STAT_CAPS, audit script idiom). Re-read once and reconcile. (10 min.)
+- **Anomaly summary endpoint** — `/api/anomalies/summary` exists but isn't surfaced in the web UI. A small "Data Quality" page would let you eyeball anomaly trends without `curl`-ing. (Out of hygiene scope; flag for future feature wave.)
+
+---
+
+## 📦 Communication log
+
+| Time | Lane | Fleet Name | Update |
+| ---- | ---- | ---------- | ------ |
+| 10:25 | — | orchestrator | 📋 plan written; awaiting user approval and decisions on items #1–#5 above |
+| 10:32 | — | orchestrator | ✅ shipped PIAA-authoritative API+UI change (commit `2234952`); Wave H0 added below to deploy v10 in parallel with Wave H1 hygiene lanes |
+| 10:33 | 4 | Chewy 🐻💪 | ✅ `h1-shortname-audit` done — `auditShortNames.ts` + tests + npm script shipped; live DB flagged 16 players (matches estimate); report at `.github/docs/2026-04-23-short-names-report.json`; 353/353 tests pass |
+| 10:31 | 1 | Han 😉🚀 | 🚀 starting v10-deploy; ACR=`pllacr3087`, ACA=`pll-server`. Docker daemon not running locally → using `az acr build` remote build |
+| 10:36 | 1 | Han 😉🚀 | ✅ v10-deploy DONE: `pll-server--v10` Running+Healthy; `/api/teams/39` (Garnet Valley) → `recordSource:'piaa'`, `record:{8-4-0}` matches `team.piaa`, `derivedRecord:{7-5-0}` preserved. ACR build run id `ca1` (1m10s). |
+| 10:32 | 3 | Leia 👑💁‍♀️ | ✅ `h1-audit-readme` shipped: `packages/ingest/src/scripts/README.md` (139 LoC) covers all 17 ingest scripts grouped by Audit / Seeding / Maintenance / Sync, plus pending Wave H0/H2 entries (`pruneBackups`, `auditShortNames`, `seedLaxnumbersAliases`) |
+
+---
+
+## 🌊 Wave H0 — Ship PIAA-authoritative + Wave H1 hygiene (4 lanes, parallel)
+
+| Lane | Fleet name | Effort | Scope | Blocked by | Status | Hard stop |
+| ---- | ---------- | ------ | ----- | ---------- | ------ | --------- |
+| 1 | Han 😉🚀 | M | `v10-deploy`: docker build pll-server:v10 (PIAA-as-truth API), push to ACR `pllacr`, deploy ACA revision `pll-server--v10` in rg `pll-rg`, smoke-verify `/api/teams/{garnet-valley-id}` returns `recordSource:'piaa'` + `record` matches PIAA wins/losses. | — | ✅ done | 30m |
+| 2 | Yoda 👽✨ | S | `h1-backup-rotate`: `.gitignore` polish (`packages/*/data/`, `data/lacrosse.db.bak*`), write `pruneBackups.ts` (keeps 3 most recent), add `pnpm` script, run it once. | — | 🎯 launching | 15m |
+| 3 | Leia 👑💁‍♀️ | S | `h1-audit-readme`: `packages/ingest/src/scripts/README.md` indexing every `audit*.ts` / `scan*.ts` with purpose + run command + flags. | — | 🎯 launching | 15m |
+| 4 | Chewy 🐻💪 | M | `h1-shortname-audit`: `auditShortNames.ts` dry-run-by-default script that prints `{id, name, team, game_count, recap_url}` for each ≤4-char single-token player. Tests. NO auto-delete. | — | 🎯 launching | 30m |
+
+All 4 lanes touch disjoint surfaces (infra/docker, .gitignore+ingest/scripts, ingest/scripts/README, new ingest script). No blockers.
+
+---
+
+## 🎯 Recommended order of operations
+
+1. **You handle items #1–#5** (~5–10 min, mostly browser tabs and one-line answers).
+2. **Agent launches Wave H1** in parallel (no blocker).
+3. **After your alias decisions land**, agent launches Wave H2.
+4. **After your cross-check decisions land**, agent launches Wave H3.
+5. **Wave H4** scoped fresh once H1–H3 anomaly counts settle.
+
+Total agent effort once unblocked: ~15–25 min wall-clock for H1–H3.
+Total human effort to unblock: ~10 min total across items #1–#5.
+| 10:33 | H0/2 | Yoda 👽✨ | ✅ `h1-backup-rotate` complete: pruneBackups.ts shipped + tested (4/4), `.gitignore` adds `data/*.db.bak*` and `packages/*/data/`, npm script `prune-backups` added, ran `--apply --keep 3` → 33 files removed, `data/` 81M → 28M (52.7 MB freed) |
