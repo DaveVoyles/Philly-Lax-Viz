@@ -236,3 +236,40 @@ export function parsePlayerStatLine(rawLine: string): ParseResult<ParsedPlayerSt
     anomalies: capAnomalies,
   };
 }
+
+/**
+ * Split a composite player name string like "Mason Proctor and Javier
+ * Gonzalez-Cruz" or "X, Y, and Z" (Oxford comma) into individual names.
+ *
+ * Wave H5 Lane 1 — fixes a parser bug where source text such as
+ *   "Mason Proctor and Javier Gonzalez-Cruz 19/22 FO"
+ * was kept as one literal player row. Now we split on `\s+and\s+`
+ * (case-insensitive, word-bounded) and `,` separators, then validate that
+ * each side looks name-like (has a capitalized token of >=2 chars). This
+ * guards against false positives in legitimate names that contain "and"
+ * as a substring (e.g. "Roland Anderson") — those don't match the
+ * `\s+and\s+` boundary in the first place, but the name-like check is
+ * a second safety net.
+ *
+ * Returns a single-element array when the input doesn't look composite.
+ */
+export function splitCompositeNames(rawName: string): string[] {
+  const name = rawName.trim().replace(/\s+/g, ' ');
+  if (!name) return [];
+
+  // Normalize Oxford "..., and X" → "..., X" so the comma split catches it.
+  const normalized = name.replace(/,\s+and\s+/gi, ', ');
+  const parts = normalized
+    .split(/\s*,\s*|\s+and\s+/i)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (parts.length <= 1) return [name];
+
+  // Each piece must look name-like: starts with a capital letter and is
+  // at least 2 chars (so "Co", "an" stragglers don't count).
+  const isNameLike = (p: string) => /^[A-Z][A-Za-z'\.\-]+/.test(p);
+  if (!parts.every(isNameLike)) return [name];
+
+  return parts;
+}

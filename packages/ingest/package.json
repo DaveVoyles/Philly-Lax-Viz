@@ -23,7 +23,8 @@
     "player-aliases:seed": "tsx src/scripts/seedPlayerAliases.ts",
     "audit-short-names": "tsx src/scripts/auditShortNames.ts",
     "prune-backups": "tsx src/scripts/pruneBackups.ts",
-    "snapshot:db": "tsx src/scripts/snapshotDb.ts"
+    "snapshot:db": "tsx src/scripts/snapshotDb.ts",
+    "split:composite-players": "tsx src/scripts/splitCompositePlayers.ts"
   },
   "dependencies": {
     "@pll/shared": "workspace:*",

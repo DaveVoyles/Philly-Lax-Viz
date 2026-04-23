@@ -6,7 +6,7 @@ import type {
 } from '@pll/shared';
 import { parseScoreLine } from './scoreLine.js';
 import { parseQuarterLine } from './quarterLine.js';
-import { parsePlayerStatLine } from './playerStat.js';
+import { parsePlayerStatLine, splitCompositeNames } from './playerStat.js';
 import { parseAggregatedList } from './aggregatedList.js';
 import { htmlToTextLines } from './text.js';
 import { normalizeTeamName } from '../normalize/teamName.js';
@@ -149,8 +149,20 @@ export function parseSummariesPost(html: string): ParsedSummariesPost {
     // 5. Player stat line.
     const ps = parsePlayerStatLine(line);
     if (ps.result) {
-      current.playerStats.push(ps.result);
-      current.playerStatTeamHints.push(currentSubHeader);
+      // Wave H5 Lane 1: split composite names like "X and Y" into separate
+      // player rows, each receiving the full stat line. Apportioning stats
+      // across multiple players from a joint line is not safely possible.
+      const names = splitCompositeNames(ps.result.name);
+      for (const n of names) {
+        const isPartial = !/\s/.test(n);
+        current.playerStats.push({
+          ...ps.result,
+          name: n,
+          isPartialName: isPartial,
+          confidence: names.length > 1 ? Math.min(ps.result.confidence, 0.5) : ps.result.confidence,
+        });
+        current.playerStatTeamHints.push(currentSubHeader);
+      }
       continue;
     }
     // Don't spam anomalies for noise lines (e.g. coach quotes). Only if the

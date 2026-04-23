@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parsePlayerStatLine } from '../playerStat.js';
+import { parsePlayerStatLine, splitCompositeNames } from '../playerStat.js';
 
 describe('parsePlayerStatLine', () => {
   it('parses single-token "Caleb Goering 1g"', () => {
@@ -192,5 +192,46 @@ describe('parsePlayerStatLine', () => {
       expect(r.result?.assists).toBe(3);
       expect(r.anomalies.some(a => a.strategyAttempted === 'stat-cap-exceeded')).toBe(true);
     });
+  });
+});
+
+describe('splitCompositeNames', () => {
+  it('splits a simple "X and Y" composite', () => {
+    expect(splitCompositeNames('Mason Proctor and Javier Gonzalez-Cruz')).toEqual([
+      'Mason Proctor',
+      'Javier Gonzalez-Cruz',
+    ]);
+  });
+
+  it('splits a three-name Oxford "X, Y, and Z" composite', () => {
+    expect(splitCompositeNames('Alpha One, Bravo Two, and Charlie Three')).toEqual([
+      'Alpha One',
+      'Bravo Two',
+      'Charlie Three',
+    ]);
+  });
+
+  it('splits case-insensitive "X AND Y"', () => {
+    expect(splitCompositeNames('Evan Adams AND Sean Boggetta')).toEqual([
+      'Evan Adams',
+      'Sean Boggetta',
+    ]);
+  });
+
+  it('does NOT split a legitimate single name containing "and" substring', () => {
+    expect(splitCompositeNames('Roland Anderson')).toEqual(['Roland Anderson']);
+  });
+
+  it('returns single-element array for a normal name', () => {
+    expect(splitCompositeNames('Conor Morsell')).toEqual(['Conor Morsell']);
+  });
+
+  it('returns empty array for empty/whitespace input', () => {
+    expect(splitCompositeNames('   ')).toEqual([]);
+  });
+
+  it('refuses to split when a side does not look name-like', () => {
+    // lowercase second side fails the capitalization guard
+    expect(splitCompositeNames('Sam and friends')).toEqual(['Sam and friends']);
   });
 });
