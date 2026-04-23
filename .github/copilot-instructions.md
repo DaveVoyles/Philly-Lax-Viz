@@ -24,6 +24,13 @@ Use this file for rules that should apply to any Copilot session in a repo.
 - Do not invent results; verify the changed behavior.
 - Do not use destructive commands unless the task clearly calls for them.
 
+### Database mutation safety
+
+Before running any `--apply` ingest migration script, stop running dev servers
+(`pnpm dev`, `pnpm start`) to avoid SQLite WAL desync that produces
+"database disk image is malformed" on cached connections. The migration scripts
+now `pgrep` for these processes and refuse to run unless `--force` is passed.
+
 ## Validation
 
 - Run the relevant existing checks for the files you touched.

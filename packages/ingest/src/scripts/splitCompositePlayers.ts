@@ -28,6 +28,7 @@ import type { Database } from 'better-sqlite3';
 import { openDb } from '../db.js';
 import { normalizePlayerName } from '../normalize/playerName.js';
 import { splitCompositeNames } from '../parsers/playerStat.js';
+import { checkServerProcs } from './lib/checkServerProcs.js';
 
 export interface CompositeRow {
   id: number;
@@ -232,6 +233,7 @@ function parseArgs(argv: string[]): { apply: boolean } {
 
 function main(): void {
   const args = parseArgs(process.argv);
+  if (args.apply) checkServerProcs({ force: process.argv.includes('--force') });
   const here = dirname(fileURLToPath(import.meta.url));
   const dbPath = resolve(here, '..', '..', '..', '..', 'data', 'lacrosse.db');
   console.log(

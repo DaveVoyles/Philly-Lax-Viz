@@ -34,6 +34,7 @@ import { fileURLToPath } from 'node:url';
 import type { Database } from 'better-sqlite3';
 import { openDb } from '../db.js';
 import { normalizeTeamName, slugifyTeamName } from '../pipelines/teamResolver.js';
+import { checkServerProcs } from './lib/checkServerProcs.js';
 
 interface TeamRow {
   id: number;
@@ -416,6 +417,10 @@ export function mergeTeam(
 }
 
 function main(): void {
+  // dedupTeams always mutates when invoked as a script — guard against running
+  // while dev servers hold the SQLite DB open. Pass --force to override.
+  checkServerProcs({ force: process.argv.includes('--force') });
+
   // Resolve repo-root data/lacrosse.db relative to this file: src/scripts → ../../../../data
   const here = dirname(fileURLToPath(import.meta.url));
   const dbPath =
