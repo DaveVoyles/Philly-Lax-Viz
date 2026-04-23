@@ -130,3 +130,69 @@ All 4 lanes touch disjoint surfaces (infra/docker, .gitignore+ingest/scripts, in
 Total agent effort once unblocked: ~15–25 min wall-clock for H1–H3.
 Total human effort to unblock: ~10 min total across items #1–#5.
 | 10:33 | H0/2 | Yoda 👽✨ | ✅ `h1-backup-rotate` complete: pruneBackups.ts shipped + tested (4/4), `.gitignore` adds `data/*.db.bak*` and `packages/*/data/`, npm script `prune-backups` added, ran `--apply --keep 3` → 33 files removed, `data/` 81M → 28M (52.7 MB freed) |
+
+---
+
+## Wave H2 — Outcomes (2026-04-23)
+
+### Decisions landed (from user)
+
+**#3 — Cross-check policy (NEW, applies repo-wide):**
+> When a player's goals in a single game exceed the stored team score, **trust PhillyLacrosse player stats** and **reconcile team score from an external authoritative source** (PIAA official → MaxPreps fallback). PhillyLacrosse team-score typos are overridden by PIAA/MaxPreps, same pattern as the existing team-record override in `packages/server/src/routes/teams.ts`.
+
+**#3 — Reference fix (game_id=154, Spring-Ford @ Pottsgrove, 2026-04-16):**
+- PhillyLacrosse said Pottsgrove 0. Per-player stats sum to 5 (Raggazino 3g + Henzes 1g + Hires 1g). MaxPreps confirms Pottsgrove 5. Rule: **trust the 5**, not the 0.
+- Applied: `UPDATE games SET away_score = 5 WHERE id = 154` against `data/lacrosse.db`. Backup: `data/lacrosse.db.bak-pre-g154-fix` (pre-fix local snapshot preserved for audit).
+- Status: committed to repo DB. Will propagate on next successful server-image rebuild.
+
+**#4 — Short-name report:** All 16 entries flagged in `2026-04-23-short-names-report.json` marked `triage_decision: "keep"` with reviewer + date. All surface as legitimate last-name-only stat attributions; no merge/delete needed. Parser's last-name-only resolution fallback is working as intended.
+
+### Deploy-infra findings discovered while shipping H2
+
+1. **Live API is stale from the baked image.** `DB_PATH=/tmp/lacrosse.db` on the ACA, and the Dockerfile CMD seeds `/tmp` from `/app/seed/lacrosse.db` (baked into the image at build time), ignoring the `/data` Azure Files mount entirely. Azure Files upload path that works for `/data/lacrosse.db` is a **no-op** against live traffic.
+2. **Image registry `pllacr3087.azurecr.io` is stale.** The referenced ACR does not exist in this subscription (live ACR is `adovizacr1771621563` in `ado-viz-rg`). `az acr build --registry pllacr3087` fails with ResourceNotFound. This means the current v10 image cannot be rebuilt in-place — ACA must be re-pointed to the live registry (or the dead registry name re-provisioned) before image updates work again.
+3. **Consequence:** game 154 fix is in `data/lacrosse.db` (repo source of truth) and in Azure Files, but will only reach the live server when someone either (a) re-provisions the image pipeline to the live ACR, or (b) flips `DB_PATH` to `/data/lacrosse.db` (read direct from Azure Files — requires `DB_JOURNAL_MODE=DELETE` which is already set; caveat is Azure Files SMB + SQLite historically caused locking issues, which is the reason for the copy-to-/tmp pattern in the first place).
+
+### New H3 items (deferred, blocking automated deploys)
+
+- **H3-a:** Update `azure-bootstrap.sh` + `deploy.yml` to reference `adovizacr1771621563.azurecr.io/pll-server` instead of `pllacr3087.azurecr.io/pll-server`. Verify ACA managed-identity has AcrPull on the live registry.
+- **H3-b:** Decide architecturally: either (1) change server CMD to `cp /data/lacrosse.db /tmp/lacrosse.db` on startup (preferring the mount over the seed), or (2) set `DB_PATH=/data/lacrosse.db` directly. Option 1 keeps the SMB-safety reputation of the copy-to-tmp pattern without requiring image rebuild for each DB refresh. This is the cleanest long-term ops model: nightly ingest writes `data/lacrosse.db` → uploads to Azure Files → ACA picks it up on next scheduled restart without a new image.
+- **H3-c:** Secrets gap (item 1a above) still blocks the nightly auto-refresh path.
+
+---
+
+## Azure service-principal runbook (unblocks item 1a)
+
+Run these once from a locally-authenticated `az` session (subscription already set to `0e46d2c0-9a8f-4bfb-b032-f8f2dd819ec6`):
+
+```bash
+# 1. Service principal scoped to the resource group
+az ad sp create-for-rbac \
+  --name "pll-github-actions" \
+  --role "Contributor" \
+  --scopes "/subscriptions/0e46d2c0-9a8f-4bfb-b032-f8f2dd819ec6/resourceGroups/pll-rg" \
+  --sdk-auth
+# → copy the full JSON output
+gh secret set AZURE_CREDENTIALS --repo DaveVoyles/Philly-Lax-Viz   # paste JSON
+
+# 2. Azure Files account name + key (for nightly DB upload)
+ACCT=pllstorage3426
+gh secret set AZURE_STORAGE_ACCOUNT --repo DaveVoyles/Philly-Lax-Viz --body "$ACCT"
+KEY=$(az storage account keys list -g pll-rg --account-name "$ACCT" --query "[0].value" -o tsv)
+gh secret set AZURE_STORAGE_KEY --repo DaveVoyles/Philly-Lax-Viz --body "$KEY"
+
+# 3. ACA target (literals)
+gh secret set ACA_NAME --repo DaveVoyles/Philly-Lax-Viz --body "pll-server"
+gh secret set ACA_RESOURCE_GROUP --repo DaveVoyles/Philly-Lax-Viz --body "pll-rg"
+
+# 4. Static Web Apps deploy token — grab from portal
+# Azure Portal → Static Web Apps → victorious-pond-0c5ff000f → Manage deployment token → Copy
+gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN --repo DaveVoyles/Philly-Lax-Viz --body "<paste-token>"
+
+# 5. (optional) Discord notifications
+gh secret set DISCORD_WEBHOOK_URL --repo DaveVoyles/Philly-Lax-Viz --body "<webhook-url>"
+```
+
+After step 5, re-run the `deploy` workflow manually from the Actions tab to verify each secret resolves.
+
+> ⚠️ Before a green deploy will actually update production, H3-a and H3-b (registry repoint + DB-path strategy) must also land. Otherwise the workflow will push a v11 image to a registry that ACA isn't pulling from.
