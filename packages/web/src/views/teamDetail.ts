@@ -76,56 +76,76 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   callouts.className = 'callout-row';
 
   const piaa = detail.team.piaa ?? null;
+  const derived = detail.derivedRecord ?? detail.team.derivedRecord ?? {
+    wins: detail.record.wins,
+    losses: detail.record.losses,
+    ties: detail.record.ties,
+  };
 
-  if (piaa) {
-    const piaaCallout = document.createElement('div');
-    piaaCallout.className = 'record-callout record-callout--piaa';
-    const piaaLabel = document.createElement('span');
-    piaaLabel.className = 'callout-label';
-    piaaLabel.style.cssText = 'display:flex; align-items:center; gap:.4rem;';
-    const piaaLabelText = document.createElement('span');
-    piaaLabelText.textContent = 'PIAA Record';
-    piaaLabel.append(piaaLabelText, renderProvenanceBadge({ source: 'piaa' }));
-    if (detail.team.piaaValidation) {
-      const badge = renderPiaaBadge({
-        validation: detail.team.piaaValidation,
-        derived: detail.team.derivedRecord ?? { wins: detail.record.wins, losses: detail.record.losses, ties: detail.record.ties },
-        piaa,
-        linkToSource: true,
-      });
-      if (badge) piaaLabel.appendChild(badge);
-    }
-    const piaaValue = document.createElement('span');
-    piaaValue.className = 'callout-value';
-    const piaaWl = `${piaa.wins}-${piaa.losses}` + (piaa.ties > 0 ? `-${piaa.ties}` : '');
-    piaaValue.textContent = piaaWl;
-    piaaCallout.append(piaaLabel, piaaValue);
-    if (piaa.seed !== null || piaa.classification) {
-      const sub = document.createElement('span');
-      sub.className = 'muted';
-      sub.style.fontSize = '.85rem';
-      const parts: string[] = [];
-      if (piaa.seed !== null) parts.push(`Seed #${piaa.seed}`);
-      if (piaa.classification) parts.push(piaa.classification);
-      sub.textContent = `(${parts.join(', ')})`;
-      piaaCallout.appendChild(sub);
-    }
-    callouts.appendChild(piaaCallout);
-  }
-
+  // Primary record callout. When PIAA exists, it IS the record (server authoritative).
+  // Otherwise we fall back to PhillyLacrosse-derived. Per 2026-04-23 decision, PIAA
+  // always wins on conflict, so we don't show two competing primary numbers anymore.
   const recordCallout = document.createElement('div');
-  recordCallout.className = 'record-callout';
+  recordCallout.className = piaa ? 'record-callout record-callout--piaa' : 'record-callout';
   const recordLabel = document.createElement('span');
   recordLabel.className = 'callout-label';
   recordLabel.style.cssText = 'display:flex; align-items:center; gap:.4rem;';
   const recordLabelText = document.createElement('span');
-  recordLabelText.textContent = piaa ? 'PhillyLacrosse coverage' : 'Record';
-  recordLabel.append(recordLabelText, renderProvenanceBadge({ source: 'phillylacrosse' }));
+  recordLabelText.textContent = piaa ? 'PIAA Record' : 'Record';
+  recordLabel.append(
+    recordLabelText,
+    renderProvenanceBadge({ source: piaa ? 'piaa' : 'phillylacrosse' }),
+  );
+  if (piaa && detail.team.piaaValidation) {
+    const badge = renderPiaaBadge({
+      validation: detail.team.piaaValidation,
+      derived,
+      piaa,
+      linkToSource: true,
+    });
+    if (badge) recordLabel.appendChild(badge);
+  }
   const recordValue = document.createElement('span');
   recordValue.className = 'callout-value';
   recordValue.textContent = formatRecord(detail.record);
   recordCallout.append(recordLabel, recordValue);
+  if (piaa && (piaa.seed !== null || piaa.classification)) {
+    const sub = document.createElement('span');
+    sub.className = 'muted';
+    sub.style.fontSize = '.85rem';
+    const parts: string[] = [];
+    if (piaa.seed !== null) parts.push(`Seed #${piaa.seed}`);
+    if (piaa.classification) parts.push(piaa.classification);
+    sub.textContent = `(${parts.join(', ')})`;
+    recordCallout.appendChild(sub);
+  }
   callouts.appendChild(recordCallout);
+
+  // Secondary: PhillyLacrosse-derived record (only shown when PIAA is the primary
+  // and the two disagree — pure transparency, not authoritative).
+  if (
+    piaa &&
+    (derived.wins !== piaa.wins || derived.losses !== piaa.losses || derived.ties !== piaa.ties)
+  ) {
+    const derivedCallout = document.createElement('div');
+    derivedCallout.className = 'record-callout record-callout--secondary';
+    const derivedLabel = document.createElement('span');
+    derivedLabel.className = 'callout-label';
+    derivedLabel.style.cssText = 'display:flex; align-items:center; gap:.4rem;';
+    const derivedLabelText = document.createElement('span');
+    derivedLabelText.textContent = 'PhillyLacrosse coverage';
+    derivedLabel.append(derivedLabelText, renderProvenanceBadge({ source: 'phillylacrosse' }));
+    const derivedValue = document.createElement('span');
+    derivedValue.className = 'callout-value';
+    derivedValue.textContent = formatRecord(derived);
+    derivedCallout.append(derivedLabel, derivedValue);
+    const note = document.createElement('span');
+    note.className = 'muted';
+    note.style.fontSize = '.85rem';
+    note.textContent = '(non-authoritative — PIAA is source of truth)';
+    derivedCallout.appendChild(note);
+    callouts.appendChild(derivedCallout);
+  }
 
   if (detail.recentRanking !== null) {
     const rankCallout = document.createElement('div');
@@ -153,32 +173,28 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     heading.style.cssText = 'display:flex; align-items:center; gap:.4rem;';
     const inlineBadge = renderPiaaBadge({
       validation,
-      derived: detail.team.derivedRecord ?? { wins: detail.record.wins, losses: detail.record.losses, ties: detail.record.ties },
+      derived,
       piaa,
       linkToSource: false,
     });
     if (inlineBadge) heading.appendChild(inlineBadge);
     const headingText = document.createElement('span');
-    headingText.textContent = piaaBadgeTooltip(
-      validation,
-      detail.team.derivedRecord ?? { wins: detail.record.wins, losses: detail.record.losses, ties: detail.record.ties },
-      piaa,
-    );
+    headingText.textContent = piaaBadgeTooltip(validation, derived, piaa);
     heading.appendChild(headingText);
     panel.appendChild(heading);
 
     const sub = document.createElement('div');
     sub.className = 'muted';
     sub.style.cssText = 'font-size:.9rem; margin-top:.25rem;';
-    const ourWl = `${detail.record.wins}-${detail.record.losses}`;
+    const ourWl = `${derived.wins}-${derived.losses}`;
     const piaaWl = `${piaa.wins}-${piaa.losses}`;
     const classBits = [piaa.classification ? `Class ${piaa.classification}` : null]
       .filter((x): x is string => x !== null)
       .join(', ');
     sub.textContent =
-      `Our derived record: ${ourWl} · PIAA official: ${piaaWl}` +
+      `PhillyLacrosse derived: ${ourWl} · PIAA official: ${piaaWl}` +
       (classBits ? ` (${classBits})` : '') +
-      ' · ';
+      ' · PIAA used as source of truth · ';
     const link = document.createElement('a');
     link.href = validation.sourceUrl;
     link.target = '_blank';

@@ -278,6 +278,15 @@ table.stat tbody tr.row-link:focus { outline: 2px solid var(--accent); outline-o
 }
 .record-callout--piaa .callout-value { font-weight: 800; }
 
+.record-callout--secondary {
+  border-left: 4px solid var(--border);
+  opacity: 0.85;
+}
+.record-callout--secondary .callout-value {
+  font-weight: 600;
+  color: var(--muted);
+}
+
 .coverage-note {
   margin: 0.25rem 0 1rem;
   font-size: 0.85rem;

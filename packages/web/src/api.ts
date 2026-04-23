@@ -306,6 +306,8 @@ export interface TeamDetail {
   team: TeamWithPiaa;
   games: Game[];
   record: { wins: number; losses: number; ties: number };
+  derivedRecord?: { wins: number; losses: number; ties: number };
+  recordSource?: 'piaa' | 'phillylacrosse';
   recentRanking: number | null;
 }
 

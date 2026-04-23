@@ -33,11 +33,11 @@ export function piaaBadgeTooltip(
 ): string {
   switch (validation.status) {
     case 'match':
-      return `PIAA verified: ${fmtRecord(derived)} matches official record`;
+      return `PIAA verified: PhillyLacrosse ${fmtRecord(derived)} matches official`;
     case 'close':
-      return `PIAA close: ours ${fmtRecord(derived)}, official ${fmtRecord(piaa)} (off by ${validation.totalDiff})`;
+      return `Using PIAA ${fmtRecord(piaa)} (PhillyLacrosse derived ${fmtRecord(derived)}, off by ${validation.totalDiff})`;
     case 'divergent':
-      return `PIAA divergent: ours ${fmtRecord(derived)}, official ${fmtRecord(piaa)} — investigate`;
+      return `Using PIAA ${fmtRecord(piaa)} (PhillyLacrosse derived ${fmtRecord(derived)} diverges — investigate coverage gap)`;
     case 'unmapped':
     default:
       return 'No PIAA mapping (not state-affiliated or unmatched)';

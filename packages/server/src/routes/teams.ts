@@ -47,10 +47,20 @@ export async function teamsRoutes(app: FastifyInstance, db: Database): Promise<v
 
     const rankRow = s.latestRankingForTeam.get(id) as { rank: number } | undefined;
 
+    // Derived record = computed from PhillyLacrosse-scraped games.
+    // Authoritative record = PIAA official when present, else derived. Per
+    // 2026-04-23 product decision: PIAA always wins on conflict.
+    const derivedRecord = { wins, losses, ties };
+    const record = team.piaa
+      ? { wins: team.piaa.wins, losses: team.piaa.losses, ties: team.piaa.ties }
+      : derivedRecord;
+
     return {
       team,
       games,
-      record: { wins, losses, ties },
+      record,
+      derivedRecord,
+      recordSource: team.piaa ? 'piaa' : 'phillylacrosse',
       recentRanking: rankRow?.rank ?? null,
     };
   });

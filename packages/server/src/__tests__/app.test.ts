@@ -131,11 +131,34 @@ describe('GET /api/teams/:id', () => {
     expect(body.team.name).toBe('Haverford');
     expect(body.games).toHaveLength(2);
     // Haverford: won as home (12-8) and won as away (11-9) -> 2-0-0
+    // No PIAA row seeded in this test, so record falls back to derived.
     expect(body.record).toEqual({ wins: 2, losses: 0, ties: 0 });
+    expect(body.derivedRecord).toEqual({ wins: 2, losses: 0, ties: 0 });
+    expect(body.recordSource).toBe('phillylacrosse');
     expect(body.recentRanking).toBe(1);
     // verify camelCase
     expect(body.games[0]).toHaveProperty('homeTeamId');
     expect(body.games[0]).toHaveProperty('awayScore');
+  });
+
+  it('uses PIAA record as authoritative when team has a PIAA row', async () => {
+    // Seed PIAA row for Haverford that disagrees with derived 2-0-0.
+    db.prepare(
+      `INSERT INTO piaa_official_teams
+       (name_official, name_normalized, classification, seed, wins, losses, ties, total_points, ranking, fetched_at)
+       VALUES ('Haverford', 'haverford', '3A', 5, 8, 4, 0, 12.5, 0.6, '2026-04-23T00:00:00Z')`,
+    ).run();
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/teams/1' });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      // PIAA wins on conflict -> record reflects PIAA, not derived 2-0-0.
+      expect(body.record).toEqual({ wins: 8, losses: 4, ties: 0 });
+      expect(body.derivedRecord).toEqual({ wins: 2, losses: 0, ties: 0 });
+      expect(body.recordSource).toBe('piaa');
+    } finally {
+      db.prepare(`DELETE FROM piaa_official_teams WHERE name_normalized = 'haverford'`).run();
+    }
   });
 
   it('404s on missing team', async () => {
