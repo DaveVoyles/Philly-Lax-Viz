@@ -218,6 +218,9 @@ describe('GET /api/games/:id', () => {
     expect(body.playerStats[0]).toHaveProperty('playerName');
     expect(body.playerStats[0]).toHaveProperty('teamName');
     expect(body.playerStats[0]).toHaveProperty('groundBalls');
+    // Wave H5 Lane 3 (Leia) — confidence is on the wire for badge rendering.
+    expect(body.playerStats[0]).toHaveProperty('confidence');
+    expect(typeof body.playerStats[0].confidence).toBe('number');
   });
 
   it('404s on missing game', async () => {
@@ -242,6 +245,9 @@ describe('GET /api/players/:id', () => {
     });
     expect(body.perGame).toHaveLength(2);
     expect(body.perGame[0]).toHaveProperty('date');
+    // Wave H5 Lane 3 (Leia) — confidence is on the wire for badge rendering.
+    expect(body.perGame[0]).toHaveProperty('confidence');
+    expect(typeof body.perGame[0].confidence).toBe('number');
     expect(body.perGame.map((p: { date: string }) => p.date).sort()).toEqual([
       '2025-04-19',
       '2025-04-21',

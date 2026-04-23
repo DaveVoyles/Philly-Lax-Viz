@@ -13,6 +13,7 @@ import { formatDate } from '../util/format.js';
 import { renderQuarterByQuarter } from '../charts/index.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderAnomalyBanner } from '../components/anomalyBanner.js';
+import { renderConfidenceBadge } from '../util/confidence.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   root.replaceChildren();
@@ -342,6 +343,10 @@ function buildPlayerStatsTable(stats: GamePlayerStat[]): HTMLElement {
         td.appendChild(a);
       } else {
         td.textContent = cell.value;
+      }
+      if (i === 0) {
+        const badge = renderConfidenceBadge(ps.confidence);
+        if (badge) td.appendChild(badge);
       }
       if (i > 0) td.className = 'num';
       tr.appendChild(td);

@@ -2,6 +2,7 @@
 
 import { ApiError, getPlayerDetail, type PlayerDetail, type PlayerPerGameStat } from '../api.js';
 import { formatDate } from '../util/format.js';
+import { renderConfidenceBadge } from '../util/confidence.js';
 import { renderPerGameTrend } from '../charts/index.js';
 import type { PerGameTrendDatum } from '../charts/index.js';
 
@@ -184,6 +185,10 @@ function buildPerGameTable(stats: PlayerPerGameStat[]): HTMLElement {
         td.appendChild(document.createTextNode(value));
       } else {
         td.textContent = value;
+      }
+      if (i === 0) {
+        const badge = renderConfidenceBadge(ps.confidence);
+        if (badge) td.appendChild(badge);
       }
       if (i > 0) td.className = 'num';
       tr.appendChild(td);
