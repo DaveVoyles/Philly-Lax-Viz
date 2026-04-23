@@ -26,6 +26,8 @@ import { fetchPiaaScheduleCsv } from '../sources/piaaSchedule.js';
 import { runImageExtraction } from '../pipelines/postImages.js';
 import { DEFAULT_SEASON, seasonFromUrl } from '../crawler.js';
 
+import { runLaxNumbersIngest } from '../pipelines/laxnumbers.js';
+
 interface CliArgs {
   limit?: number;
   category: 'all' | PipelineCategory;
@@ -36,6 +38,12 @@ interface CliArgs {
   scheduleSeason: number;
   scheduleForce: boolean;
   extractImages: boolean;
+  // LaxNumbers subcommand
+  source?: 'laxnumbers';
+  laxDate?: string;
+  laxSince?: string;
+  laxUntil?: string;
+  apply: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -46,6 +54,7 @@ function parseArgs(argv: string[]): CliArgs {
     scheduleSeason: DEFAULT_SEASON,
     scheduleForce: false,
     extractImages: false,
+    apply: false,
   };
   for (const a of argv) {
     if (a.startsWith('--limit=')) {
@@ -74,6 +83,16 @@ function parseArgs(argv: string[]): CliArgs {
       args.scheduleForce = true;
     } else if (a === '--extract-images') {
       args.extractImages = true;
+    } else if (a === '--source=laxnumbers') {
+      args.source = 'laxnumbers';
+    } else if (a.startsWith('--date=')) {
+      args.laxDate = a.slice('--date='.length);
+    } else if (a.startsWith('--since=')) {
+      args.laxSince = a.slice('--since='.length);
+    } else if (a.startsWith('--until=')) {
+      args.laxUntil = a.slice('--until='.length);
+    } else if (a === '--apply') {
+      args.apply = true;
     } else if (a === '--help' || a === '-h') {
       printHelp();
       process.exit(0);
@@ -91,7 +110,12 @@ function printHelp(): void {
 Walks data/raw-cache/<post-id>.html via raw_cache_meta. Each post is routed to
 its parser + pipeline. Per-post idempotency is keyed on (post_id, parser_version)
 in ingest_post_log; bumping PARSER_VERSION (or passing --reparse) re-processes
-all posts. A run-level summary row is appended to ingest_log.`,
+all posts. A run-level summary row is appended to ingest_log.
+
+LaxNumbers sub-command (PA Boys HS only, additive):
+  --source=laxnumbers --date=YYYY-MM-DD [--apply]
+  --source=laxnumbers --since=YYYY-MM-DD --until=YYYY-MM-DD [--apply]
+  Default is dry-run; add --apply to write to the DB.`,
   );
 }
 
@@ -310,7 +334,42 @@ async function main(): Promise<void> {
 
   const db = openDb(dbPath);
 
-  // Wave 17 Lane 2 (Han) -- featured image extraction. Reads cached HTML,
+  // Wave 18 W2L1 (Han) — LaxNumbers PA-only additive ingest.
+  if (args.source === 'laxnumbers') {
+    if (!args.laxDate && !(args.laxSince && args.laxUntil)) {
+      process.stderr.write(
+        '[ingest:laxnumbers] ERROR: supply --date=YYYY-MM-DD or --since=YYYY-MM-DD --until=YYYY-MM-DD\n',
+      );
+      db.close();
+      process.exit(1);
+    }
+    const mode = args.apply ? 'APPLY' : 'DRY-RUN';
+    process.stderr.write(
+      `[ingest:laxnumbers] mode=${mode} date=${args.laxDate ?? `${args.laxSince}..${args.laxUntil}`}\n`,
+    );
+    const r = await runLaxNumbersIngest(db, {
+      date: args.laxDate,
+      since: args.laxSince,
+      until: args.laxUntil,
+      apply: args.apply,
+    });
+    process.stderr.write(
+      `[ingest:laxnumbers] fetched=${r.fetched} paGames=${r.paGames} resolved=${r.resolvedGames} inserted=${r.inserted} updated=${r.updated}\n`,
+    );
+    process.stderr.write(
+      `[ingest:laxnumbers] skipped: nonPA=${r.skipped.nonPA} postponed=${r.skipped.postponed} unknownTeam=${r.skipped.unknownTeam} alreadyComplete=${r.skipped.alreadyComplete}\n`,
+    );
+    if (r.anomalies.length > 0) {
+      process.stderr.write(
+        `[ingest:laxnumbers] anomalies (first ${Math.min(r.anomalies.length, 20)} of ${r.anomalies.length}):\n`,
+      );
+      for (const a of r.anomalies.slice(0, 20)) {
+        process.stderr.write(`  [${a.kind}] ${a.detail}\n`);
+      }
+    }
+    db.close();
+    return;
+  }
   // skips the recap/scoreboard pipelines, writes image URLs into post_images.
   if (args.extractImages) {
     console.log(`[ingest:images] cacheDir=${cacheDir} limit=${args.limit ?? 'all'}`);
