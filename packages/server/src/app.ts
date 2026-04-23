@@ -22,6 +22,7 @@ import { constellationRoutes } from './routes/constellation.js';
 import { scheduleRoutes } from './routes/schedule.js';
 import { freshnessRoutes } from './routes/freshness.js';
 import { postImagesRoutes } from './routes/postImages.js';
+import { searchRoutes } from './routes/search.js';
 
 export interface BuildOptions {
   logger?: boolean;
@@ -82,6 +83,7 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   await scheduleRoutes(app, db);
   await freshnessRoutes(app, db);
   await postImagesRoutes(app, db);
+  await searchRoutes(app, db);
 
   return app;
 }

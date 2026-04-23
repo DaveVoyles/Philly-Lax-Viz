@@ -8,6 +8,7 @@ import * as dataQuality from './views/dataQuality.js';
 import * as leaders from './views/leaders.js';
 import * as anomalies from './views/anomalies.js';
 import * as graph from './views/graph.js';
+import { mountSearchBox } from './components/searchBox.js';
 
 // Wave 14 Lane 3 — game scrubber view, kept lazy so pixi/scrubber chunk
 // stays out of the entry bundle. Coordinated with Han to add only ONE line
@@ -35,6 +36,7 @@ const NAV: NavLink[] = [
   { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
   { href: '#/sources', label: 'Sources', match: 'sources' },
+  { href: '#/status', label: 'Status', match: 'status' },
 ];
 
 function mountShell(app: HTMLElement): {
@@ -49,6 +51,7 @@ function mountShell(app: HTMLElement): {
           (n) => `<a data-nav="${n.match}" href="${n.href}">${n.label}</a>`,
         ).join('')}
       </nav>
+      <div id="search-host" class="search-host"></div>
       <div id="season-host" class="season-host"></div>
     </header>
     <main id="main" class="container"></main>
@@ -69,6 +72,8 @@ function mountShell(app: HTMLElement): {
   `;
   const main = app.querySelector<HTMLElement>('#main');
   if (!main) throw new Error('shell mount missing');
+  const searchHost = app.querySelector<HTMLElement>('#search-host');
+  if (searchHost) mountSearchBox(searchHost);
   const links = Array.from(app.querySelectorAll<HTMLAnchorElement>('a[data-nav]'));
   return {
     main,
@@ -130,6 +135,9 @@ function dispatch(main: HTMLElement, match: RouteMatch): void {
       return;
     case 'sources':
       void import('./views/sources.js').then((m) => m.render(main, match.params));
+      return;
+    case 'status':
+      void import('./views/status.js').then((m) => m.render(main, match.params));
       return;
     case 'notFound':
       main.innerHTML = `<h1>Not found</h1><p>No route for <code>${match.path}</code>. <a href="#/">Go home</a>.</p>`;

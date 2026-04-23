@@ -684,3 +684,20 @@ export interface ConstellationResponse {
 export function getConstellation(): Promise<ConstellationResponse> {
   return request<ConstellationResponse>('/players/constellation');
 }
+
+// ---- Header search (W H4 L2, Yoda) ----
+
+export interface SearchHit {
+  kind: 'player' | 'team';
+  id: number;
+  name: string;
+  teamName?: string;
+}
+
+export function searchAll(q: string, limit = 10): Promise<SearchHit[]> {
+  const trimmed = q.trim();
+  if (trimmed.length < 2) return Promise.resolve([]);
+  return request<SearchHit[]>(
+    `/search?q=${encodeURIComponent(trimmed)}&limit=${encodeURIComponent(String(limit))}`,
+  );
+}
