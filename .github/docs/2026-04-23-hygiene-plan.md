@@ -196,3 +196,7 @@ gh secret set DISCORD_WEBHOOK_URL --repo DaveVoyles/Philly-Lax-Viz --body "<webh
 After step 5, re-run the `deploy` workflow manually from the Actions tab to verify each secret resolves.
 
 > ⚠️ Before a green deploy will actually update production, H3-a and H3-b (registry repoint + DB-path strategy) must also land. Otherwise the workflow will push a v11 image to a registry that ACA isn't pulling from.
+
+## Wave H3 outcomes
+
+- **Lane 4 (Chewy):** Synced `.github/copilot-instructions.md` and `.github/agents/autonomous-fleet-agent.agent.md` from home defaults into the repo. No divergence with existing `AGENTS.md` / `README.md` / `docs/` (AGENTS.md is project-specific onboarding; complementary, not contradictory). `pnpm -r typecheck` clean.
