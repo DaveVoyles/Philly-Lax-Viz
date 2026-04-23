@@ -1,0 +1,714 @@
+{
+  "generated_at": "2026-04-23T01:47:21.626Z",
+  "db_path": "/Users/davevoyles/Desktop/REPOS/Philly Lacrosse Vis/data/lacrosse.db",
+  "posts_scanned": 39,
+  "posts_missing_html": 0,
+  "boys_summary_posts_total": 39,
+  "suspect_lines_total": 18,
+  "findings_by_category": {
+    "parsed-and-suspect": 0,
+    "parsed-and-clean": 15,
+    "not-parsed": 3
+  },
+  "top_markers": [
+    [
+      "career",
+      5
+    ],
+    [
+      "100th career",
+      4
+    ],
+    [
+      "tied",
+      1
+    ],
+    [
+      "set school record",
+      1
+    ],
+    [
+      "100th goal",
+      1
+    ],
+    [
+      "goals",
+      1
+    ],
+    [
+      "185th career",
+      1
+    ],
+    [
+      "100th point",
+      1
+    ],
+    [
+      "1st career",
+      1
+    ]
+  ],
+  "expanded_prose_markers_used": [
+    "career",
+    "season",
+    "school record",
+    "state record",
+    "all[- ]?time",
+    "milestone",
+    "now has",
+    "now with",
+    "set [a-z]+ record",
+    "broke",
+    "broken",
+    "reached",
+    "on (his|her|the)",
+    "for (his|her|the)",
+    "in (his|her|the)",
+    "lifetime",
+    "overall",
+    "committed",
+    "commit",
+    "signed",
+    "tied",
+    "ties",
+    "previous",
+    "former",
+    "earlier",
+    "matched",
+    "surpass(?:es|ed)?",
+    "pass(?:es|ed)",
+    "reach(?:es|ed)",
+    "notch(?:es|ed)",
+    "tally",
+    "record-tying",
+    "record-setting",
+    "history",
+    "all-time leader",
+    "leader[s]?",
+    "hat trick",
+    "four-goal",
+    "five-goal",
+    "six-goal",
+    "standout",
+    "star",
+    "veteran",
+    "senior",
+    "junior",
+    "sophomore",
+    "freshman",
+    "\\brecord\\b",
+    "\\bpoint(?:s)?\\b",
+    "\\bgoal(?:s)?\\b(?=[^)]*\\b(?:career|season|all|history|record|leader|tied)\\b)",
+    "become[s]? .*leader",
+    "first[- ]team",
+    "all[- ](?:state|league|county|conference|america|american)",
+    "won the",
+    "\\bMVP\\b",
+    "program record",
+    "school[- ]?record",
+    "first career",
+    "1st career",
+    "\\d{2,3}(?:st|nd|rd|th)\\s+(?:career|point|goal|save|assist|gb|ground|face)",
+    "saves on the",
+    "goals on the",
+    "points on the"
+  ],
+  "paren_big_number_threshold": 25,
+  "findings": [
+    {
+      "category": "not-parsed",
+      "source_post_id": "tuesday-boys-summaries-sponsored-by-fusion-lacrosse-6",
+      "source_url": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-6/",
+      "raw_line": "Conor McCaffery 5g, 2a (200 career points)",
+      "player_name_guess": "Conor McCaffery",
+      "parenthetical": "200 career points",
+      "paren_numbers": [
+        200
+      ],
+      "matched_marker": "career",
+      "reason": "prose marker \"career\" inside parenthetical",
+      "matched_stat_rows": [],
+      "suggested_action": "No matching player_stats row — parser likely already skipped this line. No action."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "thursday-boys-summaries-sponsored-by-fusion-lacrosse-5",
+      "source_url": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-5/",
+      "raw_line": "Bryce Cox 8G 2A (Tied School Record for Goals in Game)",
+      "player_name_guess": "Bryce Cox",
+      "parenthetical": "Tied School Record for Goals in Game",
+      "paren_numbers": [],
+      "matched_marker": "Tied",
+      "reason": "prose marker \"Tied\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 48935,
+          "player_name": "Bryce Cox",
+          "game_id": 166,
+          "goals": 8,
+          "assists": 2,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "not-parsed",
+      "source_post_id": "tuesday-boys-summaries-sponsored-by-fusion-lacrosse-5",
+      "source_url": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-5/",
+      "raw_line": "Colin Foster-1g,1a,7gb, (F/O, 13/17 @77%)",
+      "player_name_guess": "Colin Foster-",
+      "parenthetical": "F/O, 13/17 @77%",
+      "paren_numbers": [
+        13,
+        17,
+        77
+      ],
+      "matched_marker": null,
+      "reason": "parenthetical contains big number(s) 77 (>= 25) alongside stat-line head",
+      "matched_stat_rows": [],
+      "suggested_action": "No matching player_stats row — parser likely already skipped this line. No action."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "friday-boys-summaries-sponsored-by-fusion-lacrosse-4",
+      "source_url": "https://phillylacrosse.com/2026/friday-boys-summaries-sponsored-by-fusion-lacrosse-4/",
+      "raw_line": "Logan Law 2g (100th career point)",
+      "player_name_guess": "Logan Law",
+      "parenthetical": "100th career point",
+      "paren_numbers": [],
+      "matched_marker": "100th career",
+      "reason": "prose marker \"100th career\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 51683,
+          "player_name": "Logan Law",
+          "game_id": 240,
+          "goals": 2,
+          "assists": 0,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "wednesday-boys-summaries-sponsored-by-fusion-lacrosse-4",
+      "source_url": "https://phillylacrosse.com/2026/wednesday-boys-summaries-sponsored-by-fusion-lacrosse-4/",
+      "raw_line": "Declan Sullivan 1G (Set School record 173 Goals)",
+      "player_name_guess": "Declan Sullivan",
+      "parenthetical": "Set School record 173 Goals",
+      "paren_numbers": [
+        173
+      ],
+      "matched_marker": "Set School record",
+      "reason": "prose marker \"Set School record\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 51051,
+          "player_name": "Connor Sullivan",
+          "game_id": 269,
+          "goals": 2,
+          "assists": 0,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "tuesday-boys-summaries-sponsored-by-fusion-lacrosse-4",
+      "source_url": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-4/",
+      "raw_line": "Parker Smith – 4g / 2a (100th goal)",
+      "player_name_guess": "Parker Smith",
+      "parenthetical": "100th goal",
+      "paren_numbers": [],
+      "matched_marker": "100th goal",
+      "reason": "prose marker \"100th goal\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 49679,
+          "player_name": "Cole Smith",
+          "game_id": 276,
+          "goals": 0,
+          "assists": 1,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        },
+        {
+          "player_id": 49180,
+          "player_name": "Parker Smith",
+          "game_id": 277,
+          "goals": 4,
+          "assists": 2,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        },
+        {
+          "player_id": 50102,
+          "player_name": "Kevin Smith",
+          "game_id": 283,
+          "goals": 2,
+          "assists": 0,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        },
+        {
+          "player_id": 48827,
+          "player_name": "Luke Smith",
+          "game_id": 284,
+          "goals": 0,
+          "assists": 0,
+          "ground_balls": 2,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "tuesday-boys-summaries-sponsored-by-fusion-lacrosse-4",
+      "source_url": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-4/",
+      "raw_line": "Matthew Shohen – 5g, 1a (100 goals on his career)",
+      "player_name_guess": "Matthew Shohen",
+      "parenthetical": "100 goals on his career",
+      "paren_numbers": [
+        100
+      ],
+      "matched_marker": "goals",
+      "reason": "prose marker \"goals\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 48887,
+          "player_name": "Matthew Shohen",
+          "game_id": 289,
+          "goals": 0,
+          "assists": 1,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "wednesday-boys-summaries-sponsored-by-fusion-lacrosse-3",
+      "source_url": "https://phillylacrosse.com/2026/wednesday-boys-summaries-sponsored-by-fusion-lacrosse-3/",
+      "raw_line": "Ryan Crowley 1a (200 career points passed Dillon DiBattista as O'Hara's all time leader in career points)",
+      "player_name_guess": "Ryan Crowley",
+      "parenthetical": "200 career points passed Dillon DiBattista as O'Hara's all time leader in career points",
+      "paren_numbers": [
+        200
+      ],
+      "matched_marker": "career",
+      "reason": "prose marker \"career\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 48862,
+          "player_name": "Ryan Crowley",
+          "game_id": 310,
+          "goals": 0,
+          "assists": 1,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "tuesday-boys-summaries-sponsored-by-fusion-lacrosse-3",
+      "source_url": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-3/",
+      "raw_line": "Aaron Goldstein 3G 2A (100th career goal)",
+      "player_name_guess": "Aaron Goldstein",
+      "parenthetical": "100th career goal",
+      "paren_numbers": [],
+      "matched_marker": "100th career",
+      "reason": "prose marker \"100th career\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 48673,
+          "player_name": "Tommy Goldstein.",
+          "game_id": 325,
+          "goals": 3,
+          "assists": 3,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        },
+        {
+          "player_id": 49544,
+          "player_name": "Aaron Goldstein",
+          "game_id": 328,
+          "goals": 3,
+          "assists": 2,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "saturday-boys-summaries-sponsored-by-fusion-lacrosse",
+      "source_url": "https://phillylacrosse.com/2026/saturday-boys-summaries-sponsored-by-fusion-lacrosse/",
+      "raw_line": "Wyatt Kupsey 5g, 3a (185th career goal, Unionville All Time Career Goals Record Broken)",
+      "player_name_guess": "Wyatt Kupsey",
+      "parenthetical": "185th career goal, Unionville All Time Career Goals Record Broken",
+      "paren_numbers": [],
+      "matched_marker": "185th career",
+      "reason": "prose marker \"185th career\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 51875,
+          "player_name": "Wyatt Kupsey",
+          "game_id": 358,
+          "goals": 5,
+          "assists": 3,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "saturday-boys-summaries-sponsored-by-fusion-lacrosse",
+      "source_url": "https://phillylacrosse.com/2026/saturday-boys-summaries-sponsored-by-fusion-lacrosse/",
+      "raw_line": "Trent Becker 2G 2A (100 career points)",
+      "player_name_guess": "Trent Becker",
+      "parenthetical": "100 career points",
+      "paren_numbers": [
+        100
+      ],
+      "matched_marker": "career",
+      "reason": "prose marker \"career\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 48842,
+          "player_name": "Trent Becker",
+          "game_id": 364,
+          "goals": 2,
+          "assists": 2,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "saturday-boys-summaries-sponsored-by-fusion-lacrosse",
+      "source_url": "https://phillylacrosse.com/2026/saturday-boys-summaries-sponsored-by-fusion-lacrosse/",
+      "raw_line": "Cooper Glass 2g 1A (200 Career Points)",
+      "player_name_guess": "Cooper Glass",
+      "parenthetical": "200 Career Points",
+      "paren_numbers": [
+        200
+      ],
+      "matched_marker": "Career",
+      "reason": "prose marker \"Career\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 48730,
+          "player_name": "Cooper Glass",
+          "game_id": 365,
+          "goals": 2,
+          "assists": 1,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "thursday-boys-summaries-sponsored-by-fusion-lacrosse-2",
+      "source_url": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-2/",
+      "raw_line": "Cole Tinsley 7G 2A (100th Point)",
+      "player_name_guess": "Cole Tinsley",
+      "parenthetical": "100th Point",
+      "paren_numbers": [],
+      "matched_marker": "100th Point",
+      "reason": "prose marker \"100th Point\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 49860,
+          "player_name": "Cole Tinsley",
+          "game_id": 389,
+          "goals": 7,
+          "assists": 2,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "not-parsed",
+      "source_post_id": "thursday-boys-summaries-sponsored-by-fusion-lacrosse-2",
+      "source_url": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-2/",
+      "raw_line": "Jax Disantis (17/28 faceoffs, 8GB, 1CTO)",
+      "player_name_guess": "faceoffs",
+      "parenthetical": "17/28 faceoffs, 8GB, 1CTO",
+      "paren_numbers": [
+        17,
+        28
+      ],
+      "matched_marker": null,
+      "reason": "parenthetical contains big number(s) 28 (>= 25) alongside stat-line head",
+      "matched_stat_rows": [],
+      "suggested_action": "No matching player_stats row — parser likely already skipped this line. No action."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "tuesday-boys-summaries-sponsored-by-fusion-lacrosse-2",
+      "source_url": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-2/",
+      "raw_line": "Evan Kostack 2G 4A (100th career assist)",
+      "player_name_guess": "Evan Kostack",
+      "parenthetical": "100th career assist",
+      "paren_numbers": [],
+      "matched_marker": "100th career",
+      "reason": "prose marker \"100th career\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 48645,
+          "player_name": "Evan Kostack",
+          "game_id": 412,
+          "goals": 2,
+          "assists": 4,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        },
+        {
+          "player_id": 48646,
+          "player_name": "Jace Kostack",
+          "game_id": 412,
+          "goals": 1,
+          "assists": 1,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "tuesday-boys-summaries-sponsored-by-fusion-lacrosse-2",
+      "source_url": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-2/",
+      "raw_line": "Jace Kostack 1G 1A (100th career Goal)",
+      "player_name_guess": "Jace Kostack",
+      "parenthetical": "100th career Goal",
+      "paren_numbers": [],
+      "matched_marker": "100th career",
+      "reason": "prose marker \"100th career\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 48645,
+          "player_name": "Evan Kostack",
+          "game_id": 412,
+          "goals": 2,
+          "assists": 4,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        },
+        {
+          "player_id": 48646,
+          "player_name": "Jace Kostack",
+          "game_id": 412,
+          "goals": 1,
+          "assists": 1,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "tuesday-boys-summaries-sponsored-by-fusion-lacrosse-2",
+      "source_url": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-2/",
+      "raw_line": "Owen Minors 1a (1st Career Point)",
+      "player_name_guess": "Owen Minors",
+      "parenthetical": "1st Career Point",
+      "paren_numbers": [],
+      "matched_marker": "1st Career",
+      "reason": "prose marker \"1st Career\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 52408,
+          "player_name": "Owen Minors",
+          "game_id": 418,
+          "goals": 0,
+          "assists": 1,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        },
+        {
+          "player_id": 77537,
+          "player_name": "Owen Minors",
+          "game_id": 7685,
+          "goals": 0,
+          "assists": 1,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    },
+    {
+      "category": "parsed-and-clean",
+      "source_post_id": "fridays-hs-boys-summaries-sponsored-by-fusion-lacrosse",
+      "source_url": "https://phillylacrosse.com/2026/fridays-hs-boys-summaries-sponsored-by-fusion-lacrosse/",
+      "raw_line": "Parker Williams 4G (100 career goals)",
+      "player_name_guess": "Parker Williams",
+      "parenthetical": "100 career goals",
+      "paren_numbers": [
+        100
+      ],
+      "matched_marker": "career",
+      "reason": "prose marker \"career\" inside parenthetical",
+      "matched_stat_rows": [
+        {
+          "player_id": 48663,
+          "player_name": "Parker Williams.",
+          "game_id": 533,
+          "goals": 4,
+          "assists": 0,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        },
+        {
+          "player_id": 49266,
+          "player_name": "Ryan Williams",
+          "game_id": 537,
+          "goals": 2,
+          "assists": 0,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        },
+        {
+          "player_id": 49088,
+          "player_name": "Jack Williams",
+          "game_id": 537,
+          "goals": 1,
+          "assists": 0,
+          "ground_balls": 0,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        },
+        {
+          "player_id": 50002,
+          "player_name": "Zechariah Williams",
+          "game_id": 4352,
+          "goals": 0,
+          "assists": 0,
+          "ground_balls": 4,
+          "caused_turnovers": 0,
+          "saves": 0,
+          "fo_won": 0,
+          "fo_taken": 0,
+          "suspect_columns": []
+        }
+      ],
+      "suggested_action": "Stats look reasonable — parser likely stripped the parenthetical correctly. No action; useful as a regression fixture."
+    }
+  ]
+}

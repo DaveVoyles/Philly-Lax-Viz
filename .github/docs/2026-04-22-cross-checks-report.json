@@ -1,0 +1,139 @@
+[
+  {
+    "check": "cross-check-player-exceeds-team",
+    "count": 3,
+    "samples": [
+      {
+        "strategy": "cross-check-player-exceeds-team",
+        "rawLine": "player_id=49412 game_id=154",
+        "reason": "Doug Raggazino (player_id=49412) recorded 3 goals but team_id=81 only scored 0 in game_id=154",
+        "sourcePostId": "thursday-boys-summaries-sponsored-by-fusion-lacrosse-5",
+        "sourceUrl": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-5/",
+        "parentGameId": 154,
+        "playerId": 49412
+      },
+      {
+        "strategy": "cross-check-player-exceeds-team",
+        "rawLine": "player_id=49413 game_id=154",
+        "reason": "Liuke Henzes (player_id=49413) recorded 1 goals but team_id=81 only scored 0 in game_id=154",
+        "sourcePostId": "thursday-boys-summaries-sponsored-by-fusion-lacrosse-5",
+        "sourceUrl": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-5/",
+        "parentGameId": 154,
+        "playerId": 49413
+      },
+      {
+        "strategy": "cross-check-player-exceeds-team",
+        "rawLine": "player_id=49414 game_id=154",
+        "reason": "Brayden Hires (player_id=49414) recorded 1 goals but team_id=81 only scored 0 in game_id=154",
+        "sourcePostId": "thursday-boys-summaries-sponsored-by-fusion-lacrosse-5",
+        "sourceUrl": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-5/",
+        "parentGameId": 154,
+        "playerId": 49414
+      }
+    ]
+  },
+  {
+    "check": "cross-check-sum-exceeds-team",
+    "count": 4,
+    "samples": [
+      {
+        "strategy": "cross-check-sum-exceeds-team",
+        "rawLine": "team_id=81 game_id=154",
+        "reason": "Sum of player goals (5) on team_id=81 exceeds team_score (0) by more than 3 in game_id=154",
+        "sourcePostId": "thursday-boys-summaries-sponsored-by-fusion-lacrosse-5",
+        "sourceUrl": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-5/",
+        "parentGameId": 154,
+        "playerId": null
+      },
+      {
+        "strategy": "cross-check-sum-exceeds-team",
+        "rawLine": "team_id=45 game_id=446",
+        "reason": "Sum of player goals (36) on team_id=45 exceeds team_score (18) by more than 3 in game_id=446",
+        "sourcePostId": "saturday-hs-boys-summaries-sponsored-by-fusion-lacrosse-3",
+        "sourceUrl": "https://phillylacrosse.com/2026/saturday-hs-boys-summaries-sponsored-by-fusion-lacrosse-3/",
+        "parentGameId": 446,
+        "playerId": null
+      },
+      {
+        "strategy": "cross-check-sum-exceeds-team",
+        "rawLine": "team_id=19 game_id=450",
+        "reason": "Sum of player goals (28) on team_id=19 exceeds team_score (19) by more than 3 in game_id=450",
+        "sourcePostId": "saturday-hs-boys-summaries-sponsored-by-fusion-lacrosse-3",
+        "sourceUrl": "https://phillylacrosse.com/2026/saturday-hs-boys-summaries-sponsored-by-fusion-lacrosse-3/",
+        "parentGameId": 450,
+        "playerId": null
+      },
+      {
+        "strategy": "cross-check-sum-exceeds-team",
+        "rawLine": "team_id=323 game_id=541",
+        "reason": "Sum of player goals (16) on team_id=323 exceeds team_score (6) by more than 3 in game_id=541",
+        "sourcePostId": "wednesdasys-hs-boys-summaries-sponsored-by-fusion-lacrosse",
+        "sourceUrl": "https://phillylacrosse.com/2026/wednesdasys-hs-boys-summaries-sponsored-by-fusion-lacrosse/",
+        "parentGameId": 541,
+        "playerId": null
+      }
+    ]
+  },
+  {
+    "check": "cross-check-suspect-name",
+    "count": 3,
+    "samples": [
+      {
+        "strategy": "cross-check-suspect-name",
+        "rawLine": "player_id=50753",
+        "reason": "single-token name length<=3: \"Fry\"",
+        "sourcePostId": "thursday-boys-summaries-sponsored-by-fusion-lacrosse-4",
+        "sourceUrl": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse-4/",
+        "parentGameId": 245,
+        "playerId": 50753
+      },
+      {
+        "strategy": "cross-check-suspect-name",
+        "rawLine": "player_id=51797",
+        "reason": "single-token name length<=3: \"Ray\"",
+        "sourcePostId": "tuesday-boys-summaries-sponsored-by-fusion-lacrosse-3",
+        "sourceUrl": "https://phillylacrosse.com/2026/tuesday-boys-summaries-sponsored-by-fusion-lacrosse-3/",
+        "parentGameId": 805,
+        "playerId": 51797
+      },
+      {
+        "strategy": "cross-check-suspect-name",
+        "rawLine": "player_id=53789",
+        "reason": "name matches stat-word blacklist: \"Saves\"",
+        "sourcePostId": "thursday-boys-summaries-sponsored-by-fusion-lacrosse",
+        "sourceUrl": "https://phillylacrosse.com/2026/thursday-boys-summaries-sponsored-by-fusion-lacrosse/",
+        "parentGameId": 488,
+        "playerId": 53789
+      }
+    ]
+  },
+  {
+    "check": "cross-check-goalie-as-scorer",
+    "count": 0,
+    "samples": []
+  },
+  {
+    "check": "cross-check-season-concentration",
+    "count": 2,
+    "samples": [
+      {
+        "strategy": "cross-check-season-concentration",
+        "rawLine": "player_id=50562 game_id=233",
+        "reason": "Elijah Iannacone (player_id=50562) scored 7/10 season goals (70.0%) in game_id=233",
+        "sourcePostId": "friday-boys-summaries-sponsored-by-fusion-lacrosse-4",
+        "sourceUrl": "https://phillylacrosse.com/2026/friday-boys-summaries-sponsored-by-fusion-lacrosse-4/",
+        "parentGameId": 233,
+        "playerId": 50562
+      },
+      {
+        "strategy": "cross-check-season-concentration",
+        "rawLine": "player_id=51039 game_id=436",
+        "reason": "Brady Flynn (player_id=51039) scored 7/11 season goals (63.6%) in game_id=436",
+        "sourcePostId": "monday-boys-summaries-sponsored-by-fusion-lacrosse",
+        "sourceUrl": "https://phillylacrosse.com/2026/monday-boys-summaries-sponsored-by-fusion-lacrosse/",
+        "parentGameId": 436,
+        "playerId": 51039
+      }
+    ]
+  }
+]

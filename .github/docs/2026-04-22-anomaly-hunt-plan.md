@@ -84,7 +84,14 @@ After Wave 1 lands, orchestrator inspects the audit + scan reports and decides:
 
 | Time  | Lane | Fleet | Update |
 | ----- | ---- | ----- | ------ |
-| _(populate as wave executes)_ |
+| 5min  | 2    | Yoda 👽✨ | 🔍 Cache structure mapped — 89 boys-summary HTML files in data/raw-cache, 103 raw_cache_meta rows. Spot-check confirms TONS of suspect parentheticals: "100 goals on his career", "200 career points passed DiBattista as O'Hara's all-time leader", "Unionville All Time Career Goals Record Broken (185th career goal)". Building scanner now. |
+| 10min | 2    | Yoda 👽✨ | ✅ Scanner built + typechecks. First run: 39 boys-summary posts, 18 suspect lines, **0 parsed-and-suspect**, 15 parsed-and-clean, 3 not-parsed. v8's PROSE_MARKERS list cleanly stripped EVERY case (Sullivan 173, Shohen 100-on-career, Kupsey 185th, Crowley 200-passed-DiBattista, Cox tied-school-record). Report at `.github/docs/2026-04-22-prose-scan-report.json`. |
+| done  | 2    | Yoda 👽✨ | 🎯 Lane 2 complete. ⚠️ Real gap surfaced: text.ts MISSES bare ordinal-milestones like "(100th Point)" — Cole Tinsley case parsed clean only because of `point` neighborhood. Recommended new markers: `\d+(?:st\|nd\|rd\|th)\s+(?:career\|point\|goal\|save\|assist)`, `\bprogram record\b`, `\btied\b`, bare `\brecord\b`, `\bleader(?:s)?\b`. See final response for full list. |
+| 5min  | 3    | Leia 👑💁‍♀️ | 🔍 Live `/api/health` healthy (schemaV12, 617 anomalies). Sullivan 48816 confirmed 28g/5a, max single-game = 6g ✅. phillylacrosse.com `/category/2026-2/` 404s; homepage + search return only daily summary posts → no records page exists. LaxNumbers exposes `player_stats.php?type=01..35` records pages (Angular-hydrated; XHR backed). |
+| done  | 3    | Leia 👑💁‍♀️ | ✅ Recon doc landed at `.github/docs/2026-04-22-source-recon.md`. Top-10 points leaders sanity-checked: Carberry / E.Kostack / Maro spot-checks all max ≤ 6g per game. v8 clamps (Sullivan 174, Shohen 105, Thompson 19) all logged correctly. 📋 Two cheap follow-ups for Wave 2: (a) extend trailing-punct regex to strip `.` (`Finn Petrone.`); (b) consider `/api/leaders` → `/api/leaders/players` alias. 🎯 No new Sullivan-class bug visible in prod — Wave 2 should ride Han + Yoda outputs, not chase a new source. |
+| 5min  | 1    | Han 😉🚀 | 🔍 Schema mapped (no `team_games` table — derived team-side via `games.home/away_team_id` + `home/away_score`). `auditCrossChecks.ts` skeleton + 5 detection branches written. |
+| 10min | 1    | Han 😉🚀 | 📋 All 337 ingest tests green (327 prior + 10 new). Dry-run executed against `data/lacrosse.db`. |
+| done  | 1    | Han 😉🚀 | ✅ Wave 1 Lane 1 complete. Findings: player-exceeds-team=3, sum-exceeds-team=4, suspect-name=3, goalie-as-scorer=0, season-concentration=2 (12 total). Report at `.github/docs/2026-04-22-cross-checks-report.json`. 🎯 Ready for Wave 2 remediation; orchestrator owns `--apply`. |
 
 ## Status
 

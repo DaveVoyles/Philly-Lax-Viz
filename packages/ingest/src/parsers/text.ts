@@ -52,6 +52,7 @@ const PROSE_MARKERS = [
   'season',
   'school record',
   'state record',
+  'program record',
   'all[- ]?time',
   'milestone',
   'now has',
@@ -67,6 +68,15 @@ const PROSE_MARKERS = [
   'committed',
   'commit',
   'signed',
+  'tied',
+  'ties',
+  'history',
+  'leader[s]?',
+  'surpass(?:es|ed)?',
+  'notch(?:es|ed)?',
+  'hat trick',
+  'passed [A-Z]',
+  '\\d+(?:st|nd|rd|th)\\s+(?:career|point|goal|save|assist|gb|ground|face)',
 ];
 const PROSE_RE = new RegExp(`\\b(?:${PROSE_MARKERS.join('|')})\\b`, 'i');
 

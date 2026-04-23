@@ -130,6 +130,30 @@ describe('parsePlayerStatLine', () => {
       // Just assert it didn't drop the parenthetical erroneously.
       expect(r.result?.goals).toBeGreaterThanOrEqual(6);
     });
+
+    it('drops "(185th career goal, ... Career Goals Record Broken)"', () => {
+      const r = parsePlayerStatLine(
+        'Wyatt Kupsey 5g, 3a (185th career goal, Unionville All Time Career Goals Record Broken)',
+      );
+      expect(r.result).toMatchObject({ name: 'Wyatt Kupsey', goals: 5, assists: 3 });
+    });
+
+    it('drops "(Tied School Record for Goals in Game)"', () => {
+      const r = parsePlayerStatLine('Bryce Cox 8G 2A (Tied School Record for Goals in Game)');
+      expect(r.result).toMatchObject({ name: 'Bryce Cox', goals: 8, assists: 2 });
+    });
+
+    it('drops "(passed DiBattista as all time leader in career points)"', () => {
+      const r = parsePlayerStatLine(
+        "Ryan Crowley 1a (200 career points passed Dillon DiBattista as O'Hara's all time leader in career points)",
+      );
+      expect(r.result).toMatchObject({ name: 'Ryan Crowley', goals: 0, assists: 1 });
+    });
+
+    it('drops bare "(100th Point)" via ordinal-milestone marker', () => {
+      const r = parsePlayerStatLine('Test Player 2g 1a (100th Point)');
+      expect(r.result).toMatchObject({ name: 'Test Player', goals: 2, assists: 1 });
+    });
   });
 
   describe('trailing punctuation in name', () => {
@@ -141,6 +165,16 @@ describe('parsePlayerStatLine', () => {
     it('strips trailing colon with em-dash present: "Player Name: – 2g"', () => {
       const r = parsePlayerStatLine('Player Name: \u2013 2g');
       expect(r.result?.name).toBe('Player Name');
+    });
+
+    it('strips trailing period: "Finn Petrone. 3g"', () => {
+      const r = parsePlayerStatLine('Finn Petrone. 3g');
+      expect(r.result?.name).toBe('Finn Petrone');
+    });
+
+    it('preserves trailing initials: "T.J. Smith 2g"', () => {
+      const r = parsePlayerStatLine('T.J. Smith 2g');
+      expect(r.result?.name).toBe('T.J. Smith');
     });
   });
 

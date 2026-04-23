@@ -13,7 +13,12 @@ export type ParserStrategy =
   | 'ranking-list'
   | 'schedule-team-resolve'
   | 'laxnumbers-unknown-team'
-  | 'stat-cap-exceeded';
+  | 'stat-cap-exceeded'
+  | 'cross-check-player-exceeds-team'
+  | 'cross-check-sum-exceeds-team'
+  | 'cross-check-suspect-name'
+  | 'cross-check-goalie-as-scorer'
+  | 'cross-check-season-concentration';
 export type StatSource = 'summary' | 'manual';
 export type NameResolution = 'full' | 'partial';
 export type AliasSource = 'manual' | 'auto';

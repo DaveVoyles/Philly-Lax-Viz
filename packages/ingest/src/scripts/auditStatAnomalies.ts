@@ -81,6 +81,7 @@ function main(): void {
            OR name LIKE '%;'
            OR name LIKE '%,'
            OR name LIKE '% '
+           OR name LIKE '%.'
            OR name LIKE '%, goalie'
            OR name LIKE '%, goalie,'`,
     )
@@ -174,6 +175,13 @@ function main(): void {
       cleaned = cleaned.replace(/[\s,:;]+$/u, '').trim();
       cleaned = cleaned.replace(/,\s*goalie$/i, '').trim();
       cleaned = cleaned.replace(/[\s,:;]+$/u, '').trim();
+      // Strip trailing dot UNLESS preceded by:
+      //   - a single uppercase letter ("T.J." stays)
+      //   - a known suffix Jr/Sr/II/III ("Phillip Leslie Jr." stays)
+      const SUFFIX_RE = /\b(?:Jr|Sr|II|III|IV)\.$/u;
+      if (!SUFFIX_RE.test(cleaned)) {
+        cleaned = cleaned.replace(/(?<![A-Z])\.+$/u, '').trim();
+      }
       if (cleaned && cleaned !== p.name) {
         // Guard against same-team duplicate after rename.
         const existing = db
