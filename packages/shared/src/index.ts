@@ -11,7 +11,8 @@ export type ParserStrategy =
   | 'player-stat-line'
   | 'aggregated-list'
   | 'ranking-list'
-  | 'schedule-team-resolve';
+  | 'schedule-team-resolve'
+  | 'laxnumbers-unknown-team';
 export type StatSource = 'summary' | 'manual';
 export type NameResolution = 'full' | 'partial';
 export type AliasSource = 'manual' | 'auto';

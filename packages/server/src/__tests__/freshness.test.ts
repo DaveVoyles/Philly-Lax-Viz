@@ -99,6 +99,9 @@ describe('GET /api/freshness', () => {
     expect(body.counts.teams).toBe(2);
     expect(body.counts.games).toBe(2);
     expect(typeof body.generatedAt).toBe('string');
+    // LaxNumbers fields — null/0 when no laxnumbers-sourced games are seeded.
+    expect(body.laxnumbersLast === null || typeof body.laxnumbersLast === 'string').toBe(true);
+    expect(typeof body.counts.laxnumbersGames).toBe('number');
   });
 
   it('returns nulls (not 500) when ingest_post_log has no rows for a category', async () => {

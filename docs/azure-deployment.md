@@ -375,6 +375,18 @@ az storage file list \
 The nightly workflow does the inverse (download → ingest → upload) every night
 at 02:00 ET.
 
+### Nightly ingest order
+
+1. **PhillyLacrosse** — walks the raw-cache HTML posts (scoreboard + summaries).
+2. **LaxNumbers PA** — runs immediately after, additive-only for the last 2 days:
+   ```
+   pnpm --filter @pll/ingest ingest -- \
+     --source=laxnumbers --since=YESTERDAY --until=TODAY --apply
+   ```
+   LaxNumbers never overwrites a game that already has scores from PhillyLacrosse.
+   Unknown-team anomalies are persisted to `ingest_anomalies` and surface on
+   the `/anomalies` page. No additional secrets are required (public API, no auth).
+
 ---
 
 ## 9. Cost monitoring

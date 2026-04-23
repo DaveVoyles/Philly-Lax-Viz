@@ -65,6 +65,11 @@ export async function freshnessRoutes(app: FastifyInstance, db: Database): Promi
       'SELECT MAX(processed_at) AS t FROM ingest_post_log',
     );
 
+    const laxnumbersLast = safeScalar<string>(
+      db,
+      "SELECT MAX(parsed_at) AS t FROM games WHERE source='laxnumbers'",
+    );
+
     return {
       scoreboardLast,
       recapsLast,
@@ -72,6 +77,7 @@ export async function freshnessRoutes(app: FastifyInstance, db: Database): Promi
       scheduleLast,
       piaaLast,
       aliasesLast,
+      laxnumbersLast,
       lastIngestAt: anyLast,
       counts: {
         teams: safeCount(db, 'SELECT COUNT(*) AS c FROM teams'),
@@ -80,6 +86,7 @@ export async function freshnessRoutes(app: FastifyInstance, db: Database): Promi
         scheduleGames: safeCount(db, 'SELECT COUNT(*) AS c FROM schedule_games'),
         playerAliases: safeCount(db, 'SELECT COUNT(*) AS c FROM player_aliases'),
         piaaTeams: safeCount(db, 'SELECT COUNT(*) AS c FROM piaa_official_teams'),
+        laxnumbersGames: safeCount(db, "SELECT COUNT(*) AS c FROM games WHERE source='laxnumbers'"),
       },
       generatedAt: new Date().toISOString(),
     };

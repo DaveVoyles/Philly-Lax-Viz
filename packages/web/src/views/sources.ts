@@ -14,6 +14,7 @@ interface FreshnessResponse {
   scheduleLast: string | null;
   piaaLast: string | null;
   aliasesLast: string | null;
+  laxnumbersLast: string | null;
   lastIngestAt: string | null;
   counts: {
     teams: number;
@@ -22,6 +23,7 @@ interface FreshnessResponse {
     scheduleGames: number;
     playerAliases: number;
     piaaTeams: number;
+    laxnumbersGames: number;
   };
   generatedAt: string;
 }
@@ -105,6 +107,21 @@ const SOURCES: SourceCard[] = [
       f.counts.playerAliases > 0
         ? `${f.counts.playerAliases} curated aliases`
         : 'Auto-dedup only',
+  },
+  {
+    id: 'laxnumbers',
+    title: 'LaxNumbers (PA Boys HS scores)',
+    what:
+      'LaxNumbers.com PA Boys HS scoreboard — additive only. Fills score gaps that PhillyLacrosse.com has not yet published. Only teams already in our database are matched; unknown teams are surfaced as anomalies.',
+    url: 'https://laxnumbers.com',
+    urlLabel: 'laxnumbers.com',
+    notes:
+      'Additive PA-only Boys HS scoreboard data. Never overwrites Philly Lacrosse. Runs nightly after the PhillyLacrosse ingest.',
+    freshness: (f) => f.laxnumbersLast,
+    countLabel: (f) =>
+      f.counts.laxnumbersGames > 0
+        ? `${f.counts.laxnumbersGames} games sourced from LaxNumbers`
+        : null,
   },
 ];
 

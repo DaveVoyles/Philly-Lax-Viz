@@ -19,7 +19,7 @@ import { extractPostDate } from '../pipelines/postMeta.js';
 import { ingestScoreboardPost } from '../pipelines/scoreboard.js';
 import { ingestSummariesPost } from '../pipelines/summaries.js';
 import { ingestRankingsPost } from '../pipelines/rankings.js';
-import { clearAnomaliesForPost } from '../pipelines/anomalies.js';
+import { clearAnomaliesForPost, persistLaxNumbersAnomalies } from '../pipelines/anomalies.js';
 import { ingestScheduleRows } from '../pipelines/schedule.js';
 import { parseScheduleCsv } from '../parsers/scheduleCsv.js';
 import { fetchPiaaScheduleCsv } from '../sources/piaaSchedule.js';
@@ -93,6 +93,9 @@ function parseArgs(argv: string[]): CliArgs {
       args.laxUntil = a.slice('--until='.length);
     } else if (a === '--apply') {
       args.apply = true;
+    } else if (a === '--') {
+      // pnpm passes '--' as an arg separator; ignore it.
+      continue;
     } else if (a === '--help' || a === '-h') {
       printHelp();
       process.exit(0);
@@ -366,6 +369,12 @@ async function main(): Promise<void> {
       for (const a of r.anomalies.slice(0, 20)) {
         process.stderr.write(`  [${a.kind}] ${a.detail}\n`);
       }
+    }
+    if (args.apply && r.anomalies.length > 0) {
+      const persisted = persistLaxNumbersAnomalies(db, r.anomalies);
+      process.stderr.write(
+        `[ingest:laxnumbers] persisted ${persisted} unknown-team anomalies to ingest_anomalies\n`,
+      );
     }
     db.close();
     return;

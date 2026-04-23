@@ -109,6 +109,20 @@ jobs:
             echo "::endgroup::"
           done
 
+      - name: Run LaxNumbers ingest (PA-only additive)
+        env:
+          DB_PATH: ${{ env.DB_LOCAL_PATH }}
+        run: |
+          YESTERDAY=$(date -u -d '1 day ago' +%Y-%m-%d)
+          TODAY=$(date -u +%Y-%m-%d)
+          echo "::group::LaxNumbers PA ingest since=${YESTERDAY} until=${TODAY}"
+          pnpm --filter @pll/ingest ingest -- \
+            --source=laxnumbers \
+            --since="${YESTERDAY}" \
+            --until="${TODAY}" \
+            --apply
+          echo "::endgroup::"
+
       - name: Snapshot post-ingest anomaly count
         id: post
         run: |
