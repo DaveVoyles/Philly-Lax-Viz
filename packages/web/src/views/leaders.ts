@@ -3,8 +3,10 @@
 
 import {
   ApiError,
+  getLeaderSparklines,
   getPlayerLeaders,
   getTeamLeaders,
+  type LeaderSparklineMetric,
   type PlayerLeaderMetric,
   type PlayerLeaderRow,
   type PlayerLeadersResponse,
@@ -13,6 +15,7 @@ import {
   type TeamLeadersResponse,
 } from '../api.js';
 import { renderHorizontalLeaderboard } from '../charts/index.js';
+import { drawSparkline } from '../charts/sparkline.js';
 import type { ChartHandle } from '../charts/types.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderEmptyState } from '../components/emptyState.js';
@@ -48,6 +51,24 @@ const TEAM_METRICS: ReadonlyArray<MetricDef<TeamLeaderMetric>> = [
 ];
 
 const TOP_N = 15;
+// Wave H7 L2 (Yoda) — how many top rows get an inline sparkline. Capped to
+// keep the API call cheap; rows beyond this just don't get a trend cell.
+const SPARKLINE_TOP_N = 10;
+
+// Map the leaders.ts metric (snake_case) to the sparklines endpoint metric
+// (camelCase). Derived metrics (fo_pct, points_per_game) have no per-game
+// equivalent in the sparkline endpoint and return null.
+function sparklineMetricFor(metric: PlayerLeaderMetric): LeaderSparklineMetric | null {
+  switch (metric) {
+    case 'points':           return 'points';
+    case 'goals':            return 'goals';
+    case 'assists':          return 'assists';
+    case 'ground_balls':     return 'groundBalls';
+    case 'caused_turnovers': return 'causedTurnovers';
+    case 'saves':            return 'saves';
+    default:                 return null;
+  }
+}
 
 function intFmt(n: number): string {
   return Number.isFinite(n) ? String(Math.round(n)) : '—';
@@ -294,6 +315,71 @@ async function loadPlayers(
   renderPlayerTable(tableEl, resp.rows, state);
   caption.textContent =
     `${resp.rows.length} players considered · metric: ${metricDef.label} · minGames ≥ ${resp.minGames}`;
+
+  // Wave H7 L2 — fetch sparklines and decorate the table. Non-fatal: if the
+  // call fails, the table just renders without a Trend column.
+  const sparkMetric = sparklineMetricFor(state.playerMetric);
+  if (sparkMetric !== null) {
+    try {
+      const sparkResp = await getLeaderSparklines(sparkMetric, SPARKLINE_TOP_N);
+      const map = new Map<number, number[]>();
+      for (const p of sparkResp.players) {
+        map.set(p.player_id, p.perGame);
+      }
+      decorateWithSparklines(tableEl, map);
+    } catch (err) {
+      console.warn('[leaders] sparklines fetch failed; skipping trend column', err);
+    }
+  }
+}
+
+// Wave H7 L2 — append a "Trend" header + per-row canvas cell to the rendered
+// player table. Only rows whose player_id appears in the map get a chart;
+// other rows get an empty placeholder cell so column alignment holds.
+function decorateWithSparklines(
+  container: HTMLElement,
+  perPlayer: Map<number, number[]>,
+): void {
+  const table = container.querySelector('table.leaders-table');
+  if (!table) return;
+
+  // Idempotent: bail if a trend column already exists (e.g., re-render).
+  if (table.querySelector('th[data-trend-col]')) return;
+
+  const headRow = table.querySelector('thead tr');
+  if (headRow) {
+    const th = document.createElement('th');
+    th.textContent = 'Trend';
+    th.setAttribute('data-trend-col', '1');
+    headRow.appendChild(th);
+  }
+
+  const bodyRows = table.querySelectorAll('tbody tr');
+  bodyRows.forEach((tr, idx) => {
+    const td = document.createElement('td');
+    td.setAttribute('data-trend-cell', '1');
+    // The sortable table preserves source order when sort is null; rows are
+    // ordered the same as the rows[] array passed in. We can't recover the
+    // player_id from the cell content reliably, so attach via the table's
+    // data-player-id attribute set during render. As a fallback (rows don't
+    // currently carry that attr), match by index against the rows[] order
+    // that the caller already used. This is good enough for the top-N view
+    // and degrades gracefully if rows shift (we just skip the cell).
+    const pid = Number(tr.getAttribute('data-row-id'));
+    const perGame = Number.isFinite(pid) ? perPlayer.get(pid) : undefined;
+    if (perGame && idx < SPARKLINE_TOP_N) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 80;
+      canvas.height = 24;
+      canvas.style.verticalAlign = 'middle';
+      td.appendChild(canvas);
+      // Defer draw until canvas is attached so dimensions are stable.
+      requestAnimationFrame(() => {
+        drawSparkline(canvas, perGame);
+      });
+    }
+    tr.appendChild(td);
+  });
 }
 
 async function loadTeams(
@@ -434,6 +520,7 @@ function renderPlayerTable(
         renderPlayerTable(el, rows, state);
       },
       (r) => `#/players/${r.playerId}`,
+      (r) => r.playerId,
     ),
   );
 }
@@ -463,6 +550,7 @@ function buildSortableTable<T>(
   sort: { col: string; dir: 'asc' | 'desc' } | null,
   onSort: (next: { col: string; dir: 'asc' | 'desc' }) => void,
   rowHref: (r: T) => string,
+  rowId?: (r: T) => string | number,
 ): HTMLElement {
   const table = document.createElement('table');
   table.className = 'stat leaders-table';
@@ -511,6 +599,9 @@ function buildSortableTable<T>(
     tr.className = 'row-link';
     tr.tabIndex = 0;
     tr.setAttribute('role', 'link');
+    if (rowId) {
+      tr.setAttribute('data-row-id', String(rowId(r)));
+    }
     const go = (): void => {
       window.location.hash = rowHref(r);
     };

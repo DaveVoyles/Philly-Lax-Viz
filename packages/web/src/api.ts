@@ -571,6 +571,40 @@ export function getTeamLeaders(
   return request<TeamLeadersResponse>(`/leaders/teams${buildQuery(params)}`);
 }
 
+// Wave H7 L2 (Yoda) — inline sparkline data for the leaders table.
+// Mirrors the player leaders endpoint shape but returns per-game series.
+export interface LeaderSparklinePlayer {
+  player_id: number;
+  name: string;
+  perGame: number[];
+}
+
+export interface LeaderSparklinesResponse {
+  metric: string;
+  season: number | null;
+  players: LeaderSparklinePlayer[];
+}
+
+// Allowed metrics on the sparklines endpoint. Snake_case mirrors the
+// underlying SQL columns; camelCase variants map to compound stats.
+export type LeaderSparklineMetric =
+  | 'points'
+  | 'goals'
+  | 'assists'
+  | 'groundBalls'
+  | 'causedTurnovers'
+  | 'saves'
+  | 'faceoffWins';
+
+export function getLeaderSparklines(
+  metric: LeaderSparklineMetric,
+  limit = 10,
+): Promise<LeaderSparklinesResponse> {
+  return request<LeaderSparklinesResponse>(
+    `/leaders/players/sparklines${buildQuery({ metric, limit })}`,
+  );
+}
+
 // ---- Head-to-head (W13 L3, R2) ----
 
 export interface H2HTeamSide {
