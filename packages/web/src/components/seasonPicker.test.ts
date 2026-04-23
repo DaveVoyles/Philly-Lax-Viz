@@ -49,13 +49,14 @@ describe('seasonPicker pure helpers', () => {
     expect(pickInitialSeason('garbage', '2025', 2026)).toBe(2025);
   });
 
-  it('setSeason updates currentSeason and notifies', () => {
-    expect(currentSeason()).toBeNull();
+  it('currentSeason() is always locked to 2026', () => {
+    // setSeason is a no-op in locked mode; currentSeason always returns 2026
+    expect(currentSeason()).toBe(2026);
     setSeason(2025, { persist: false });
-    expect(currentSeason()).toBe(2025);
+    expect(currentSeason()).toBe(2026);
     setSeason(ALL_SEASONS, { persist: false });
-    expect(currentSeason()).toBe(ALL_SEASONS);
+    expect(currentSeason()).toBe(2026);
     setSeason(null, { persist: false });
-    expect(currentSeason()).toBeNull();
+    expect(currentSeason()).toBe(2026);
   });
 });

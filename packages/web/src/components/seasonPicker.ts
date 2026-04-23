@@ -1,19 +1,9 @@
-// seasonPicker.ts — header dropdown that scopes every API call to a season.
+// seasonPicker.ts — Wave 18 W1L2: season is locked to 2026.
 //
-// Wave 14 Lane 2 (Han). Schema/server-side support shipped by Leia (W13 L2);
-// this module owns:
-//   * fetching /api/seasons,
-//   * persisting the user's choice in localStorage,
-//   * exposing a `currentSeason()` value that api.ts threads onto every
-//     request as `?season=YYYY` (or `?season=all`),
-//   * mutating the URL hash so deep links carry the season.
-//
-// "Default season" semantics: when the user has not picked a season we treat
-// it as the most-recent season returned by /api/seasons. We still send the
-// query param explicitly so back-end behavior is unambiguous and shareable
-// links stay stable even if a newer season later appears in the DB.
+// The picker UI is hidden entirely. currentSeason() always returns 2026.
+// Pure hash/URL helpers are kept for back-compat with callers that import
+// them; the storage/URL/listener machinery does not run.
 
-const STORAGE_KEY = 'pll.season';
 export const SEASON_QUERY_KEY = 'season';
 export const ALL_SEASONS = 'all' as const;
 
@@ -24,27 +14,14 @@ export interface SeasonsResponse {
   default: number | null;
 }
 
-interface State {
-  available: number[];
-  defaultSeason: number | null;
-  selected: SeasonValue | null;
-}
+const LOCKED_SEASON = 2026;
 
-const state: State = {
-  available: [],
-  defaultSeason: null,
-  selected: null,
-};
-
+// Kept for back-compat. Listeners are never invoked in locked mode.
 const listeners = new Set<(s: SeasonValue | null) => void>();
 
 export function onSeasonChange(fn: (s: SeasonValue | null) => void): () => void {
   listeners.add(fn);
   return () => listeners.delete(fn);
-}
-
-function emit(): void {
-  for (const l of listeners) l(state.selected);
 }
 
 /** Parse a raw string (URL or storage) into a SeasonValue, or null. */
@@ -60,19 +37,19 @@ export function seasonValueToString(v: SeasonValue): string {
   return v === ALL_SEASONS ? ALL_SEASONS : String(v);
 }
 
-/** Current selection as a query value, or null if not yet initialised. */
+/** Always returns 2026 — season picker is locked. */
 export function currentSeason(): SeasonValue | null {
-  return state.selected;
+  return LOCKED_SEASON;
 }
 
-/** Available seasons (newest first). Empty until init() resolves. */
+/** Returns [2026] — only the locked season is available. */
 export function availableSeasons(): readonly number[] {
-  return state.available;
+  return [LOCKED_SEASON];
 }
 
-/** Most recent season known to the server (or null if no data). */
-export function defaultSeason(): number | null {
-  return state.defaultSeason;
+/** Returns 2026 — locked. */
+export function defaultSeason(): number {
+  return LOCKED_SEASON;
 }
 
 /** Read selection from URL hash query, then localStorage, else default. */
@@ -112,129 +89,32 @@ export function withSeasonInHash(hash: string, value: SeasonValue | null): strin
   return `#${path}${qs ? `?${qs}` : ''}`;
 }
 
-function safeStorage(): Storage | null {
-  try {
-    return typeof window !== 'undefined' ? window.localStorage : null;
-  } catch {
-    return null;
-  }
-}
-
-function persist(value: SeasonValue | null): void {
-  const ls = safeStorage();
-  if (!ls) return;
-  try {
-    if (value === null) ls.removeItem(STORAGE_KEY);
-    else ls.setItem(STORAGE_KEY, seasonValueToString(value));
-  } catch {
-    /* ignore quota */
-  }
-}
-
-function readPersisted(): string | null {
-  const ls = safeStorage();
-  if (!ls) return null;
-  try {
-    return ls.getItem(STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export function setSeason(value: SeasonValue | null, opts: { persist?: boolean } = {}): void {
-  state.selected = value;
-  if (opts.persist !== false) persist(value);
-  emit();
+/** No-op — season is locked; state mutations are ignored. */
+export function setSeason(_value: SeasonValue | null, _opts: { persist?: boolean } = {}): void {
+  // locked to 2026; mutations are intentionally ignored
 }
 
 /**
- * Mount the dropdown into `host`. Call after /api/seasons has resolved.
- * Triggers `onChange` whenever the user picks a different season; that hook
- * is responsible for re-rendering the active view.
+ * No-op mount — picker is hidden. Returns a detached element for type compat.
  */
 export function mountSeasonPicker(
-  host: HTMLElement,
-  opts: { onChange: (value: SeasonValue) => void },
+  _host: HTMLElement,
+  _opts: { onChange: (value: SeasonValue) => void },
 ): HTMLSelectElement {
-  host.replaceChildren();
-  const wrap = document.createElement('label');
-  wrap.className = 'season-picker';
-  wrap.setAttribute('aria-label', 'Season');
-
-  const text = document.createElement('span');
-  text.className = 'season-picker__label muted';
-  text.textContent = 'Season:';
-  wrap.appendChild(text);
-
-  const select = document.createElement('select');
-  select.className = 'season-picker__select';
-  select.dataset['testid'] = 'season-picker';
-
-  for (const year of state.available) {
-    const opt = document.createElement('option');
-    opt.value = String(year);
-    opt.textContent = String(year);
-    select.appendChild(opt);
-  }
-  const allOpt = document.createElement('option');
-  allOpt.value = ALL_SEASONS;
-  allOpt.textContent = 'All seasons';
-  select.appendChild(allOpt);
-
-  if (state.selected !== null) {
-    select.value = seasonValueToString(state.selected);
-  }
-
-  select.addEventListener('change', () => {
-    const next = parseSeasonValue(select.value);
-    if (next === null) return;
-    setSeason(next);
-    opts.onChange(next);
-  });
-
-  wrap.appendChild(select);
-  host.appendChild(wrap);
-  return select;
+  return document.createElement('select');
 }
 
 /**
- * Fetch /api/seasons and seed initial state. Called once at boot.
- * Returns the resolved selection so callers can immediately re-render.
+ * No-op init — always resolves to 2026 without a network request.
  */
-export async function initSeasonPicker(opts: {
+export async function initSeasonPicker(_opts: {
   fetchSeasons?: () => Promise<SeasonsResponse>;
   hashQuery?: string;
 } = {}): Promise<SeasonValue | null> {
-  const fetcher =
-    opts.fetchSeasons ??
-    (async () => {
-      const res = await fetch(apiUrl('/api/seasons'), { headers: { Accept: 'application/json' } });
-      if (!res.ok) throw new Error(`/api/seasons ${res.status}`);
-      return (await res.json()) as SeasonsResponse;
-    });
-
-  let resp: SeasonsResponse;
-  try {
-    resp = await fetcher();
-  } catch {
-    // Network/server hiccup — fall back to whatever the URL/localStorage say.
-    resp = { seasons: [], default: null };
-  }
-  state.available = [...resp.seasons].sort((a, b) => b - a);
-  state.defaultSeason = resp.default;
-
-  const hashQuery =
-    opts.hashQuery ??
-    (typeof window !== 'undefined' ? readSeasonFromHash(window.location.hash) : undefined);
-  state.selected = pickInitialSeason(hashQuery, readPersisted(), state.defaultSeason);
-  emit();
-  return state.selected;
+  return LOCKED_SEASON;
 }
 
 /** Test-only reset. Not exported through index. */
 export function __resetForTests(): void {
-  state.available = [];
-  state.defaultSeason = null;
-  state.selected = null;
   listeners.clear();
 }

@@ -1,4 +1,4 @@
-import { onRoute, startRouter, currentRoute, type RouteMatch } from './router.js';
+import { onRoute, startRouter, type RouteMatch } from './router.js';
 import { apiUrl } from './apiBase.js';
 import * as dashboard from './views/dashboard.js';
 import * as teamDetail from './views/teamDetail.js';
@@ -18,13 +18,6 @@ let scrubberDestroy: (() => void) | null = null;
 let constellationDestroy: (() => void) | null = null;
 // W16 L2 (Leia): same lazy-chunk pattern for the schedule view.
 let scheduleDestroy: (() => void) | null = null;
-import {
-  initSeasonPicker,
-  mountSeasonPicker,
-  withSeasonInHash,
-  seasonValueToString,
-  type SeasonValue,
-} from './components/seasonPicker.js';
 
 interface NavLink {
   href: string;
@@ -46,7 +39,6 @@ const NAV: NavLink[] = [
 
 function mountShell(app: HTMLElement): {
   main: HTMLElement;
-  seasonHost: HTMLElement;
   setActive: (name: RouteMatch['name']) => void;
 } {
   app.innerHTML = `
@@ -76,12 +68,10 @@ function mountShell(app: HTMLElement): {
     </footer>
   `;
   const main = app.querySelector<HTMLElement>('#main');
-  const seasonHost = app.querySelector<HTMLElement>('#season-host');
-  if (!main || !seasonHost) throw new Error('shell mount missing');
+  if (!main) throw new Error('shell mount missing');
   const links = Array.from(app.querySelectorAll<HTMLAnchorElement>('a[data-nav]'));
   return {
     main,
-    seasonHost,
     setActive(name) {
       for (const a of links) {
         if (a.dataset['nav'] === name) a.classList.add('active');
@@ -150,7 +140,7 @@ function dispatch(main: HTMLElement, match: RouteMatch): void {
 function boot(): void {
   const app = document.getElementById('app');
   if (!app) throw new Error('#app root missing');
-  const { main, seasonHost, setActive } = mountShell(app);
+  const { main, setActive } = mountShell(app);
 
   // W17 L3 (R2): populate the global "Last scoreboard update" footer slot
   // from /api/freshness. Failure is silent so a server outage does not
@@ -180,35 +170,11 @@ function boot(): void {
       if (slot) slot.textContent = 'unknown';
     });
 
-  const rerenderCurrent = (): void => {
-    const match = currentRoute();
-    setActive(match.name);
-    dispatch(main, match);
-  };
-
   onRoute((match) => {
     setActive(match.name);
     dispatch(main, match);
   });
   startRouter();
-
-  // Mount season picker after first render so the dropdown appears even if
-  // /api/seasons is slow. Selection updates the URL hash (preserving the
-  // current path/query) and re-runs the active view.
-  void initSeasonPicker().then(() => {
-    mountSeasonPicker(seasonHost, {
-      onChange: (value: SeasonValue) => {
-        const next = withSeasonInHash(window.location.hash, value);
-        if (window.location.hash !== next) {
-          window.location.hash = next.replace(/^#/, '');
-        } else {
-          rerenderCurrent();
-        }
-        // Persisted by mountSeasonPicker → setSeason. Logged here for clarity.
-        void seasonValueToString;
-      },
-    });
-  });
 }
 
 boot();

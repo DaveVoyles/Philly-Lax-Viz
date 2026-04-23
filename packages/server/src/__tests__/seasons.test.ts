@@ -95,11 +95,11 @@ describe('seasons helpers', () => {
 });
 
 describe('GET /api/seasons', () => {
-  it('lists seasons newest first with default = newest', async () => {
+  it('returns hardcoded 2026 only (picker locked)', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/seasons' });
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.seasons).toEqual([2026, 2025, 2024]);
+    expect(body.seasons).toEqual([2026]);
     expect(body.default).toBe(2026);
   });
 });
