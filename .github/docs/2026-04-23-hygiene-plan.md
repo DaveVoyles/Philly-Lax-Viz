@@ -11,6 +11,13 @@ These are the highest-leverage human-in-the-loop checks. ~5 minutes of your time
 - Workflow: `.github/workflows/ingest-nightly.yml` on `DaveVoyles/Philly-Lax-Viz`.
 - **Action:** Check Settings → Billing on `DaveVoyles`. Either fix payment, raise spending limit, or move the workflow to `dvoyles_microsoft`/an org with a different plan.
 - **Impact:** Right now the DB only updates when we manually re-ingest. Every "the site is stale" question traces back to this.
+- **✅ 2026-04-23 Wave H1 UPDATE:** Resolved by sidestep — workflows now run on a self-hosted runner (`myoung34/github-runner` container in `~/docker-stack/github-runner/` on the Mac Mini, labels `[self-hosted, pll]`). Cloud billing is no longer on the critical path. Nightly cron works end-to-end through `Install` step; downstream steps (Azure login, ACA deploy) now gated on the separate **Secrets gap** item below.
+
+### 1a. **Repo Actions secrets — none configured**
+- `gh secret list --repo DaveVoyles/Philly-Lax-Viz` → _"no secrets found"_.
+- Both workflows reference: `AZURE_CREDENTIALS`, `AZURE_STORAGE_ACCOUNT`, `AZURE_STORAGE_KEY`, `ACA_NAME`, `ACA_RESOURCE_GROUP`, `AZURE_STATIC_WEB_APPS_API_TOKEN`, `DISCORD_WEBHOOK_URL` (optional).
+- **Action:** Create the service principal + storage credentials, add them as repo secrets. Until this is done, nightly ingest fails at "Azure login" and deploy fails at ACA deploy.
+- **Impact:** Blocks automated DB refresh and automated server-image deploys. Manual `az` commands from your laptop still work.
 
 ### 2. **LaxNumbers team-alias gaps (160 anomalies, ~30 distinct teams)**
 We're scraping LaxNumbers PA scoreboard but failing to map ~30 team names because they're spelled differently than our `teams` table. Examples:
