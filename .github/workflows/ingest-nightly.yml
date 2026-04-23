@@ -33,7 +33,9 @@ concurrency:
 
 jobs:
   ingest:
-    runs-on: ubuntu-latest
+    # Self-hosted runner on Mac Mini (myoung34/github-runner Ubuntu Jammy container).
+    # See ~/docker-stack/github-runner/docker-compose.yml on the host.
+    runs-on: [self-hosted, pll]
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +48,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+
+      - name: Install Azure CLI (self-hosted runner — not pre-installed)
+        run: |
+          if ! command -v az >/dev/null 2>&1; then
+            curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+          fi
+          az --version | head -1
 
       - name: Install
         run: pnpm install --frozen-lockfile

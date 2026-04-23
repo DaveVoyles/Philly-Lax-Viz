@@ -27,7 +27,7 @@ jobs:
   # 1. Build + test the whole monorepo once. Both web and server reuse it.
   # ---------------------------------------------------------------------
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, pll]
     steps:
       - uses: actions/checkout@v4
 
@@ -65,7 +65,7 @@ jobs:
   # ---------------------------------------------------------------------
   deploy-web:
     needs: build-and-test
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, pll]
     steps:
       - uses: actions/checkout@v4
 
@@ -93,9 +93,16 @@ jobs:
   # ---------------------------------------------------------------------
   deploy-server:
     needs: build-and-test
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, pll]
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Azure CLI (self-hosted runner — not pre-installed)
+        run: |
+          if ! command -v az >/dev/null 2>&1; then
+            curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+          fi
+          az --version | head -1
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
