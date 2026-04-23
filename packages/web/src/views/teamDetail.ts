@@ -9,8 +9,9 @@ import {
   type TopScorerEntry,
 } from '../api.js';
 import type { Game } from '@pll/shared';
-import { formatDate, formatRecord, gameResult } from '../util/format.js';
+import { formatDate, formatRecord } from '../util/format.js';
 import { renderSeasonRecord, renderTopScorers } from '../charts/index.js';
+import { extractScoreTrend, renderTeamScoreTrend } from '../charts/teamScoreTrend.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderProvenanceBadge } from '../components/provenanceBadge.js';
 import { renderPiaaBadge, piaaBadgeTooltip } from '../components/piaaBadge.js';
@@ -262,7 +263,45 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     return;
   }
 
+  // Wave H7 Lane 3 (Leia) — season scoring trend (GF/GA per completed game).
+  // Hidden when the team has zero completed games so we never render an empty
+  // chart for fresh-roster teams or pre-season views.
+  const trendPoints = extractScoreTrend(detail.games, teamId);
+  if (trendPoints.length > 0) {
+    const trendHeader = document.createElement('h2');
+    trendHeader.textContent = 'Season scoring trend';
+    root.appendChild(trendHeader);
+
+    const trendCanvas = document.createElement('canvas');
+    trendCanvas.className = 'team-score-trend';
+    trendCanvas.dataset['chart'] = 'teamScoreTrend';
+    root.appendChild(trendCanvas);
+    renderTeamScoreTrend(trendCanvas, trendPoints);
+  }
+
   root.appendChild(buildGamesTable(detail.games, teamId, teamsById));
+}
+
+/**
+ * W/L/T/pending badge for a single game row. Pure helper so the test suite can
+ * verify outcomes without spinning up a DOM. Score-vs-score wins over the
+ * `postponed` flag for non-postponed games; missing scores → pending.
+ */
+export function resultBadge(
+  myScore: number | null | undefined,
+  oppScore: number | null | undefined,
+  postponed: boolean,
+): { label: string; className: string; aria: string } {
+  if (postponed || !isFiniteScore(myScore) || !isFiniteScore(oppScore)) {
+    return { label: '—', className: 'result-pending', aria: 'Pending' };
+  }
+  if (myScore > oppScore) return { label: '✅ W', className: 'result-w', aria: 'Win' };
+  if (myScore < oppScore) return { label: '❌ L', className: 'result-l', aria: 'Loss' };
+  return { label: '⚪ T', className: 'result-t', aria: 'Tie' };
+}
+
+function isFiniteScore(s: unknown): s is number {
+  return typeof s === 'number' && Number.isFinite(s);
 }
 
 async function loadTopScorers(slot: HTMLElement, teamId: number): Promise<void> {
@@ -408,13 +447,13 @@ function buildGamesTable(games: Game[], teamId: number, teamsById: Map<number, s
     tr.appendChild(tdScore);
 
     const tdResult = document.createElement('td');
-    if (g.postponed) {
-      tdResult.textContent = '—';
-    } else {
-      const r = gameResult(myScore, oppScore);
-      tdResult.textContent = r;
-      tdResult.className = `result-${r.toLowerCase()}`;
-    }
+    const badge = resultBadge(myScore, oppScore, g.postponed);
+    const span = document.createElement('span');
+    span.className = `result-badge ${badge.className}`;
+    span.textContent = badge.label;
+    span.setAttribute('aria-label', badge.aria);
+    span.title = badge.aria;
+    tdResult.appendChild(span);
     tr.appendChild(tdResult);
 
     tbody.appendChild(tr);
