@@ -453,3 +453,51 @@ a.piaa-badge-link:hover { text-decoration: none; }
 }
 .source-meta dt { color: var(--muted); font-weight: 600; }
 .source-meta dd { margin: 0; }
+
+/* === Wave H4 Lane 4 (Chewy) — mobile responsive grid + table scroll === */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem 0.75rem 2rem;
+  }
+  .site-header {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+  }
+  .site-header nav { gap: 0.5rem; }
+  .season-host { margin-left: 0; }
+
+  /* Stack dashboard + sources tile/panel grids to a single column. */
+  .leader-panels,
+  .team-grid,
+  .sources-grid,
+  .callout-row,
+  .tile-grid {
+    grid-template-columns: 1fr !important;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .callout-row { display: flex; flex-direction: column; }
+  .record-callout,
+  .tile {
+    min-width: 0;
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+  }
+
+  /* Tables overflow horizontally rather than squeezing the layout. */
+  .container table,
+  table.stat,
+  .anomaly-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .anomaly-scroll { max-height: none; }
+
+  .scoreboard { padding: 0.75rem; }
+  .scoreboard-sides { gap: 0.75rem; }
+  .scoreboard-side { min-width: 0; }
+  .scoreboard-score { font-size: 2rem; }
+}

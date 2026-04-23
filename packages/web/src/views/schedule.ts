@@ -95,7 +95,9 @@ async function load(
       return;
     }
     status.textContent = `${res.total} upcoming game${res.total === 1 ? '' : 's'}.`;
-    for (const day of res.byDate) {
+    // Wave H4 Lane 4 (Chewy): default to newest-game-first (descending by date).
+    const ordered = [...res.byDate].sort((a, b) => b.date.localeCompare(a.date));
+    for (const day of ordered) {
       list.appendChild(renderDay(day));
     }
   } catch (err) {
