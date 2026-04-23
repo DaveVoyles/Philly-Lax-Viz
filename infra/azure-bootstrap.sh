@@ -96,7 +96,7 @@ az containerapp create \
   --min-replicas 0 \
   --max-replicas 1 \
   --cpu 0.5 --memory 1.0Gi \
-  --env-vars DB_PATH=/data/lacrosse.db PORT=8080 NODE_ENV=production \
+  --env-vars DB_PATH=/tmp/lacrosse.db PORT=8080 NODE_ENV=production \
   -o table
 
 # Attach the file share as a volume at /data.

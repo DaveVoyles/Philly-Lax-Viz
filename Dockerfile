@@ -63,7 +63,7 @@ WORKDIR /app
 ENV NODE_ENV=production \
     PORT=8080 \
     HOST=0.0.0.0 \
-    DB_PATH=/data/lacrosse.db
+    DB_PATH=/tmp/lacrosse.db
 
 # Pull installed deps + source from the builder stage.
 COPY --from=builder --chown=app:app /app/node_modules           ./node_modules
@@ -87,4 +87,4 @@ EXPOSE 8080
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # Run the server through its installed tsx (no global install needed).
-CMD ["sh", "-c", "if [ -f /app/seed/lacrosse.db ] && [ ! -f \"$DB_PATH\" ]; then mkdir -p $(dirname \"$DB_PATH\") && cp /app/seed/lacrosse.db \"$DB_PATH\"; fi; exec node node_modules/tsx/dist/cli.mjs packages/server/src/index.ts"]
+CMD ["sh", "-c", "mkdir -p $(dirname \"$DB_PATH\"); if [ -f /data/lacrosse.db ]; then cp /data/lacrosse.db \"$DB_PATH\"; elif [ -f /app/seed/lacrosse.db ] && [ ! -f \"$DB_PATH\" ]; then cp /app/seed/lacrosse.db \"$DB_PATH\"; fi; exec node node_modules/tsx/dist/cli.mjs packages/server/src/index.ts"]

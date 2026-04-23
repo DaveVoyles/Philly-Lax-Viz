@@ -6,7 +6,7 @@ Low-cost, scale-to-zero deployment of the PLL stack:
 - **API** (`@pll/server` — Fastify + better-sqlite3) → **Azure Container Apps** (Consumption plan, scale-to-zero).
 - **DB** (`data/lacrosse.db`) → **baked into the container image** as a seed; copied to ephemeral `/tmp` on container start. Regenerated nightly by the ingest cron, so transient loss on cold-start is acceptable.
 
-> **Live deployment** (as of v3): SWA at `https://victorious-pond-0c5ff000f.7.azurestaticapps.net` · API at `https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io` · ACR `pllacr3087.azurecr.io`.
+> **Live deployment** (as of v3): SWA at `https://victorious-pond-0c5ff000f.7.azurestaticapps.net` · API at `https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io` · ACR `adovizacr1771621563.azurecr.io`.
 
 > ### Deployment learnings (v3, baked from real run)
 >
@@ -641,15 +641,15 @@ If CI is blocked (billing, secrets rotation, etc.), deploy directly from a works
 ```bash
 # 1. Build amd64 image with seed DB baked in
 docker buildx build --platform linux/amd64 \
-  -t pllacr3087.azurecr.io/pll-server:vN --load .
+  -t adovizacr1771621563.azurecr.io/pll-server:vN --load .
 
 # 2. Push to ACR (uses admin creds from `az acr credential show`)
-az acr login -n pllacr3087
-docker push pllacr3087.azurecr.io/pll-server:vN
+az acr login -n adovizacr1771621563
+docker push adovizacr1771621563.azurecr.io/pll-server:vN
 
 # 3. Roll the container app to the new image (force new revision)
 az containerapp update -n pll-server -g pll-rg \
-  --image pllacr3087.azurecr.io/pll-server:vN \
+  --image adovizacr1771621563.azurecr.io/pll-server:vN \
   --revision-suffix vN \
   --set-env-vars DB_PATH=/tmp/lacrosse.db PORT=8080 NODE_ENV=production
 

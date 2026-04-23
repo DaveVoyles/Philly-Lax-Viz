@@ -38,7 +38,7 @@
   - `GET https://laxnumbers.com/services/scoreboard/3453?date=YYYY-MM-DD`
   - Returns `[]` of games with `home_team_name`, `visitor_team_name`, `home_state`, `visitor_state`, `game_home_score`, `game_visitor_score`, `game_date` (YYYYMMDD), `game_postponed`, `level_desc` ("Boys HS"). 3453 = "Pennsylvania Boys HS" page.
   - **No auth, no JS rendering** — clean to consume from server.
-- Live deploy stack: bake-DB-into-image, push ACR `pllacr3087`, `az containerapp update --revision-suffix vN --set-env-vars …`. Web build with `VITE_API_BASE_URL=…` then `swa deploy`.
+- Live deploy stack: bake-DB-into-image, push ACR `adovizacr1771621563`, `az containerapp update --revision-suffix vN --set-env-vars …`. Web build with `VITE_API_BASE_URL=…` then `swa deploy`.
 
 ## Wave 1 — Cleanup + season lock + Merrill fix (parallel)
 
@@ -111,8 +111,8 @@
 
 ## Deployment loop (per wave)
 
-1. `docker buildx build --platform linux/amd64 -t pllacr3087.azurecr.io/pll-server:vN --load .`
-2. `docker push pllacr3087.azurecr.io/pll-server:vN`
+1. `docker buildx build --platform linux/amd64 -t adovizacr1771621563.azurecr.io/pll-server:vN --load .`
+2. `docker push adovizacr1771621563.azurecr.io/pll-server:vN`
 3. `az containerapp update -n pll-server -g pll-rg --image …vN --revision-suffix vN --set-env-vars DB_PATH=/tmp/lacrosse.db PORT=8080 NODE_ENV=production CORS_ORIGINS="https://victorious-pond-0c5ff000f.7.azurestaticapps.net,http://localhost:5173"`
 4. `VITE_API_BASE_URL=https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io pnpm --filter @pll/web build`
 5. `swa deploy packages/web/dist --deployment-token "$SWA_TOKEN" --env production`
