@@ -19,6 +19,7 @@ import { renderGameThumb } from '../components/postImage.js';
 import { renderHorizontalLeaderboard } from '../charts/index.js';
 import type { ChartHandle } from '../charts/types.js';
 import { renderEmptyState } from '../components/emptyState.js';
+import { apiUrl } from '../apiBase.js';
 
 type SortKey = 'name' | 'gap';
 type SortDir = 'asc' | 'desc';
@@ -128,6 +129,47 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   void loadLeaderPanel(savesPanel.body, 'saves', { minGames: 3 }, intFmt, 'Saves');
   void loadLeaderPanel(foPctPanel.body, 'fo_pct', { minAttempts: 20 }, pctFmt, 'FO %');
   void loadLeaderPanel(gbPanel.body, 'ground_balls', { minGames: 3 }, intFmt, 'Ground balls');
+
+  // Wave H4 Lane 3 (Leia) — "Data updated X ago" footer line at the very
+  // bottom of the dashboard. Sourced from /api/freshness; silent on failure
+  // so a server outage never breaks the dashboard.
+  const freshnessLine = document.createElement('p');
+  freshnessLine.className = 'muted';
+  freshnessLine.dataset['testid'] = 'dashboard-freshness';
+  freshnessLine.textContent = 'Data freshness: checking…';
+  root.appendChild(freshnessLine);
+  void loadDashboardFreshness(freshnessLine);
+}
+
+async function loadDashboardFreshness(target: HTMLElement): Promise<void> {
+  try {
+    const res = await fetch(apiUrl('/api/freshness'));
+    if (!res.ok) {
+      target.textContent = '';
+      return;
+    }
+    const data = (await res.json()) as { lastIngestAt: string | null };
+    if (!data.lastIngestAt) {
+      target.textContent = 'Data freshness: unknown';
+      return;
+    }
+    const t = Date.parse(data.lastIngestAt);
+    if (Number.isNaN(t)) {
+      target.textContent = 'Data freshness: unknown';
+      return;
+    }
+    const ms = Date.now() - t;
+    const min = Math.round(ms / 60_000);
+    const rel =
+      min < 60
+        ? `${min} minutes`
+        : min < 24 * 60
+          ? `${Math.round(min / 60)} hours`
+          : `${Math.round(min / 60 / 24)} days`;
+    target.textContent = `Data updated ${rel} ago.`;
+  } catch {
+    target.textContent = '';
+  }
 }
 
 function intFmt(n: number): string {
