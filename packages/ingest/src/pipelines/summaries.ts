@@ -14,6 +14,14 @@ import { normalizePlayerName } from '../normalize/playerName.js';
 import { insertAnomaly } from './anomalies.js';
 import { DEFAULT_SEASON } from '../crawler.js';
 
+/**
+ * Wave H7 Lane 1: detect composite player names like "Mason Proctor and
+ * Javier Gonzalez-Cruz" or "Alice & Bob". When matched at ingest time we
+ * emit a `composite-name-detected` anomaly and skip the player row instead
+ * of letting the dupe accumulate until the next manual sweep.
+ */
+export const COMPOSITE_NAME_RE = /^(.+?)\s+(?:and|&)\s+(.+)$/i;
+
 export interface SummariesPipelineInput {
   postId: string;
   postUrl: string;
@@ -413,6 +421,22 @@ function assignAndUpsertPlayerStats(a: AssignArgs): void {
         parentGameId: gameId,
         strategyAttempted: 'player-stat-line',
         reason: 'sub-header did not match either game team; likely a score line the parser missed',
+      });
+      continue;
+    }
+    // Wave H7 Lane 1 (Han 😉🚀): detect composite player names ("X and Y")
+    // BEFORE creating the player row. Skip the row + emit an anomaly so we
+    // don't accumulate latent dupes between manual sweeps. The split tooling
+    // (`split:composite-players`) handles existing composites; this is the
+    // early-warning system at the source.
+    if (COMPOSITE_NAME_RE.test(ps.name)) {
+      counters.anomaliesAdded += insertAnomaly(db, {
+        sourcePostId: input.postId,
+        sourceUrl: input.postUrl,
+        rawLine: ps.name,
+        parentGameId: gameId,
+        strategyAttempted: 'composite-name-detected',
+        reason: `Composite name "${ps.name}" not split during ingest; manual review required (run split:composite-players)`,
       });
       continue;
     }

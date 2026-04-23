@@ -314,4 +314,75 @@ describe('ingestSummariesPost (live fixture)', () => {
     // 4 periods × 2 teams = 8 period rows.
     expect(r.periodsUpserted).toBe(8);
   });
+
+  it('Wave H7: composite player names emit composite-name-detected anomaly and skip player creation', () => {
+    db.prepare(`INSERT INTO teams (name, slug) VALUES ('Haverford','haverford'),('Springfield','springfield')`).run();
+    // Hand-crafted ParsedSummariesPost that bypasses the parser's "and"-split:
+    // simulates a composite name slipping through (which is how 4 historical
+    // composites ended up in the DB pre-H5). Defensive check at the pipeline
+    // catches them before they become player rows.
+    const parsed = {
+      games: [
+        {
+          scoreLine: {
+            teamA: 'Haverford', scoreA: 5, teamB: 'Springfield', scoreB: 3,
+            otPeriods: 0, postponed: false,
+          },
+          periods: [],
+          playerStats: [
+            { name: 'Mason Proctor and Javier Gonzalez-Cruz', goals: 2, assists: 1,
+              groundBalls: 0, causedTurnovers: 0, saves: 0, foWon: 0, foTaken: 0,
+              isPartialName: false, confidence: 0.5 },
+            { name: 'John Doe and Jane Roe', goals: 3, assists: 0,
+              groundBalls: 0, causedTurnovers: 0, saves: 0, foWon: 0, foTaken: 0,
+              isPartialName: false, confidence: 0.5 },
+            { name: 'Real Player', goals: 1, assists: 0,
+              groundBalls: 0, causedTurnovers: 0, saves: 0, foWon: 0, foTaken: 0,
+              isPartialName: false, confidence: 0.5 },
+            { name: 'Carol Davis', goals: 2, assists: 0,
+              groundBalls: 0, causedTurnovers: 0, saves: 0, foWon: 0, foTaken: 0,
+              isPartialName: false, confidence: 0.5 },
+          ],
+          playerStatTeamHints: [null, null, null, null],
+          rawLines: [],
+        },
+      ],
+      anomalies: [],
+    };
+    const r = ingestSummariesPost(db, {
+      postId: 'w-h7-composite', postUrl: 'u', postDate: '2026-04-23',
+      parsed: parsed as Parameters<typeof ingestSummariesPost>[1]['parsed'],
+    });
+    const composites = db
+      .prepare(
+        `SELECT raw_line, reason, parent_game_id, source_post_id, strategy_attempted
+         FROM ingest_anomalies
+         WHERE strategy_attempted = 'composite-name-detected'`,
+      )
+      .all() as {
+        raw_line: string; reason: string; parent_game_id: number | null;
+        source_post_id: string; strategy_attempted: string;
+      }[];
+    expect(composites.length).toBe(2);
+    const rawLines = composites.map((c) => c.raw_line).sort();
+    expect(rawLines).toEqual([
+      'John Doe and Jane Roe',
+      'Mason Proctor and Javier Gonzalez-Cruz',
+    ]);
+    expect(composites[0]!.reason).toContain('Composite name');
+    expect(composites[0]!.reason).toContain('split:composite-players');
+    expect(composites[0]!.parent_game_id).not.toBeNull();
+    expect(composites[0]!.source_post_id).toBe('w-h7-composite');
+    // Composite players must NOT have been inserted as player rows.
+    const compositeRows = (db
+      .prepare(`SELECT COUNT(*) c FROM players WHERE name LIKE '% and %'`)
+      .get() as { c: number }).c;
+    expect(compositeRows).toBe(0);
+    // Non-composite players still ingested.
+    const realCount = (db
+      .prepare(`SELECT COUNT(*) c FROM players WHERE name IN ('Real Player','Carol Davis')`)
+      .get() as { c: number }).c;
+    expect(realCount).toBe(2);
+    expect(r.playerStatsUpserted).toBe(2);
+  });
 });

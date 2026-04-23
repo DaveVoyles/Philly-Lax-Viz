@@ -18,7 +18,9 @@ export type ParserStrategy =
   | 'cross-check-sum-exceeds-team'
   | 'cross-check-suspect-name'
   | 'cross-check-goalie-as-scorer'
-  | 'cross-check-season-concentration';
+  | 'cross-check-season-concentration'
+  | 'composite-name-detected'
+  | 'cross-team-duplicate-name';
 export type StatSource = 'summary' | 'manual';
 export type NameResolution = 'full' | 'partial';
 export type AliasSource = 'manual' | 'auto';

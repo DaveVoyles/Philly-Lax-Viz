@@ -25,7 +25,8 @@
     "prune-backups": "tsx src/scripts/pruneBackups.ts",
     "snapshot:db": "tsx src/scripts/snapshotDb.ts",
     "split:composite-players": "tsx src/scripts/splitCompositePlayers.ts",
-    "dedup:cross-team": "tsx src/scripts/dedupCrossTeam.ts"
+    "dedup:cross-team": "tsx src/scripts/dedupCrossTeam.ts",
+    "detect:cross-team-dups": "tsx src/scripts/detectCrossTeamDups.ts"
   },
   "dependencies": {
     "@pll/shared": "workspace:*",
