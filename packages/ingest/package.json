@@ -24,7 +24,8 @@
     "audit-short-names": "tsx src/scripts/auditShortNames.ts",
     "prune-backups": "tsx src/scripts/pruneBackups.ts",
     "snapshot:db": "tsx src/scripts/snapshotDb.ts",
-    "split:composite-players": "tsx src/scripts/splitCompositePlayers.ts"
+    "split:composite-players": "tsx src/scripts/splitCompositePlayers.ts",
+    "dedup:cross-team": "tsx src/scripts/dedupCrossTeam.ts"
   },
   "dependencies": {
     "@pll/shared": "workspace:*",
