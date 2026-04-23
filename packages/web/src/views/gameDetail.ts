@@ -12,6 +12,7 @@ type GameDetailWithTeams = GameDetail & {
 import { formatDate } from '../util/format.js';
 import { renderQuarterByQuarter } from '../charts/index.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
+import { renderAnomalyBanner } from '../components/anomalyBanner.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   root.replaceChildren();
@@ -138,8 +139,36 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     const sub = document.createElement('h3');
     sub.textContent = teamName;
     root.appendChild(sub);
+
+    // Wave H4 Lane 1 (Han) — surface ingest anomalies where the per-player
+    // goal sum doesn't match the recorded team score for this side.
+    const playerSum = stats.reduce((acc, s) => acc + (s.goals || 0), 0);
+    const teamScore = teamScoreFor(teamName, game, homeName, awayName);
+    if (!game.postponed && typeof teamScore === 'number' && playerSum > teamScore) {
+      root.appendChild(
+        renderAnomalyBanner({
+          kind: 'team-score-exceeded',
+          gameId: game.id,
+          teamName,
+          playerSum,
+          teamScore,
+        }),
+      );
+    }
+
     root.appendChild(buildPlayerStatsTable(stats));
   }
+}
+
+function teamScoreFor(
+  teamName: string,
+  game: { homeScore: number; awayScore: number },
+  homeName: string,
+  awayName: string,
+): number | undefined {
+  if (teamName === homeName) return game.homeScore;
+  if (teamName === awayName) return game.awayScore;
+  return undefined;
 }
 
 function buildScoreboard(

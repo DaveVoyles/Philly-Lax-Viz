@@ -501,3 +501,35 @@ a.piaa-badge-link:hover { text-decoration: none; }
   .scoreboard-side { min-width: 0; }
   .scoreboard-score { font-size: 2rem; }
 }
+
+/* Wave H4 Lane 1 (Han) — anomaly banner shown on game/player views when
+   per-player goal sums diverge from the recorded team score. */
+.anomaly-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fff3cd;
+  color: #533f03;
+  border-left: 4px solid #f0ad4e;
+  padding: 0.65rem 0.9rem;
+  border-radius: 4px;
+  margin: 0.75rem 0;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+.anomaly-banner.reconciled {
+  background: #d4edda;
+  color: #155724;
+  border-left-color: #28a745;
+}
+.anomaly-banner-icon { font-size: 1.1rem; }
+.anomaly-banner-text { flex: 1; }
+.anomaly-banner-source {
+  color: inherit;
+  text-decoration: underline;
+  font-weight: 600;
+}
+.anomaly-inline {
+  color: #856404;
+  margin-right: 0.15rem;
+}

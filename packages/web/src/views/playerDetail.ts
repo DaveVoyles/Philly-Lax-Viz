@@ -169,7 +169,22 @@ function buildPerGameTable(stats: PlayerPerGameStat[]): HTMLElement {
     ];
     cells.forEach((value, i) => {
       const td = document.createElement('td');
-      td.textContent = value;
+      // Wave H4 Lane 1 (Han) — inline ⚠️ on the date cell when this row's
+      // goals are implausibly high for a single game (proxy for the
+      // player_goals_sum > team_score class of ingest anomaly; the per-game
+      // payload doesn't carry the team's recorded score, and the lane
+      // boundary forbids new server routes).
+      if (i === 0 && ps.goals > 12) {
+        const warn = document.createElement('span');
+        warn.className = 'anomaly-inline';
+        warn.title = 'Suspicious: per-game goals look implausibly high';
+        warn.setAttribute('aria-label', 'data anomaly');
+        warn.textContent = '⚠️ ';
+        td.appendChild(warn);
+        td.appendChild(document.createTextNode(value));
+      } else {
+        td.textContent = value;
+      }
       if (i > 0) td.className = 'num';
       tr.appendChild(td);
     });
