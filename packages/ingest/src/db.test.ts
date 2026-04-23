@@ -15,7 +15,6 @@ const EXPECTED_TABLES = [
   'ingest_post_log',
   'piaa_official_teams',
   'player_aliases',
-  'commits',
   'schedule_games',
   'post_images',
 ];
@@ -34,19 +33,19 @@ describe('openDb', () => {
     for (const t of EXPECTED_TABLES) {
       expect(names, `missing table: ${t}`).toContain(t);
     }
-    // user_version tracks the highest applied migration. Wave-17 added 010 (post_images).
-    expect(db.pragma('user_version', { simple: true })).toBe(10);
+    // user_version tracks the highest applied migration. Wave-18 added 011 (drop commits).
+    expect(db.pragma('user_version', { simple: true })).toBe(11);
     db.close();
   });
 
   it('is idempotent — re-opening does not re-apply migrations', () => {
     const db1 = openDb(':memory:');
-    expect(db1.pragma('user_version', { simple: true })).toBe(10);
+    expect(db1.pragma('user_version', { simple: true })).toBe(11);
     db1.close();
 
     // Run migrations a second time on a brand-new DB and confirm same end state.
     const db2 = openDb(':memory:');
-    expect(db2.pragma('user_version', { simple: true })).toBe(10);
+    expect(db2.pragma('user_version', { simple: true })).toBe(11);
     db2.close();
   });
 

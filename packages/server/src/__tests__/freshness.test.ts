@@ -94,7 +94,6 @@ describe('GET /api/freshness', () => {
     expect(body.lastIngestAt).toBe('2026-04-22T18:00:00Z');
 
     // Optional sources may be null when their tables are empty.
-    expect(body.commitsLast === null || typeof body.commitsLast === 'string').toBe(true);
     expect(body.scheduleLast === null || typeof body.scheduleLast === 'string').toBe(true);
 
     expect(body.counts.teams).toBe(2);

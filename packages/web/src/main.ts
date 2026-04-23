@@ -37,7 +37,6 @@ const NAV: NavLink[] = [
   { href: '#/leaders', label: 'Leaders', match: 'leaders' },
   { href: '#/h2h', label: 'Compare', match: 'h2h' },
   { href: '#/graph', label: 'Network', match: 'graph' },
-  { href: '#/commits', label: 'Commits', match: 'commits' },
   { href: '#/schedule', label: 'Schedule', match: 'schedule' },
   { href: '#/constellation', label: 'Constellation', match: 'constellation' },
   { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
@@ -135,9 +134,6 @@ function dispatch(main: HTMLElement, match: RouteMatch): void {
       return;
     case 'h2h':
       void import('./views/h2h.js').then((m) => m.render(main, match.params));
-      return;
-    case 'commits':
-      void import('./views/commits.js').then((m) => m.render(main, match.params));
       return;
     case 'schedule':
       void import('./views/schedule.js').then((m) => { scheduleDestroy = m.destroy; m.render(main, match.params); });

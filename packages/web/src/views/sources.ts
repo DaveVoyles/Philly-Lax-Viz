@@ -11,7 +11,6 @@ interface FreshnessResponse {
   scoreboardLast: string | null;
   recapsLast: string | null;
   rankingsLast: string | null;
-  commitsLast: string | null;
   scheduleLast: string | null;
   piaaLast: string | null;
   aliasesLast: string | null;
@@ -20,7 +19,6 @@ interface FreshnessResponse {
     teams: number;
     games: number;
     players: number;
-    commits: number;
     scheduleGames: number;
     playerAliases: number;
     piaaTeams: number;
@@ -80,17 +78,6 @@ const SOURCES: SourceCard[] = [
     freshness: (f) => f.scheduleLast,
     countLabel: (f) =>
       f.counts.scheduleGames > 0 ? `${f.counts.scheduleGames} scheduled games` : null,
-  },
-  {
-    id: 'commits',
-    title: 'College commits',
-    what:
-      'PhillyLacrosse.com /category/recruiting/ posts (Han, W15). Each post mentions a player, high school, and college destination.',
-    url: 'https://phillylacrosse.com/category/recruiting/',
-    urlLabel: 'phillylacrosse.com/category/recruiting',
-    notes: 'Player names are auto-linked to known players via the alias table.',
-    freshness: (f) => f.commitsLast,
-    countLabel: (f) => `${f.counts.commits} commits`,
   },
   {
     id: 'branding',

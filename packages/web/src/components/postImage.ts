@@ -54,7 +54,7 @@ export function renderGameHero(url: string, alt: string | null = null): HTMLImag
   });
 }
 
-/** Square avatar for commits / player rows (48x48). */
+/** Square avatar for player rows (48x48). */
 export function renderPlayerAvatar(url: string, alt: string | null = null): HTMLImageElement {
   return renderPostImage({
     url,

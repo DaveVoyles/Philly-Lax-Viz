@@ -11,8 +11,6 @@ export type ParserStrategy =
   | 'player-stat-line'
   | 'aggregated-list'
   | 'ranking-list'
-  | 'commits-list'
-  | 'commits-profile'
   | 'schedule-team-resolve';
 export type StatSource = 'summary' | 'manual';
 export type NameResolution = 'full' | 'partial';

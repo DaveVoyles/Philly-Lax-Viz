@@ -48,10 +48,6 @@ export async function freshnessRoutes(app: FastifyInstance, db: Database): Promi
       db,
       "SELECT MAX(processed_at) AS t FROM ingest_post_log WHERE category = 'rankings'",
     );
-    const commitsLast = safeScalar<string>(
-      db,
-      'SELECT MAX(created_at) AS t FROM commits',
-    );
     const scheduleLast = safeScalar<string>(
       db,
       'SELECT MAX(scraped_at) AS t FROM schedule_games',
@@ -73,7 +69,6 @@ export async function freshnessRoutes(app: FastifyInstance, db: Database): Promi
       scoreboardLast,
       recapsLast,
       rankingsLast,
-      commitsLast,
       scheduleLast,
       piaaLast,
       aliasesLast,
@@ -82,7 +77,6 @@ export async function freshnessRoutes(app: FastifyInstance, db: Database): Promi
         teams: safeCount(db, 'SELECT COUNT(*) AS c FROM teams'),
         games: safeCount(db, 'SELECT COUNT(*) AS c FROM games'),
         players: safeCount(db, 'SELECT COUNT(*) AS c FROM players'),
-        commits: safeCount(db, 'SELECT COUNT(*) AS c FROM commits'),
         scheduleGames: safeCount(db, 'SELECT COUNT(*) AS c FROM schedule_games'),
         playerAliases: safeCount(db, 'SELECT COUNT(*) AS c FROM player_aliases'),
         piaaTeams: safeCount(db, 'SELECT COUNT(*) AS c FROM piaa_official_teams'),
