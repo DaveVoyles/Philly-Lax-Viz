@@ -3,6 +3,7 @@
 import { ApiError, getPlayerDetail, type PlayerDetail, type PlayerPerGameStat } from '../api.js';
 import { formatDate } from '../util/format.js';
 import { renderConfidenceBadge } from '../util/confidence.js';
+import { isOutlier } from '../util/zscore.js';
 import { renderPerGameTrend } from '../charts/index.js';
 import type { PerGameTrendDatum } from '../charts/index.js';
 
@@ -127,6 +128,7 @@ function buildSeasonCallouts(detail: PlayerDetail): HTMLElement {
 
 function buildPerGameTable(stats: PlayerPerGameStat[]): HTMLElement {
   const sorted = [...stats].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  const goalsSeries = stats.map((s) => s.goals);
 
   const table = document.createElement('table');
   table.className = 'stat per-game-stats';
@@ -170,12 +172,11 @@ function buildPerGameTable(stats: PlayerPerGameStat[]): HTMLElement {
     ];
     cells.forEach((value, i) => {
       const td = document.createElement('td');
-      // Wave H4 Lane 1 (Han) — inline ⚠️ on the date cell when this row's
-      // goals are implausibly high for a single game (proxy for the
-      // player_goals_sum > team_score class of ingest anomaly; the per-game
-      // payload doesn't carry the team's recorded score, and the lane
-      // boundary forbids new server routes).
-      if (i === 0 && ps.goals > 12) {
+      // Wave H6 Lane 2 (Yoda) — replaces Han's H4 hardcoded `goals > 12`
+      // heuristic with a data-driven 3σ check against the player's own
+      // season. Skips for sample sizes <3 (see isOutlier). Floor in the
+      // helper guards against tiny-stdev false positives.
+      if (i === 0 && isOutlier(ps.goals, goalsSeries)) {
         const warn = document.createElement('span');
         warn.className = 'anomaly-inline';
         warn.title = 'Suspicious: per-game goals look implausibly high';
