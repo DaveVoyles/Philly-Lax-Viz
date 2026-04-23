@@ -5,6 +5,13 @@
 
 import { describe, it, expect } from 'vitest';
 
+// pixi.js (transitively imported by ./constellation) probes `navigator` at
+// module-eval time to detect Safari. Vitest's node environment doesn't define
+// navigator, so we stub a minimal one before the dynamic import.
+if (typeof (globalThis as { navigator?: unknown }).navigator === 'undefined') {
+  (globalThis as { navigator?: unknown }).navigator = { userAgent: 'node' };
+}
+
 describe('constellation view module', () => {
   it('imports without throwing and exports render + destroy', async () => {
     const mod = await import('./constellation.js');
