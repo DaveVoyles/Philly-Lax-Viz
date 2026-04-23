@@ -12,7 +12,8 @@ export type ParserStrategy =
   | 'aggregated-list'
   | 'ranking-list'
   | 'schedule-team-resolve'
-  | 'laxnumbers-unknown-team';
+  | 'laxnumbers-unknown-team'
+  | 'stat-cap-exceeded';
 export type StatSource = 'summary' | 'manual';
 export type NameResolution = 'full' | 'partial';
 export type AliasSource = 'manual' | 'auto';

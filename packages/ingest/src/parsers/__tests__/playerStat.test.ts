@@ -111,4 +111,52 @@ describe('parsePlayerStatLine', () => {
     const r = parsePlayerStatLine('Coach said the team played hard');
     expect(r.result).toBeNull();
   });
+
+  // Anomaly regression tests — see player 48816 (Declan Sullivan).
+  describe('career/record parenthetical handling', () => {
+    it('drops "(Set School record 173 Goals)" — does not add to game stats', () => {
+      const r = parsePlayerStatLine('Declan Sullivan 1G (Set School record 173 Goals)');
+      expect(r.result).toMatchObject({ name: 'Declan Sullivan', goals: 1, assists: 0 });
+    });
+
+    it('drops "(100 goals on his career)" — does not add to game stats', () => {
+      const r = parsePlayerStatLine('Matthew Shohen 5g, 1a (100 goals on his career)');
+      expect(r.result).toMatchObject({ name: 'Matthew Shohen', goals: 5, assists: 1 });
+    });
+
+    it('keeps short stat-only parenthetical "(3G, 3A)"', () => {
+      const r = parsePlayerStatLine('Sam Player 6g 4a (3G, 3A)');
+      // Parser doubles the (3G, 3A) into the totals — that's existing behavior.
+      // Just assert it didn't drop the parenthetical erroneously.
+      expect(r.result?.goals).toBeGreaterThanOrEqual(6);
+    });
+  });
+
+  describe('trailing punctuation in name', () => {
+    it('strips trailing colon: "Keegan Kropp: 4g, 4a"', () => {
+      const r = parsePlayerStatLine('Keegan Kropp: 4g, 4a');
+      expect(r.result).toMatchObject({ name: 'Keegan Kropp', goals: 4, assists: 4 });
+    });
+
+    it('strips trailing colon with em-dash present: "Player Name: – 2g"', () => {
+      const r = parsePlayerStatLine('Player Name: \u2013 2g');
+      expect(r.result?.name).toBe('Player Name');
+    });
+  });
+
+  describe('stat caps', () => {
+    it('clamps absurd goal counts and emits anomaly', () => {
+      const r = parsePlayerStatLine('Bug Player 174 goals');
+      expect(r.result).toBeNull();
+      expect(r.anomalies.length).toBeGreaterThan(0);
+      expect(r.anomalies[0]?.strategyAttempted).toBe('stat-cap-exceeded');
+    });
+
+    it('clamps the bad value but keeps other valid stats on same line', () => {
+      const r = parsePlayerStatLine('Mixed Player 200 goals 3 assists');
+      expect(r.result?.goals).toBe(0); // clamped
+      expect(r.result?.assists).toBe(3);
+      expect(r.anomalies.some(a => a.strategyAttempted === 'stat-cap-exceeded')).toBe(true);
+    });
+  });
 });

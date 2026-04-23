@@ -119,6 +119,8 @@ export function parsePlayerStatLine(rawLine: string): ParseResult<ParsedPlayerSt
 
   // Strip a trailing "Goals:" / "scoring" / similar that snuck into the name.
   name = name.replace(/\s+(?:Scoring|Stats)$/i, '').trim();
+  // Strip trailing punctuation noise ("Kropp:" → "Kropp").
+  name = name.replace(/[:;,]+$/u, '').trim();
 
   // Find the boundary between name and stats:
   //   - first run of digits, OR
@@ -135,6 +137,11 @@ export function parsePlayerStatLine(rawLine: string): ParseResult<ParsedPlayerSt
     let candidate = line.slice(0, firstStatIdx).trim();
     // Drop a trailing dash if present.
     candidate = candidate.replace(/[\s\-–—]+$/u, '').trim();
+    // Drop trailing punctuation that isn't part of a name (`:`, `,`, `;`, `.`).
+    // Real names like "Jr." retain "." inside; we only strip when at end and
+    // not preceded by a single uppercase letter (to keep "T.J." style intact).
+    candidate = candidate.replace(/[:;,]+$/u, '').trim();
+    candidate = candidate.replace(/(?<![A-Z])\.+$/u, '').trim();
     if (candidate) name = candidate;
   }
 
@@ -180,6 +187,43 @@ export function parsePlayerStatLine(rawLine: string): ParseResult<ParsedPlayerSt
     };
   }
 
+  // Sanity caps — flag and clamp impossible single-game stat values. These
+  // bounds are well above the realistic HS lacrosse ceiling (e.g. an entire
+  // team rarely scores >20 goals in a game, so a single player at >15 is
+  // almost always a parser glitch like "1G (Set School record 173 Goals)").
+  const STAT_CAPS = {
+    goals: 15,
+    assists: 15,
+    groundBalls: 30,
+    causedTurnovers: 20,
+    saves: 40,
+    foWon: 40,
+    foTaken: 50,
+  } as const;
+  const capAnomalies: ParseResult<ParsedPlayerStat>['anomalies'] = [];
+  let clampedAny = false;
+  for (const k of Object.keys(STAT_CAPS) as Array<keyof typeof STAT_CAPS>) {
+    if (stats[k] > STAT_CAPS[k]) {
+      capAnomalies.push({
+        rawLine,
+        strategyAttempted: 'stat-cap-exceeded',
+        reason: `${k}=${stats[k]} exceeds cap ${STAT_CAPS[k]} for "${name}"; clamped to 0`,
+      });
+      stats[k] = 0;
+      clampedAny = true;
+    }
+  }
+  // If the line was *only* an over-cap value (no other meaningful stats), drop
+  // the row entirely so we don't insert an empty stat record.
+  if (clampedAny) {
+    const total =
+      stats.goals + stats.assists + stats.groundBalls +
+      stats.causedTurnovers + stats.saves + stats.foWon + stats.foTaken;
+    if (total === 0) {
+      return { result: null, anomalies: capAnomalies };
+    }
+  }
+
   const isPartialName = !/\s/.test(name); // single token = last name only
 
   return {
@@ -189,6 +233,6 @@ export function parsePlayerStatLine(rawLine: string): ParseResult<ParsedPlayerSt
       isPartialName,
       confidence: isPartialName ? 0.6 : 0.9,
     },
-    anomalies: [],
+    anomalies: capAnomalies,
   };
 }

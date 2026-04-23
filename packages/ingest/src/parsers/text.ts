@@ -41,12 +41,43 @@ export function htmlToTextLines(html: string): string[] {
     .filter(line => line.length > 0);
 }
 
+/**
+ * Words that mark a parenthetical as career/historical prose, NOT a per-game
+ * stat group. If any of these appear, the parenthetical must be stripped even
+ * if it contains digits + stat words (e.g. "(Set School record 173 Goals)" or
+ * "(100 goals on his career)").
+ */
+const PROSE_MARKERS = [
+  'career',
+  'season',
+  'school record',
+  'state record',
+  'all[- ]?time',
+  'milestone',
+  'now has',
+  'now with',
+  'set [a-z]+ record',
+  'broke',
+  'reached',
+  'on (his|her|the)',
+  'for (his|her|the)',
+  'in (his|her|the)',
+  'lifetime',
+  'overall',
+  'committed',
+  'commit',
+  'signed',
+];
+const PROSE_RE = new RegExp(`\\b(?:${PROSE_MARKERS.join('|')})\\b`, 'i');
+
 /** Strip a single trailing parenthetical that contains no stat tokens. */
 export function stripTrailingNonStatParenthetical(s: string): string {
   // Match a trailing (...) at end-of-string and decide whether to drop it.
   const m = s.match(/^(.*?)\s*\(([^()]*)\)\s*$/);
   if (!m) return s;
   const inner = m[2] ?? '';
+  // PROSE markers always win — career milestones, school records, etc.
+  if (PROSE_RE.test(inner)) return (m[1] ?? '').trim();
   // If inner contains any digit immediately followed (with optional space) by a
   // stat token, keep the parenthetical — it's a stat group like "(3G, 3A)".
   if (/\d+\s*(?:g|a|gb|sv|cto|fo|goal|assist|save|ground)/i.test(inner)) return s;
