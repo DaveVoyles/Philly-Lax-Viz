@@ -19,7 +19,7 @@ import {
 } from './components/seasonPicker.js';
 import { apiUrl } from './apiBase.js';
 
-export type { PiaaRecord };
+export type { GamePeriod, PiaaRecord };
 
 export { currentSeason } from './components/seasonPicker.js';
 

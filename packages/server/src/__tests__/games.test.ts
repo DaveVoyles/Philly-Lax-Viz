@@ -123,6 +123,39 @@ describe('GET /api/games/:id (with scoringEvents)', () => {
   });
 });
 
+describe('GET /api/games/:id periods field (Wave H5 Lane 2, Yoda)', () => {
+  it('returns periods array with periodNumber + goals + teamId for a game that has periods', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/games/10' });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as {
+      periods: Array<{ gameId: number; teamId: number; periodNumber: number; goals: number }>;
+    };
+    expect(Array.isArray(body.periods)).toBe(true);
+    // Seed inserts 4 quarters x 2 teams = 8 rows for game 10.
+    expect(body.periods).toHaveLength(8);
+    for (const p of body.periods) {
+      expect(p.gameId).toBe(10);
+      expect([1, 2]).toContain(p.teamId);
+      expect(p.periodNumber).toBeGreaterThanOrEqual(1);
+      expect(p.periodNumber).toBeLessThanOrEqual(4);
+      expect(typeof p.goals).toBe('number');
+    }
+    // Sanity: per-team totals match game score.
+    const sumFor = (tid: number) =>
+      body.periods.filter((p) => p.teamId === tid).reduce((acc, p) => acc + p.goals, 0);
+    expect(sumFor(1)).toBe(12); // home
+    expect(sumFor(2)).toBe(8); // away
+  });
+
+  it('returns periods: [] for a game with no period rows', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/games/11' });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as { periods: unknown[] };
+    expect(Array.isArray(body.periods)).toBe(true);
+    expect(body.periods).toHaveLength(0);
+  });
+});
+
 describe('GET /api/games?team=&season= (W14 alias + season filter)', () => {
   it('filters by team alias + season year', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/games?team=1&season=2025' });
