@@ -197,6 +197,12 @@ After step 5, re-run the `deploy` workflow manually from the Actions tab to veri
 
 > ⚠️ Before a green deploy will actually update production, H3-a and H3-b (registry repoint + DB-path strategy) must also land. Otherwise the workflow will push a v11 image to a registry that ACA isn't pulling from.
 
+## Wave H3 outcomes — team 80 dedup follow-up
+
+- **Colin Ward** (id 54132) canonical; merged `Collin Ward` (id 53240). User-ratified spelling.
+- **Yusef Abbas** (id 54125) canonical; merged `Yusuf Abbas` (id 50913). User-ratified spelling.
+- 2 `player_stats` rows repointed, 2 `players` rows deleted. DB backup kept at `data/lacrosse.db.bak-pre-t80-dedup`.
+
 ## Wave H3 outcomes
 
 - **Lane 4 (Chewy):** Synced `.github/copilot-instructions.md` and `.github/agents/autonomous-fleet-agent.agent.md` from home defaults into the repo. No divergence with existing `AGENTS.md` / `README.md` / `docs/` (AGENTS.md is project-specific onboarding; complementary, not contradictory). `pnpm -r typecheck` clean.
