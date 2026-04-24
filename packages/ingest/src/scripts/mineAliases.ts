@@ -133,6 +133,11 @@ export function mineCandidates(db: DatabaseType): AliasCandidate[] {
       normalizeToken(r.name),
     ),
   );
+  const knownPlayerNames = new Set<string>(
+    (db.prepare('SELECT DISTINCT name_normalized FROM players').all() as Array<{
+      name_normalized: string;
+    }>).map((r) => normalizeToken(r.name_normalized)),
+  );
 
   // (token, team_id) -> aggregation bucket
   type Bucket = {
@@ -194,6 +199,16 @@ export function mineCandidates(db: DatabaseType): AliasCandidate[] {
     for (const b of perTeam.values()) for (const p of b.postIds) allPosts.add(p);
     const totalDistinctPosts = allPosts.size;
 
+    // Detect tie ambiguity up front: if more than one candidate team would
+    // hit purity ≥ 1.0 (i.e. the token co-occurs in every game with both
+    // sides — classic "MT" → Perkiomen Valley vs Methacton case) we cannot
+    // safely auto-seed. Mark them all rejected as ambiguous.
+    let purePassCount = 0;
+    for (const b of perTeam.values()) {
+      const p = totalDistinctPosts === 0 ? 0 : b.postIds.size / totalDistinctPosts;
+      if (p >= 1.0) purePassCount += 1;
+    }
+
     for (const bucket of perTeam.values()) {
       const distinctPosts = bucket.postIds.size;
       const purity = totalDistinctPosts === 0 ? 0 : distinctPosts / totalDistinctPosts;
@@ -202,7 +217,9 @@ export function mineCandidates(db: DatabaseType): AliasCandidate[] {
       let rejected = '';
       if (existingAliases.has(token)) rejected = 'already aliased';
       else if (existingTeamNames.has(token)) rejected = 'matches existing team name';
+      else if (knownPlayerNames.has(token)) rejected = 'matches existing player name';
       else if (looksLikePlayerName(token)) rejected = 'looks like player name';
+      else if (purePassCount > 1 && purity >= 1.0) rejected = 'ambiguous between candidate teams';
       else if (confidence < 0.8) rejected = 'below confidence floor';
 
       candidates.push({

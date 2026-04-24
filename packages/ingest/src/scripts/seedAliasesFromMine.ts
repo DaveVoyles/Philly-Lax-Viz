@@ -107,8 +107,8 @@ export function seedFromCandidates(
   const teamExists = db.prepare('SELECT 1 FROM teams WHERE id = ?');
   const aliasExists = db.prepare('SELECT 1 FROM team_aliases WHERE alias = ?');
   const insert = db.prepare(
-    `INSERT OR IGNORE INTO team_aliases (alias, team_id, source, confidence, notes)
-       VALUES (?, ?, ?, ?, ?)`,
+    `INSERT OR IGNORE INTO team_aliases (alias, team_id, source, confidence, notes, created_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now'))`,
   );
 
   const result: SeedResult = {

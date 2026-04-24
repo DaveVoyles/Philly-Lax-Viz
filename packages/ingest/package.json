@@ -17,6 +17,8 @@
     "cleanup:junk": "tsx src/scripts/cleanupJunkPlayers.ts",
     "clean:ghosts": "tsx src/scripts/cleanGhostTeams.ts",
     "aliases:seed": "tsx src/scripts/seedTeamAliases.ts",
+    "mine:aliases": "tsx src/scripts/mineAliases.ts",
+    "seed:aliases": "tsx src/scripts/seedAliasesFromMine.ts",
     "branding:seed": "tsx src/scripts/seedTeamBranding.ts",
     "reattribute:junk": "tsx src/scripts/reattributeJunkStats.ts",
     "anomaly:triage": "tsx src/scripts/anomalyTriage.ts",
