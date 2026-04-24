@@ -42,6 +42,12 @@ export interface FetchMaxprepsGameOpts {
    * fetcher reach pages that anon traffic 404s on.
    */
   cookie?: string;
+  /**
+   * Optional pre-discovered canonical game URL (with `?c=<hash>` token).
+   * When set, the fetcher skips slug-guessing and fetches this URL directly.
+   * Discovered via {@link ./maxprepsSchedule.findScheduleEntry}.
+   */
+  discoveredUrl?: string;
 }
 
 const USER_AGENT =
@@ -294,12 +300,14 @@ export async function fetchMaxprepsGameScore(
     return { ...mapped, sourceUrl };
   }
 
-  const candidates = buildGameUrlCandidates({
-    homeName: opts.homeName,
-    awayName: opts.awayName,
-    dateISO: opts.dateISO,
-    schools: opts.schools,
-  });
+  const candidates = opts.discoveredUrl
+    ? [opts.discoveredUrl]
+    : buildGameUrlCandidates({
+        homeName: opts.homeName,
+        awayName: opts.awayName,
+        dateISO: opts.dateISO,
+        schools: opts.schools,
+      });
   if (candidates.length === 0) return null;
 
   const fetchFn = opts.fetchImpl ?? globalThis.fetch;

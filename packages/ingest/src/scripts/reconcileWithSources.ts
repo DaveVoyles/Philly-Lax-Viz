@@ -434,8 +434,17 @@ function printPlan(result: RunResult, opts: RunOptions): void {
  * Resolve the production MaxPreps fetcher. Lane 2 ships
  * `packages/ingest/src/sources/maxprepsGame.ts`; if it isn't on disk yet we
  * surface a clear error rather than crashing on import.
+ *
+ * When a `db` is provided, the fetcher additionally performs schedule URL
+ * discovery: for each (home, away, date) triple, it loads the home (or away)
+ * team's MaxPreps schedule page once per run, finds the canonical game URL
+ * (with the unguessable `?c=<hash>` token), and passes that URL directly into
+ * the inner fetcher via `discoveredUrl`. Without this step, anon traffic 404s
+ * on essentially all per-game URLs.
  */
-async function loadProductionFetcher(): Promise<MaxprepsFetcher> {
+async function loadProductionFetcher(
+  db?: DatabaseType,
+): Promise<MaxprepsFetcher> {
   try {
     // Dynamic import so missing module doesn't break dry-run-with-mocks usage.
     const mod = (await import('../sources/maxprepsGame.js')) as {
@@ -455,17 +464,66 @@ async function loadProductionFetcher(): Promise<MaxprepsFetcher> {
       );
     } else {
       console.log(
-        '[reconcileWithSources] MAXPREPS_COOKIE not set — anon fetch only (most pages 404)',
+        '[reconcileWithSources] MAXPREPS_COOKIE not set — anon fetch only',
       );
     }
+
+    // Schedule discovery setup (only if we have a DB to look up team slugs).
+    const scheduleMod = await import('../sources/maxprepsSchedule.js');
+    const teamSlugLookup = db
+      ? buildTeamSlugLookup(db)
+      : (_name: string) => null;
+    const scheduleCache = new Map<
+      string,
+      Awaited<ReturnType<typeof scheduleMod.fetchTeamSchedule>>
+    >();
+
     const inner = mod.fetchMaxprepsGameScore;
-    // Wrap to inject cookie + adapt to the reconciler's narrow contract.
     return async (args: FetchMaxprepsArgs) => {
+      // 1. Try to discover the canonical URL via the home team's schedule.
+      let discoveredUrl: string | undefined;
+      const homeSlug = teamSlugLookup(args.homeName);
+      const awaySlug = teamSlugLookup(args.awayName);
+      const ownSlug = homeSlug ?? awaySlug;
+      if (ownSlug) {
+        let schedule = scheduleCache.get(ownSlug);
+        if (schedule === undefined) {
+          schedule = await scheduleMod.fetchTeamSchedule({
+            schoolSlug: ownSlug,
+            cookie,
+          });
+          scheduleCache.set(ownSlug, schedule);
+          console.log(
+            `[reconcileWithSources] schedule for ${ownSlug}: ${
+              schedule === null ? 'fetch failed' : `${schedule.length} entries`
+            }`,
+          );
+        }
+        if (schedule && schedule.length > 0) {
+          // Build slug candidates from the school slug (keep both full and
+          // mascot-stripped forms so we match either side of the pair).
+          const ownCands = slugCandidatesFromSchoolSlug(ownSlug);
+          const oppRawSlug = homeSlug ? awaySlug : homeSlug;
+          const oppCands = oppRawSlug
+            ? slugCandidatesFromSchoolSlug(oppRawSlug)
+            : [slugifyName(homeSlug ? args.awayName : args.homeName)];
+          const entry = scheduleMod.findScheduleEntry(schedule, {
+            dateISO: args.dateISO,
+            ownSlugCandidates: ownCands,
+            opponentSlugCandidates: oppCands,
+          });
+          if (entry) {
+            discoveredUrl = entry.url;
+          }
+        }
+      }
+
       const result = await inner({
         homeName: args.homeName,
         awayName: args.awayName,
         dateISO: args.dateISO,
         cookie,
+        discoveredUrl,
       });
       if (!result) return null;
       return {
@@ -487,6 +545,51 @@ async function loadProductionFetcher(): Promise<MaxprepsFetcher> {
   }
 }
 
+/**
+ * Build a `name -> maxpreps_slug` lookup over the teams table. Returns null
+ * when a team has no slug populated.
+ */
+function buildTeamSlugLookup(
+  db: DatabaseType,
+): (name: string) => string | null {
+  const rows = db
+    .prepare(
+      `SELECT name, maxpreps_slug FROM teams WHERE maxpreps_slug IS NOT NULL`,
+    )
+    .all() as Array<{ name: string; maxpreps_slug: string }>;
+  const map = new Map<string, string>();
+  for (const r of rows) {
+    map.set(r.name.toLowerCase(), r.maxpreps_slug);
+  }
+  return (name: string) => map.get(name.toLowerCase()) ?? null;
+}
+
+/**
+ * Derive slug match candidates from a school slug like
+ * "royersford/spring-ford-rams" → ["spring-ford-rams", "spring-ford"].
+ * The schedule URL slugs come without the city prefix and may or may not
+ * include the mascot suffix.
+ */
+function slugCandidatesFromSchoolSlug(schoolSlug: string): string[] {
+  const tail = schoolSlug.split('/').pop() ?? schoolSlug;
+  const parts = tail.split('-');
+  const out: string[] = [tail];
+  if (parts.length > 1) out.push(parts.slice(0, -1).join('-'));
+  if (parts.length > 2) out.push(parts.slice(0, -2).join('-'));
+  return out.filter((s) => s.length > 0);
+}
+
+/** Light slugify for fallback when team has no maxpreps_slug. */
+function slugifyName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 async function main(): Promise<void> {
   const opts = parseArgs(process.argv.slice(2));
 
@@ -504,8 +607,8 @@ async function main(): Promise<void> {
   );
 
   const queue = loadQueue(opts.queuePath);
-  const fetcher = await loadProductionFetcher();
   const db = openDb(dbPath);
+  const fetcher = await loadProductionFetcher(db);
   try {
     const result = await reconcile(db, queue, fetcher, {
       apply: opts.apply,
