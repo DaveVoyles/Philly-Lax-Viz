@@ -1,11 +1,20 @@
-// Anomaly browser (W11 L3, Luke). Maintainer/diagnostic page that groups
-// parser anomalies by reason and surfaces the most-frequent raw lines so
-// data-quality work can happen in one screen instead of hand-querying SQLite.
+// Anomaly browser. Maintainer/diagnostic page that lets you filter parser
+// anomalies by `strategy_attempted` so data-quality work happens in one
+// screen instead of hand-querying SQLite. Also keeps the by-reason summary
+// chart so high-frequency failure modes pop visually.
+//
+// Wave H8 Lane 3 (Leia): added strategy filter dropdown + URL hash
+// persistence so links like `#/anomalies?strategy=composite-name-detected`
+// are shareable.
 
-import { ApiError, getAnomalySummary, type AnomalySummaryResponse } from '../api.js';
+import { ApiError, getAnomalies } from '../api.js';
+import type { IngestAnomaly } from '@pll/shared';
 import { renderHorizontalLeaderboard } from '../charts/horizontalLeaderboard.js';
-
-const TOP_RAW_LIMIT = 50;
+import {
+  groupByStrategy,
+  parseStrategyParam,
+  buildStrategyHash,
+} from './anomaliesFilter.js';
 
 export function render(root: HTMLElement, _params: Record<string, string>): void {
   root.replaceChildren();
@@ -23,6 +32,11 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   status.className = 'anomaly-status';
   root.appendChild(status);
 
+  const controls = document.createElement('div');
+  controls.className = 'anomaly-controls';
+  controls.hidden = true;
+  root.appendChild(controls);
+
   const summarySection = document.createElement('section');
   summarySection.className = 'anomaly-section';
   summarySection.hidden = true;
@@ -34,37 +48,43 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   summarySection.appendChild(summaryChart);
   root.appendChild(summarySection);
 
-  const topSection = document.createElement('section');
-  topSection.className = 'anomaly-section';
-  topSection.hidden = true;
-  const topHeading = document.createElement('h2');
-  topHeading.textContent = 'Top raw lines';
-  topSection.appendChild(topHeading);
-  const topMeta = document.createElement('p');
-  topMeta.className = 'muted';
-  topSection.appendChild(topMeta);
-  const topBody = document.createElement('div');
-  topBody.className = 'anomaly-top-body';
-  topSection.appendChild(topBody);
-  root.appendChild(topSection);
+  const tableSection = document.createElement('section');
+  tableSection.className = 'anomaly-section';
+  tableSection.hidden = true;
+  const tableHeading = document.createElement('h2');
+  tableHeading.textContent = 'Anomalies';
+  tableSection.appendChild(tableHeading);
+  const tableMeta = document.createElement('p');
+  tableMeta.className = 'muted';
+  tableSection.appendChild(tableMeta);
+  const tableBody = document.createElement('div');
+  tableBody.className = 'anomaly-table-body';
+  tableSection.appendChild(tableBody);
+  root.appendChild(tableSection);
 
-  void load({ subtitle, status, summarySection, summaryChart, topSection, topMeta, topBody });
+  void load({ subtitle, status, controls, summarySection, summaryChart, tableSection, tableMeta, tableBody });
 }
 
 interface RenderTargets {
   subtitle: HTMLElement;
   status: HTMLElement;
+  controls: HTMLElement;
   summarySection: HTMLElement;
   summaryChart: HTMLElement;
-  topSection: HTMLElement;
-  topMeta: HTMLElement;
-  topBody: HTMLElement;
+  tableSection: HTMLElement;
+  tableMeta: HTMLElement;
+  tableBody: HTMLElement;
+}
+
+interface ViewState {
+  all: IngestAnomaly[];
+  strategy: string | null; // null = All
 }
 
 async function load(t: RenderTargets): Promise<void> {
-  let data: AnomalySummaryResponse;
+  let rows: IngestAnomaly[];
   try {
-    data = await getAnomalySummary({ limit: TOP_RAW_LIMIT });
+    rows = await getAnomalies();
   } catch (err) {
     const msg = err instanceof ApiError ? `${err.message} (${err.url})` : String(err);
     t.subtitle.textContent = '';
@@ -75,7 +95,7 @@ async function load(t: RenderTargets): Promise<void> {
     return;
   }
 
-  if (data.totalCount === 0) {
+  if (rows.length === 0) {
     t.subtitle.textContent = '';
     const p = document.createElement('p');
     p.className = 'anomaly-empty';
@@ -84,23 +104,110 @@ async function load(t: RenderTargets): Promise<void> {
     return;
   }
 
-  t.subtitle.textContent = `${data.totalCount.toLocaleString()} anomalies across ${data.byReason.length} distinct reason${
-    data.byReason.length === 1 ? '' : 's'
+  const grouped = groupByStrategy(rows);
+  const initial = parseStrategyParam(window.location.hash);
+  const state: ViewState = {
+    all: rows,
+    strategy: initial !== null && grouped.has(initial) ? initial : null,
+  };
+
+  // If the URL pointed at a strategy that isn't in the dataset, normalize
+  // the URL back to the bare hash so the dropdown + URL stay consistent.
+  if (initial !== null && !grouped.has(initial)) {
+    history.replaceState(null, '', buildStrategyHash(null));
+  }
+
+  t.subtitle.textContent = `${rows.length.toLocaleString()} anomalies across ${grouped.size} strateg${
+    grouped.size === 1 ? 'y' : 'ies'
   }.`;
 
-  t.summarySection.hidden = false;
-  renderSummary(t.summaryChart, data);
+  buildControls(t.controls, grouped, state, () => rerender(t, state, grouped));
+  t.controls.hidden = false;
 
-  t.topSection.hidden = false;
-  renderTopLines(t.topBody, t.topMeta, data);
+  t.summarySection.hidden = false;
+  t.tableSection.hidden = false;
+
+  rerender(t, state, grouped);
 }
 
-function renderSummary(host: HTMLElement, data: AnomalySummaryResponse): void {
+function rerender(
+  t: RenderTargets,
+  state: ViewState,
+  grouped: Map<string, IngestAnomaly[]>,
+): void {
+  const filtered = state.strategy === null ? state.all : (grouped.get(state.strategy) ?? []);
+  renderSummary(t.summaryChart, filtered);
+  renderTable(t.tableBody, t.tableMeta, filtered, state);
+}
+
+function buildControls(
+  container: HTMLElement,
+  grouped: Map<string, IngestAnomaly[]>,
+  state: ViewState,
+  onChange: () => void,
+): void {
+  container.replaceChildren();
+
+  const label = document.createElement('label');
+  label.className = 'anomaly-control';
+  const span = document.createElement('span');
+  span.textContent = 'Strategy:';
+  label.appendChild(span);
+
+  const select = document.createElement('select');
+
+  const total = state.all.length;
+  const allOpt = document.createElement('option');
+  allOpt.value = '';
+  allOpt.textContent = `All (${total.toLocaleString()})`;
+  select.appendChild(allOpt);
+
+  // Sort strategies by count descending, tie-break alphabetically.
+  const entries = [...grouped.entries()].sort(
+    (a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]),
+  );
+  for (const [strategy, rows] of entries) {
+    const opt = document.createElement('option');
+    opt.value = strategy;
+    opt.textContent = `${strategy} (${rows.length.toLocaleString()})`;
+    select.appendChild(opt);
+  }
+
+  select.value = state.strategy ?? '';
+
+  select.addEventListener('change', () => {
+    const next = select.value === '' ? null : select.value;
+    state.strategy = next;
+    history.replaceState(null, '', buildStrategyHash(next));
+    onChange();
+  });
+
+  label.appendChild(select);
+  container.appendChild(label);
+}
+
+function renderSummary(host: HTMLElement, rows: IngestAnomaly[]): void {
   host.replaceChildren();
-  const items = data.byReason.map((r, idx) => ({
+
+  if (rows.length === 0) {
+    const p = document.createElement('p');
+    p.className = 'muted';
+    p.textContent = 'No anomalies for the selected strategy.';
+    host.appendChild(p);
+    return;
+  }
+
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    counts.set(r.reason, (counts.get(r.reason) ?? 0) + 1);
+  }
+  const sorted = [...counts.entries()].sort(
+    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+  );
+  const items = sorted.map(([reason, count], idx) => ({
     id: String(idx),
-    label: shortenReason(r.reason),
-    value: r.count,
+    label: shortenReason(reason),
+    value: count,
   }));
   renderHorizontalLeaderboard(host, items, {
     height: Math.max(220, 44 * items.length + 80),
@@ -109,19 +216,28 @@ function renderSummary(host: HTMLElement, data: AnomalySummaryResponse): void {
   });
 }
 
-function renderTopLines(host: HTMLElement, meta: HTMLElement, data: AnomalySummaryResponse): void {
+function renderTable(
+  host: HTMLElement,
+  meta: HTMLElement,
+  rows: IngestAnomaly[],
+  state: ViewState,
+): void {
   host.replaceChildren();
 
-  if (data.topRawLines.length === 0) {
+  if (rows.length === 0) {
     meta.textContent = '';
     const p = document.createElement('p');
     p.className = 'muted';
-    p.textContent = 'No raw lines to show.';
+    p.textContent = 'No matching anomalies.';
     host.appendChild(p);
     return;
   }
 
-  meta.textContent = `Top ${data.topRawLines.length} most-frequent (raw line, reason) pairs.`;
+  const totalAll = state.all.length;
+  meta.textContent =
+    state.strategy === null
+      ? `Showing all ${rows.length.toLocaleString()} anomalies.`
+      : `Showing ${rows.length.toLocaleString()} of ${totalAll.toLocaleString()} anomalies (strategy: ${state.strategy}).`;
 
   const scroller = document.createElement('div');
   scroller.className = 'anomaly-scroll';
@@ -130,22 +246,23 @@ function renderTopLines(host: HTMLElement, meta: HTMLElement, data: AnomalySumma
   table.className = 'anomaly-table';
   const thead = document.createElement('thead');
   const headRow = document.createElement('tr');
-  for (const label of ['Count', 'Reason', 'Raw line', 'Source post']) {
+  for (const lbl of ['Strategy', 'Reason', 'Raw line', 'Source']) {
     const th = document.createElement('th');
-    th.textContent = label;
+    th.textContent = lbl;
     headRow.appendChild(th);
   }
   thead.appendChild(headRow);
   table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
-  for (const row of data.topRawLines) {
+  for (const row of rows) {
     const tr = document.createElement('tr');
 
-    const tdCount = document.createElement('td');
-    tdCount.className = 'anomaly-num';
-    tdCount.textContent = String(row.count);
-    tr.appendChild(tdCount);
+    const tdStrategy = document.createElement('td');
+    const code = document.createElement('code');
+    code.textContent = row.strategyAttempted;
+    tdStrategy.appendChild(code);
+    tr.appendChild(tdStrategy);
 
     const tdReason = document.createElement('td');
     tdReason.className = 'anomaly-reason';
@@ -161,9 +278,9 @@ function renderTopLines(host: HTMLElement, meta: HTMLElement, data: AnomalySumma
 
     const tdSrc = document.createElement('td');
     tdSrc.className = 'anomaly-src';
-    if (row.exampleSourceUrl) {
+    if (row.sourceUrl) {
       const link = document.createElement('a');
-      link.href = row.exampleSourceUrl;
+      link.href = row.sourceUrl;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       link.textContent = 'open';
