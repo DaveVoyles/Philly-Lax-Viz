@@ -1,0 +1,66 @@
+name: snapshot-db-nightly
+
+# Nightly off-host backup of the SQLite DB to Azure Blob Storage.
+# Runs ~15 min after ingest-nightly (which finishes well before 09:00 UTC).
+on:
+  schedule:
+    - cron: '15 9 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10.33.1'
+  DB_LOCAL_PATH: data/lacrosse.db
+
+concurrency:
+  group: snapshot-db-nightly
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    # Self-hosted runner on Mac Mini (myoung34/github-runner Ubuntu Jammy container).
+    # Same label as ingest-nightly so the local DB path is reachable.
+    runs-on: [self-hosted, pll]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install Azure CLI (self-hosted runner — not pre-installed)
+        run: |
+          if ! command -v az >/dev/null 2>&1; then
+            curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+          fi
+          az --version | head -1
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Guard - DB exists
+        id: guard
+        run: |
+          if [ ! -f "${{ env.DB_LOCAL_PATH }}" ]; then
+            echo "::warning::${{ env.DB_LOCAL_PATH }} missing; skipping snapshot"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "DB present: $(du -h ${{ env.DB_LOCAL_PATH }})"
+          fi
+
+      - name: Snapshot DB to Azure
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          DB_PATH: ${{ env.DB_LOCAL_PATH }}
+        run: pnpm --filter @pll/ingest snapshot:db
