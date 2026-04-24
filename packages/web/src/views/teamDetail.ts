@@ -6,12 +6,18 @@ import {
   getTeamUpcoming,
   type ScheduleGame,
   type TeamDetail,
+  type TeamSeasonRecord,
   type TopScorerEntry,
 } from '../api.js';
 import type { Game } from '@pll/shared';
 import { formatDate, formatRecord } from '../util/format.js';
 import { renderSeasonRecord, renderTopScorers } from '../charts/index.js';
 import { extractScoreTrend, renderTeamScoreTrend } from '../charts/teamScoreTrend.js';
+import {
+  renderTeamRadarChart,
+  type RadarOpponentRef,
+  type TeamLike,
+} from '../components/teamRadarChart.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderProvenanceBadge } from '../components/provenanceBadge.js';
 import { renderPiaaBadge, piaaBadgeTooltip } from '../components/piaaBadge.js';
@@ -46,11 +52,13 @@ export function render(root: HTMLElement, params: Record<string, string>): void 
 
 async function load(root: HTMLElement, status: HTMLElement, id: string): Promise<void> {
   let detail: TeamDetail;
+  let teams: TeamSeasonRecord[] = [];
   const teamsById = new Map<number, string>();
   try {
-    const [d, teams] = await Promise.all([getTeamDetail(id), getTeams()]);
+    const [d, t] = await Promise.all([getTeamDetail(id), getTeams()]);
     detail = d;
-    for (const t of teams) teamsById.set(t.id, t.name);
+    teams = t;
+    for (const team of teams) teamsById.set(team.id, team.name);
   } catch (err) {
     const msg = err instanceof ApiError ? `${err.message} (${err.url})` : String(err);
     status.className = 'error';
@@ -233,6 +241,34 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     renderSeasonRecord(chartSlot, detail.record);
   }
 
+  // RFC 05 — Team strength radar. Render right under the season record so
+  // a coach scrolling for a profile sees the polygon before the long
+  // schedule list. Only attempt when this team appears in the league
+  // population (otherwise we can't percentile-rank meaningfully).
+  const focalRow = teams.find((t) => t.id === teamId) ?? null;
+  if (focalRow) {
+    const population: TeamLike[] = teams
+      .filter((t) => t.wins + t.losses > 0)
+      .map(toTeamLike);
+    const opponents: RadarOpponentRef[] = detail.games.map((g) => ({
+      opponentId: g.homeTeamId === teamId ? g.awayTeamId : g.homeTeamId,
+      postponed: g.postponed,
+    }));
+    if (population.length >= 2) {
+      const radarHeader = document.createElement('h2');
+      radarHeader.textContent = 'Team strength radar';
+      root.appendChild(radarHeader);
+      const radarHost = document.createElement('div');
+      radarHost.className = 'team-radar-host';
+      root.appendChild(radarHost);
+      renderTeamRadarChart(radarHost, {
+        team: toTeamLike(focalRow),
+        population,
+        opponents,
+      });
+    }
+  }
+
   const topScorersHeader = document.createElement('h2');
   topScorersHeader.textContent = 'Top Scorers';
   root.appendChild(topScorersHeader);
@@ -303,6 +339,17 @@ export function resultBadge(
 
 function isFiniteScore(s: unknown): s is number {
   return typeof s === 'number' && Number.isFinite(s);
+}
+
+function toTeamLike(t: TeamSeasonRecord): TeamLike {
+  return {
+    id: t.id,
+    name: t.name,
+    wins: t.wins,
+    losses: t.losses,
+    goalsFor: t.goalsFor,
+    goalsAgainst: t.goalsAgainst,
+  };
 }
 
 async function loadTopScorers(slot: HTMLElement, teamId: number): Promise<void> {
