@@ -109,6 +109,9 @@ function dispatch(main: HTMLElement, match: RouteMatch): void {
     case 'playerDetail':
       playerDetail.render(main, match.params);
       return;
+    case 'comparePlayers':
+      void import('./views/comparePlayers.js').then((m) => m.render(main, match.params));
+      return;
     case 'dataQuality':
       dataQuality.render(main, match.params);
       return;

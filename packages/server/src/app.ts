@@ -24,6 +24,7 @@ import { scheduleRoutes } from './routes/schedule.js';
 import { freshnessRoutes } from './routes/freshness.js';
 import { postImagesRoutes } from './routes/postImages.js';
 import { searchRoutes } from './routes/search.js';
+import { comparePlayersRoutes } from './routes/comparePlayers.js';
 
 export interface BuildOptions {
   logger?: boolean;
@@ -86,6 +87,7 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   await freshnessRoutes(app, db);
   await postImagesRoutes(app, db);
   await searchRoutes(app, db);
+  await comparePlayersRoutes(app, db);
 
   return app;
 }

@@ -464,6 +464,17 @@ export function getPlayerDetail(id: string | number): Promise<PlayerDetail> {
   return request<PlayerDetail>(`/players/${encodeURIComponent(String(id))}`);
 }
 
+// ---- Wave H8 L1 (Han) — batch player detail for the compare view ----
+
+export interface ComparePlayersResponse {
+  players: PlayerDetail[];
+}
+
+export function getComparePlayers(ids: ReadonlyArray<number>): Promise<ComparePlayersResponse> {
+  const csv = ids.join(',');
+  return request<ComparePlayersResponse>(`/compare/players?ids=${encodeURIComponent(csv)}`);
+}
+
 export function getTeamTopScorers(
   teamId: string | number,
   limit = 5,

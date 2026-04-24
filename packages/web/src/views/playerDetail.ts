@@ -50,6 +50,15 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   heading.textContent = detail.player.name;
   root.appendChild(heading);
 
+  // Wave H8 L1 (Han) — quick-start the compare view from this player.
+  const compareP = document.createElement('p');
+  const compareBtn = document.createElement('a');
+  compareBtn.href = `#/compare/players?ids=${detail.player.id}`;
+  compareBtn.textContent = 'Compare with…';
+  compareBtn.className = 'compare-link';
+  compareP.appendChild(compareBtn);
+  root.appendChild(compareP);
+
   if (detail.team) {
     const teamP = document.createElement('p');
     teamP.className = 'muted';

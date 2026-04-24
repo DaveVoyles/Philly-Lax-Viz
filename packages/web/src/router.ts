@@ -2,7 +2,7 @@
 // Routes: #/, #/teams/:id, #/games/:id, #/players/:id, #/data-quality
 
 export interface RouteMatch {
-  name: 'dashboard' | 'teamDetail' | 'gameDetail' | 'gameScrubber' | 'playerDetail' | 'dataQuality' | 'leaders' | 'anomalies' | 'graph' | 'constellation' | 'h2h' | 'schedule' | 'sources' | 'status' | 'notFound';
+  name: 'dashboard' | 'teamDetail' | 'gameDetail' | 'gameScrubber' | 'playerDetail' | 'comparePlayers' | 'dataQuality' | 'leaders' | 'anomalies' | 'graph' | 'constellation' | 'h2h' | 'schedule' | 'sources' | 'status' | 'notFound';
   path: string;
   params: Record<string, string>;
 }
@@ -21,6 +21,7 @@ const routes: RouteDef[] = [
   { name: 'gameDetail', pattern: /^\/games\/([^/]+)\/?$/, keys: ['id'] },
   { name: 'gameScrubber', pattern: /^\/game\/([^/]+)\/?$/, keys: ['id'] },
   { name: 'playerDetail', pattern: /^\/players\/([^/]+)\/?$/, keys: ['id'] },
+  { name: 'comparePlayers', pattern: /^\/compare\/players\/?$/, keys: [] },
   { name: 'dataQuality', pattern: /^\/data-quality\/?$/, keys: [] },
   { name: 'leaders', pattern: /^\/leaders\/?$/, keys: [] },
   { name: 'anomalies', pattern: /^\/anomalies\/?$/, keys: [] },
