@@ -25,6 +25,7 @@ import { apiUrl } from '../apiBase.js';
 type SortKey = 'name' | 'gap';
 type SortDir = 'asc' | 'desc';
 interface TeamSort { key: SortKey; dir: SortDir; }
+interface TeamFilter { hideLowGames: boolean; minGames: number; }
 
 const RECENT_GAME_LIMIT = 25;
 const LEADER_PANEL_LIMIT = 10;
@@ -341,11 +342,22 @@ async function loadTeamsAndGames(
   }
 
   const sort: TeamSort = { key: 'name', dir: 'asc' };
+  // Out-of-area teams typically appear in our DB only if they played a single
+  // crossover/showcase against a Philly team. Hide them by default so the
+  // grid focuses on teams with real season presence.
+  const filter: TeamFilter = { hideLowGames: true, minGames: 3 };
   const renderGrid = (): void => {
-    teamsTarget.replaceChildren(buildTeamsGrid(teams, sort, (next) => {
-      sort.key = next.key;
-      sort.dir = next.dir;
-      renderGrid();
+    teamsTarget.replaceChildren(buildTeamsGrid(teams, sort, filter, {
+      onSort: (next) => {
+        sort.key = next.key;
+        sort.dir = next.dir;
+        renderGrid();
+      },
+      onFilter: (next) => {
+        filter.hideLowGames = next.hideLowGames;
+        filter.minGames = next.minGames;
+        renderGrid();
+      },
     }));
   };
   renderGrid();
@@ -400,7 +412,11 @@ const SORT_OPTIONS: { value: string; key: SortKey; dir: SortDir; label: string }
 function buildTeamsGrid(
   teams: TeamSeasonRecord[],
   sort: TeamSort,
-  onSort: (next: TeamSort) => void,
+  filter: TeamFilter,
+  callbacks: {
+    onSort: (next: TeamSort) => void;
+    onFilter: (next: TeamFilter) => void;
+  },
 ): HTMLElement {
   const wrap = document.createElement('div');
 
@@ -414,7 +430,7 @@ function buildTeamsGrid(
     return wrap;
   }
 
-  // Sort control
+  // Sort + filter controls
   const controls = document.createElement('div');
   controls.className = 'teams-controls';
   const label = document.createElement('label');
@@ -431,18 +447,53 @@ function buildTeamsGrid(
   }
   select.addEventListener('change', () => {
     const picked = SORT_OPTIONS.find((o) => o.value === select.value);
-    if (picked) onSort({ key: picked.key, dir: picked.dir });
+    if (picked) callbacks.onSort({ key: picked.key, dir: picked.dir });
   });
   label.appendChild(select);
   controls.appendChild(label);
+
+  // Min-games filter. Hides out-of-area teams that only show up because they
+  // played a single Philly opponent in a showcase / non-conference game.
+  const filterLabel = document.createElement('label');
+  filterLabel.className = 'muted teams-filter';
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.checked = filter.hideLowGames;
+  cb.addEventListener('change', () => {
+    callbacks.onFilter({ hideLowGames: cb.checked, minGames: filter.minGames });
+  });
+  filterLabel.appendChild(cb);
+  filterLabel.append(' Hide teams with fewer than ');
+  const minInput = document.createElement('input');
+  minInput.type = 'number';
+  minInput.min = '1';
+  minInput.max = '50';
+  minInput.value = String(filter.minGames);
+  minInput.className = 'teams-filter__min';
+  minInput.addEventListener('change', () => {
+    const n = Math.max(1, Math.min(50, Number.parseInt(minInput.value, 10) || filter.minGames));
+    callbacks.onFilter({ hideLowGames: filter.hideLowGames, minGames: n });
+  });
+  filterLabel.appendChild(minInput);
+  filterLabel.append(' games');
+  controls.appendChild(filterLabel);
+
+  // Apply the filter so we can render an accurate "X of Y" count.
+  const visible = filter.hideLowGames
+    ? teams.filter((t) => teamGameCount(t) >= filter.minGames)
+    : teams;
+
   const count = document.createElement('span');
   count.className = 'muted';
-  count.textContent = ` ${teams.length} teams`;
+  count.textContent =
+    visible.length === teams.length
+      ? ` ${teams.length} teams`
+      : ` ${visible.length} of ${teams.length} teams`;
   controls.appendChild(count);
   wrap.appendChild(controls);
 
   // Grid
-  const sorted = sortTeams(teams, sort);
+  const sorted = sortTeams(visible, sort);
   const ul = document.createElement('ul');
   ul.className = 'team-grid';
   for (const t of sorted) {
@@ -468,6 +519,15 @@ function buildTeamsGrid(
   }
   wrap.appendChild(ul);
   return wrap;
+}
+
+// Total games we have for a team this season. Prefer the explicit coverage
+// count (server-computed from the games table) and fall back to W+L when
+// coverage isn't populated.
+export function teamGameCount(t: TeamSeasonRecord): number {
+  const ours = t.coverage?.ourGames;
+  if (typeof ours === 'number') return ours;
+  return (t.wins ?? 0) + (t.losses ?? 0);
 }
 
 function buildGapBadge(t: TeamSeasonRecord): HTMLSpanElement {
