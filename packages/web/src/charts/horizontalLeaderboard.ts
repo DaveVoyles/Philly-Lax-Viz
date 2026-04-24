@@ -103,7 +103,7 @@ export function renderHorizontalLeaderboard(
       .attr('y', yPos + bandH / 2)
       .attr('dominant-baseline', 'middle')
       .attr('fill', theme.fg)
-      .style('font-size', '11px')
+      .style('font-size', '13px')
       .text(opts.valueFormat(d.value));
   }
 
@@ -114,14 +114,14 @@ export function renderHorizontalLeaderboard(
       return d ? d.label : '';
     }),
   );
-  yAxisG.selectAll('text').attr('fill', theme.fg);
+  yAxisG.selectAll('text').attr('fill', theme.fg).style('font-size', '13px');
   yAxisG.selectAll('path,line').attr('stroke', theme.border);
 
   const xAxisG = inner
     .append('g')
     .attr('transform', `translate(0,${innerHeight})`)
     .call(axisBottom(x).ticks(5).tickFormat((d) => String(d)));
-  xAxisG.selectAll('text').attr('fill', theme.fg);
+  xAxisG.selectAll('text').attr('fill', theme.fg).style('font-size', '12px');
   xAxisG.selectAll('path,line').attr('stroke', theme.border);
 
   if (opts.xAxisLabel) {

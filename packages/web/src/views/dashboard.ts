@@ -230,7 +230,7 @@ async function loadLeaderPanel(
         href: `#/players/${r.playerId}`,
         sublabel: r.teamName,
       })),
-      { valueFormat: format, xAxisLabel: axisLabel, height: 320, margin: { top: 16, right: 48, bottom: 32, left: 140 } },
+      { valueFormat: format, xAxisLabel: axisLabel, height: 360, margin: { top: 16, right: 56, bottom: 36, left: 170 } },
     );
     dashboardCharts.push(handle);
   } catch (err) {
