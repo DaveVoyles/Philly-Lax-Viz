@@ -1,0 +1,1042 @@
+[
+  {
+    "gameId": 200,
+    "date": "2026-04-14",
+    "homeTeam": "Council Rock North",
+    "awayTeam": "Holy Ghost Prep",
+    "plHomeScore": 20,
+    "plAwayScore": 4,
+    "suspectSide": "home",
+    "suspectTeam": "Council Rock North",
+    "plScore": 20,
+    "mpScore": 15,
+    "overcountBy": 5,
+    "maxprepsUrl": "https://www.maxpreps.com/games/04-14-2026/lacrosse-26/council-rock-north-vs-holy-ghost-prep.htm?c=NyTLiBdu20KvvAQDd7xq7g",
+    "playerGoalsSum": 21,
+    "playersWithGoals": 8,
+    "reason": "mpScore(15) < playerGoalsSum(21)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Trey Minter",
+        "goals": 4,
+        "assists": 9
+      },
+      {
+        "player": "Liam Dudley",
+        "goals": 4,
+        "assists": 1
+      },
+      {
+        "player": "Chase Steadman",
+        "goals": 2,
+        "assists": 1
+      },
+      {
+        "player": "Liam Costello",
+        "goals": 2,
+        "assists": 1
+      },
+      {
+        "player": "Chase Klein",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Billy McBride",
+        "goals": 4,
+        "assists": 1
+      },
+      {
+        "player": "Chase Gillie",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Hayden Eshalman",
+        "goals": 1,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 7,
+    "date": "2026-04-21",
+    "homeTeam": "Council Rock South",
+    "awayTeam": "Holy Ghost Prep",
+    "plHomeScore": 15,
+    "plAwayScore": 4,
+    "suspectSide": "home",
+    "suspectTeam": "Council Rock South",
+    "plScore": 15,
+    "mpScore": 14,
+    "overcountBy": 1,
+    "maxprepsUrl": "https://www.maxpreps.com/games/04-21-2026/lacrosse-26/council-rock-south-vs-holy-ghost-prep.htm?c=nIIPXCYQQkG_c9iCbtpAgA",
+    "playerGoalsSum": 17,
+    "playersWithGoals": 5,
+    "reason": "mpScore(14) < playerGoalsSum(17)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Hayden Cattie",
+        "goals": 7,
+        "assists": 2
+      },
+      {
+        "player": "Conor McCaffery",
+        "goals": 5,
+        "assists": 2
+      },
+      {
+        "player": "Pat Malone",
+        "goals": 3,
+        "assists": 1
+      },
+      {
+        "player": "Cole Telegadis",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Lucas Lacey",
+        "goals": 1,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 16,
+    "date": "2026-04-21",
+    "homeTeam": "Conestoga",
+    "awayTeam": "Lower Merion",
+    "plHomeScore": 14,
+    "plAwayScore": 1,
+    "suspectSide": "home",
+    "suspectTeam": "Conestoga",
+    "plScore": 14,
+    "mpScore": 14,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/04-21-2026/lacrosse-26/conestoga-vs-lower-merion.htm?c=9F85ZwrjLkWLoTkxQIigZw",
+    "playerGoalsSum": 15,
+    "playersWithGoals": 8,
+    "reason": "mpScore(14) < playerGoalsSum(15)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Liam Donovan",
+        "goals": 3,
+        "assists": 2
+      },
+      {
+        "player": "Charlie Pulliam",
+        "goals": 5,
+        "assists": 0
+      },
+      {
+        "player": "Happy Mayer",
+        "goals": 2,
+        "assists": 1
+      },
+      {
+        "player": "Whit Lukens",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Ryder Burling",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Nate Mercaldo",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Henry Cook",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "George McGrath",
+        "goals": 1,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 105,
+    "date": "2026-04-18",
+    "homeTeam": "Crestwood",
+    "awayTeam": "Lewisburg",
+    "plHomeScore": 19,
+    "plAwayScore": 5,
+    "suspectSide": "home",
+    "suspectTeam": "Crestwood",
+    "plScore": 19,
+    "mpScore": 19,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/04-18-2026/lacrosse-26/crestwood-vs-lewisburg.htm?c=JFE8HoAhvkmjTtYtnT7_eA",
+    "playerGoalsSum": 20,
+    "playersWithGoals": 9,
+    "reason": "mpScore(19) < playerGoalsSum(20)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Kevin Schlude",
+        "goals": 5,
+        "assists": 1
+      },
+      {
+        "player": "Logan Lawson",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Ty McConnell",
+        "goals": 3,
+        "assists": 1
+      },
+      {
+        "player": "Gianni Piccolotti",
+        "goals": 2,
+        "assists": 3
+      },
+      {
+        "player": "Cole Pugh",
+        "goals": 4,
+        "assists": 0
+      },
+      {
+        "player": "Kieren Koons",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Trey McConnell",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Jake Jeckell",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Allen Seifert",
+        "goals": 1,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 107,
+    "date": "2026-04-17",
+    "homeTeam": "Malvern Prep",
+    "awayTeam": "Penn Charter",
+    "plHomeScore": 16,
+    "plAwayScore": 2,
+    "suspectSide": "home",
+    "suspectTeam": "Malvern Prep",
+    "plScore": 16,
+    "mpScore": 16,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/04-17-2026/lacrosse-26/malvern-prep-vs-william-penn-charter.htm?c=GVuaR68mW0OAifX0LycOBw",
+    "playerGoalsSum": 18,
+    "playersWithGoals": 13,
+    "reason": "mpScore(16) < playerGoalsSum(18)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Joey Murphy",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Tommy Onderdonk",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "George Irish",
+        "goals": 3,
+        "assists": 0
+      },
+      {
+        "player": "Shane Adams",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Dan Riely",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Jamie McCracken",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "House Young",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Kane Primanti",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Terry Clark",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Declan Pyfer",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Calvin Mattice",
+        "goals": 2,
+        "assists": 1
+      },
+      {
+        "player": "Nate Hengst",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Thomas Ploszay",
+        "goals": 2,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 180,
+    "date": "2026-04-14",
+    "homeTeam": "Abington Heights",
+    "awayTeam": "Lake-Lehman",
+    "plHomeScore": 20,
+    "plAwayScore": 3,
+    "suspectSide": "home",
+    "suspectTeam": "Abington Heights",
+    "plScore": 20,
+    "mpScore": 20,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/04-14-2026/lacrosse-26/abington-heights-vs-lake-lehman.htm?c=Lit2cID9sUK93Ign1bCf7w",
+    "playerGoalsSum": 23,
+    "playersWithGoals": 12,
+    "reason": "mpScore(20) < playerGoalsSum(23)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Braghan Pallis",
+        "goals": 5,
+        "assists": 3
+      },
+      {
+        "player": "Chris Bohn",
+        "goals": 4,
+        "assists": 2
+      },
+      {
+        "player": "Gavin Lindsay",
+        "goals": 2,
+        "assists": 3
+      },
+      {
+        "player": "Rodman Azar",
+        "goals": 2,
+        "assists": 1
+      },
+      {
+        "player": "Gavin Anders",
+        "goals": 2,
+        "assists": 1
+      },
+      {
+        "player": "Mike Oboyle",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Ryan Repshis",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Logan Fedor",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Mike Arcure",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Lukas Dennis",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Mathew Mitchell",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Lukas Broughton",
+        "goals": 1,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 202,
+    "date": "2026-04-14",
+    "homeTeam": "Twin Valley",
+    "awayTeam": "Berks Catholic",
+    "plHomeScore": 20,
+    "plAwayScore": 3,
+    "suspectSide": "home",
+    "suspectTeam": "Twin Valley",
+    "plScore": 20,
+    "mpScore": 20,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/04-14-2026/lacrosse-26/berks-catholic-vs-twin-valley.htm?c=kCqkwmNYYEKYtH3OWT4nrQ",
+    "playerGoalsSum": 23,
+    "playersWithGoals": 12,
+    "reason": "mpScore(20) < playerGoalsSum(23)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Keenan Munn",
+        "goals": 1,
+        "assists": 6
+      },
+      {
+        "player": "Cooper Glass",
+        "goals": 4,
+        "assists": 0
+      },
+      {
+        "player": "Drew Engle",
+        "goals": 3,
+        "assists": 1
+      },
+      {
+        "player": "Carter Borkowski",
+        "goals": 3,
+        "assists": 0
+      },
+      {
+        "player": "Brayden Fraley",
+        "goals": 2,
+        "assists": 2
+      },
+      {
+        "player": "Chase Shearer",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Colin Gallagher",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Patrick Shanahan",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Addison Schneider",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Maverik Foster",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Minh Vo",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Sean Murphy",
+        "goals": 3,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 239,
+    "date": "2026-04-10",
+    "homeTeam": "Scranton Prep",
+    "awayTeam": "Wilkes Barre Area",
+    "plHomeScore": 24,
+    "plAwayScore": 4,
+    "suspectSide": "home",
+    "suspectTeam": "Scranton Prep",
+    "plScore": 24,
+    "mpScore": 24,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/04-10-2026/lacrosse-26/scranton-prep-vs-wilkes-barre.htm?c=EB-EJqHoCUmCUqub8PIJjw",
+    "playerGoalsSum": 25,
+    "playersWithGoals": 13,
+    "reason": "mpScore(24) < playerGoalsSum(25)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Mackey Lynett",
+        "goals": 4,
+        "assists": 1
+      },
+      {
+        "player": "Braedon McPartland",
+        "goals": 3,
+        "assists": 3
+      },
+      {
+        "player": "Owen McPartland",
+        "goals": 3,
+        "assists": 2
+      },
+      {
+        "player": "Will McPartland",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Brian James",
+        "goals": 2,
+        "assists": 1
+      },
+      {
+        "player": "Tate Cullen",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Packey Abrahamsen",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Roman Lowe",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Robert Hogan",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Max McGrath",
+        "goals": 1,
+        "assists": 5
+      },
+      {
+        "player": "Thomas Lynett",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Jimmy Black",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Alex Scanlon",
+        "goals": 1,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 339,
+    "date": "2026-03-30",
+    "homeTeam": "Valley Central (NY)",
+    "awayTeam": "Delaware Valley",
+    "plHomeScore": 7,
+    "plAwayScore": 6,
+    "suspectSide": "away",
+    "suspectTeam": "Delaware Valley",
+    "plScore": 6,
+    "mpScore": 6,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/03-30-2026/lacrosse-26/delaware-valley-vs-valley-central.htm?c=m5-OVXdDp0emAjYZ7Y0uPQ",
+    "playerGoalsSum": 7,
+    "playersWithGoals": 5,
+    "reason": "mpScore(6) < playerGoalsSum(7)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Phillip Leslie Jr.",
+        "goals": 3,
+        "assists": 0
+      },
+      {
+        "player": "Chris Devaney",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Nova Keeling",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Colin McGarvey",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Tyler Husejnovic",
+        "goals": 1,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 400,
+    "date": "2026-03-25",
+    "homeTeam": "Abington Heights",
+    "awayTeam": "Lewisburg",
+    "plHomeScore": 19,
+    "plAwayScore": 3,
+    "suspectSide": "home",
+    "suspectTeam": "Abington Heights",
+    "plScore": 19,
+    "mpScore": 19,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/03-25-2026/lacrosse-26/abington-heights-vs-lewisburg.htm?c=lH8pCyYC6kyhhQeS_gQpmw",
+    "playerGoalsSum": 22,
+    "playersWithGoals": 12,
+    "reason": "mpScore(19) < playerGoalsSum(22)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Chris Bohn",
+        "goals": 5,
+        "assists": 0
+      },
+      {
+        "player": "Ryan Repshis",
+        "goals": 3,
+        "assists": 0
+      },
+      {
+        "player": "Rodman Azar",
+        "goals": 2,
+        "assists": 2
+      },
+      {
+        "player": "Mike Oboyle",
+        "goals": 2,
+        "assists": 1
+      },
+      {
+        "player": "Thatcher Loss",
+        "goals": 2,
+        "assists": 1
+      },
+      {
+        "player": "Braghan Pallis",
+        "goals": 1,
+        "assists": 5
+      },
+      {
+        "player": "Gavin Anders",
+        "goals": 1,
+        "assists": 4
+      },
+      {
+        "player": "Gavin Lindsay",
+        "goals": 1,
+        "assists": 2
+      },
+      {
+        "player": "Logan Fedor",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Mike Arcure",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "AH Colton Naholnik",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "AH Matt Mitchell",
+        "goals": 1,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 434,
+    "date": "2026-03-23",
+    "homeTeam": "Abington Heights",
+    "awayTeam": "Wyoming Area",
+    "plHomeScore": 19,
+    "plAwayScore": 1,
+    "suspectSide": "home",
+    "suspectTeam": "Abington Heights",
+    "plScore": 19,
+    "mpScore": 19,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/03-23-2026/lacrosse-26/abington-heights-vs-wyoming-area.htm?c=Ed3aW9mwxE6IMhNGA25M9Q",
+    "playerGoalsSum": 20,
+    "playersWithGoals": 12,
+    "reason": "mpScore(19) < playerGoalsSum(20)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Thatcher Loss",
+        "goals": 3,
+        "assists": 1
+      },
+      {
+        "player": "Michael O'Boyle",
+        "goals": 3,
+        "assists": 2
+      },
+      {
+        "player": "Braghan Pallis",
+        "goals": 2,
+        "assists": 1
+      },
+      {
+        "player": "Chris Bohn",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Rodman Azar",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Ryan Repshis",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Gavin Lindsay",
+        "goals": 1,
+        "assists": 3
+      },
+      {
+        "player": "Logan Fedor",
+        "goals": 1,
+        "assists": 2
+      },
+      {
+        "player": "Gavin Anders",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Rocco Sarafinko",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Sean Beck",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "AH Matthew Mitchell",
+        "goals": 1,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 450,
+    "date": "2026-03-21",
+    "homeTeam": "Ridley",
+    "awayTeam": "Central Bucks West",
+    "plHomeScore": 19,
+    "plAwayScore": 9,
+    "suspectSide": "home",
+    "suspectTeam": "Ridley",
+    "plScore": 19,
+    "mpScore": 19,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/03-21-2026/lacrosse-26/central-bucks-west-vs-ridley.htm?c=A_Hu7n-65UKbFrG2sgVVxg",
+    "playerGoalsSum": 19,
+    "playersWithGoals": 9,
+    "reason": "mpScore(19) < playerGoalsSum(28)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Brody Bair",
+        "goals": 3,
+        "assists": 6
+      },
+      {
+        "player": "Jason Rubincam",
+        "goals": 5,
+        "assists": 2
+      },
+      {
+        "player": "Jake Keller",
+        "goals": 3,
+        "assists": 0
+      },
+      {
+        "player": "Ian Green",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Dustin Zappone",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Jake Busza",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Cole Murray",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Billy Soper",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Nick Wood",
+        "goals": 1,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 483,
+    "date": "2026-03-19",
+    "homeTeam": "Conestoga",
+    "awayTeam": "Central Bucks South",
+    "plHomeScore": 6,
+    "plAwayScore": 3,
+    "suspectSide": "home",
+    "suspectTeam": "Conestoga",
+    "plScore": 6,
+    "mpScore": 6,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/03-19-2026/lacrosse-26/central-bucks-south-vs-conestoga.htm?c=X-ovqmLiNE-bgAK_5N6r8w",
+    "playerGoalsSum": 9,
+    "playersWithGoals": 5,
+    "reason": "mpScore(6) < playerGoalsSum(9)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Liam Donovan",
+        "goals": 4,
+        "assists": 0
+      },
+      {
+        "player": "Charlie Pulliam",
+        "goals": 2,
+        "assists": 1
+      },
+      {
+        "player": "Happy Mayer",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Brian Ford",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Laird Manifold",
+        "goals": 1,
+        "assists": 1
+      }
+    ]
+  },
+  {
+    "gameId": 487,
+    "date": "2026-03-19",
+    "homeTeam": "Father Judge",
+    "awayTeam": "Neshaminy",
+    "plHomeScore": 14,
+    "plAwayScore": 5,
+    "suspectSide": "home",
+    "suspectTeam": "Father Judge",
+    "plScore": 14,
+    "mpScore": 14,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/03-19-2026/lacrosse-26/father-judge-vs-neshaminy.htm?c=HeYJGVPe5E-8xFErrPEM2g",
+    "playerGoalsSum": 15,
+    "playersWithGoals": 7,
+    "reason": "mpScore(14) < playerGoalsSum(15)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Gavin Comas",
+        "goals": 6,
+        "assists": 3
+      },
+      {
+        "player": "Joe Donohue",
+        "goals": 2,
+        "assists": 2
+      },
+      {
+        "player": "Matt Carey",
+        "goals": 3,
+        "assists": 0
+      },
+      {
+        "player": "Will Mount",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Jack Zigenfuss",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Shaun Duffy",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Evan Wolk",
+        "goals": 1,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 519,
+    "date": "2026-03-14",
+    "homeTeam": "Malvern Prep",
+    "awayTeam": "Landon School",
+    "plHomeScore": 11,
+    "plAwayScore": 6,
+    "suspectSide": "home",
+    "suspectTeam": "Malvern Prep",
+    "plScore": 11,
+    "mpScore": 11,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/03-14-2026/lacrosse-26/landon-vs-malvern-prep.htm?c=ukDfvqxdmka6m0zOZjeJ3g",
+    "playerGoalsSum": 12,
+    "playersWithGoals": 6,
+    "reason": "mpScore(11) < playerGoalsSum(12)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Danny Lucovich",
+        "goals": 4,
+        "assists": 1
+      },
+      {
+        "player": "Joey Murphy",
+        "goals": 3,
+        "assists": 1
+      },
+      {
+        "player": "Tommy Onderdonk",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Brady Whalen",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Conor McCarthy",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "TJ McDermott",
+        "goals": 1,
+        "assists": 0
+      }
+    ]
+  },
+  {
+    "gameId": 528,
+    "date": "2026-03-13",
+    "homeTeam": "Council Rock North",
+    "awayTeam": "Abington",
+    "plHomeScore": 17,
+    "plAwayScore": 2,
+    "suspectSide": "home",
+    "suspectTeam": "Council Rock North",
+    "plScore": 17,
+    "mpScore": 17,
+    "overcountBy": 0,
+    "maxprepsUrl": "https://www.maxpreps.com/games/03-13-2026/lacrosse-26/abington-vs-council-rock-north.htm?c=67JE9lT_skWeCQXJHenl5Q",
+    "playerGoalsSum": 18,
+    "playersWithGoals": 8,
+    "reason": "mpScore(17) < playerGoalsSum(18)",
+    "fetchedAt": "2026-04-24T14:05:07.131Z",
+    "players": [
+      {
+        "player": "Calvin Sadovy",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Liam Costello",
+        "goals": 1,
+        "assists": 1
+      },
+      {
+        "player": "Billy McBride",
+        "goals": 4,
+        "assists": 4
+      },
+      {
+        "player": "Trey Minter",
+        "goals": 2,
+        "assists": 0
+      },
+      {
+        "player": "Liam Dudley",
+        "goals": 5,
+        "assists": 0
+      },
+      {
+        "player": "Chase Klein",
+        "goals": 2,
+        "assists": 1
+      },
+      {
+        "player": "Nick Topalovich",
+        "goals": 1,
+        "assists": 0
+      },
+      {
+        "player": "Zach Wiener",
+        "goals": 1,
+        "assists": 0
+      }
+    ]
+  }
+]
