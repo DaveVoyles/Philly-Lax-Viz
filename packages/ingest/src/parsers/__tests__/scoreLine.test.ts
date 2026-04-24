@@ -212,4 +212,73 @@ describe('parseScoreLine — trailing event-annotation parens', () => {
     expect(r.result?.teamB).toBe('Wissahickon');
     expect(r.result?.teamB).not.toMatch(/Charity/);
   });
+
+  // Wave J1: input-normalization recovery for dirty score lines that the
+  // strict SCORE_RE can't match directly. See data/anomaly-triage.md for the
+  // 11-line failure inventory this addresses.
+  describe('input normalization recovery', () => {
+    it('parses ", 2OT" (comma + bare OT count, no parens)', () => {
+      const r = parseScoreLine('Westtown 8, Perkiomen School 7, 2OT');
+      expect(r.result).toMatchObject({
+        teamA: 'Westtown',
+        scoreA: 8,
+        teamB: 'Perkiomen School',
+        scoreB: 7,
+        otPeriods: 2,
+      });
+    });
+
+    it('parses ", 4OT"', () => {
+      const r = parseScoreLine('Pennsbury 6, Central Bucks South 5, 4OT');
+      expect(r.result?.otPeriods).toBe(4);
+    });
+
+    it('parses ", 2 OT" (with space between digit and OT)', () => {
+      const r = parseScoreLine('Parkland 8, Northwestern 7, 2 OT');
+      expect(r.result?.otPeriods).toBe(2);
+    });
+
+    it('parses ". OT" (period instead of comma before OT)', () => {
+      const r = parseScoreLine('North Penn 5, WC Henderson 4. OT');
+      expect(r.result?.otPeriods).toBe(1);
+      expect(r.result?.scoreB).toBe(4);
+    });
+
+    it('parses comma-OT with parenthesized state suffix on second team', () => {
+      const r = parseScoreLine('Malvern Prep 11, Chaminade (NY) 10, 2OT');
+      expect(r.result).toMatchObject({
+        teamA: 'Malvern Prep',
+        teamB: 'Chaminade',
+        scoreA: 11,
+        scoreB: 10,
+        otPeriods: 2,
+      });
+    });
+
+    it('strips "(district N)" parenthetical on a team token', () => {
+      const r = parseScoreLine('North Penn 6, Abington Heights (district 2) 5');
+      expect(r.result).toMatchObject({
+        teamA: 'North Penn',
+        teamB: 'Abington Heights',
+        scoreA: 6,
+        scoreB: 5,
+      });
+    });
+
+    it('drops a trailing junk comma', () => {
+      const r = parseScoreLine('Council Rock North 7, Lansdale Catholic 4,');
+      expect(r.result).toMatchObject({
+        teamA: 'Council Rock North',
+        teamB: 'Lansdale Catholic',
+        scoreA: 7,
+        scoreB: 4,
+        otPeriods: 0,
+      });
+    });
+
+    it('still rejects quarter-line input', () => {
+      const r = parseScoreLine('Easton: 6, 3, 3, 2 - 14');
+      expect(r.result).toBeNull();
+    });
+  });
 });

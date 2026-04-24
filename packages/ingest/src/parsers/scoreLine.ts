@@ -13,6 +13,34 @@ function stripTrailingStateSuffix(s: string): string {
   return s.replace(/\s*\([A-Z]{2,3}\)\s*$/i, '').trim();
 }
 
+/**
+ * Pre-normalize a candidate score line so the strict SCORE_RE can match a few
+ * common dirty-input variants we see in scoreboard posts:
+ *
+ *   1. Trailing comma garbage:   "Team A 7, Team B 4,"           → drop "," 
+ *   2. Comma/period bare OT:     "...7 4, 2OT" / "...4. OT"      → "(2OT)"/"(OT)"
+ *   3. District parenthetical:   "Abington Heights (district 2)" → strip
+ *
+ * Recovers ~11 score lines per scrape that previously slipped through and
+ * caused all subsequent player-stat lines on the post to attribute to the
+ * wrong game (the prior score line). See data/anomaly-triage.md for the
+ * full failure inventory.
+ */
+function normalizeScoreLineInput(s: string): string {
+  let r = s;
+  // Strip district / division parenthetical that decorates a team token but
+  // isn't part of the team name.
+  r = r.replace(/\s*\((?:district\s+\d+|d\d+)\)/gi, '');
+  // Drop a trailing junk comma (often a copy-paste artifact at end of line).
+  r = r.replace(/,\s*$/, '');
+  // Normalize OT variants written with comma or period instead of as a
+  // standalone parenthetical:
+  //   ", 2OT" / ", 2 OT" → " (2OT)"
+  //   ". OT"  / ". 2OT"  → " (OT)"  / " (2OT)"
+  r = r.replace(/[,.]\s*(\d+)?\s*OT\b/i, (_m, n) => ` (${n ? n : ''}OT)`);
+  return r;
+}
+
 // Score line: "Team A 14, Team B 7" with optional "(3OT)" / ", OT" / ", ppd"
 // or trailing bare " 2OT" / " OT" (Wave 12 Lane 1 — Darth 😈⚡: catches
 // "Avon Grove 9, West Chester East 8 2OT").
@@ -60,7 +88,7 @@ export function parseScoreLine(rawLine: string): ParseResult<ParsedScoreLine> {
   if (!line) return { result: null, anomalies: [] };
 
   // Trim a single trailing period that's just punctuation noise.
-  const cleaned = line.replace(/\.+$/, '');
+  const cleaned = normalizeScoreLineInput(line.replace(/\.+$/, ''));
   let m = cleaned.match(SCORE_RE);
   let usedNoComma = false;
   if (!m) {
