@@ -110,14 +110,6 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   statsHeader.textContent = 'Player Stats';
   root.appendChild(statsHeader);
 
-  if (playerStats.length === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'muted';
-    empty.textContent = 'No player stats logged.';
-    root.appendChild(empty);
-    return;
-  }
-
   // Group player stats by team name (server already sorted by team name then
   // player name). Render away team first, home team second.
   const grouped = new Map<string, GamePlayerStat[]>();
@@ -125,6 +117,46 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     const list = grouped.get(ps.teamName) ?? [];
     list.push(ps);
     grouped.set(ps.teamName, list);
+  }
+
+  // Surface a friendly notice for any side that scored but has no published
+  // individual stats — a common gap in PhillyLacrosse.com summaries where only
+  // the winning team's scorers are listed.
+  const sideHasNoStats = (teamName: string, score: number): boolean =>
+    !game.postponed && score > 0 && (grouped.get(teamName)?.length ?? 0) === 0;
+
+  if (
+    sideHasNoStats(homeName, game.homeScore) ||
+    sideHasNoStats(awayName, game.awayScore)
+  ) {
+    if (sideHasNoStats(awayName, game.awayScore)) {
+      root.appendChild(
+        renderAnomalyBanner({
+          kind: 'stats-not-published',
+          gameId: game.id,
+          teamName: awayName,
+          teamScore: game.awayScore,
+        }),
+      );
+    }
+    if (sideHasNoStats(homeName, game.homeScore)) {
+      root.appendChild(
+        renderAnomalyBanner({
+          kind: 'stats-not-published',
+          gameId: game.id,
+          teamName: homeName,
+          teamScore: game.homeScore,
+        }),
+      );
+    }
+  }
+
+  if (playerStats.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'muted';
+    empty.textContent = 'No player stats logged.';
+    root.appendChild(empty);
+    return;
   }
 
   const orderedTeamNames: string[] = [];

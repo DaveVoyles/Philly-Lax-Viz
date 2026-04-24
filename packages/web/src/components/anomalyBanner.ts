@@ -3,7 +3,10 @@
 // data-quality anomaly). A reconciled variant is provided for once the issue
 // has been corrected upstream.
 
-export type AnomalyKind = 'team-score-exceeded' | 'reconciled';
+export type AnomalyKind =
+  | 'team-score-exceeded'
+  | 'stats-not-published'
+  | 'reconciled';
 
 export interface AnomalyBannerOpts {
   kind: AnomalyKind;
@@ -18,14 +21,24 @@ export function renderAnomalyBanner(opts: AnomalyBannerOpts): HTMLElement {
   const div = document.createElement('div');
   div.className =
     opts.kind === 'reconciled' ? 'anomaly-banner reconciled' : 'anomaly-banner';
-  div.setAttribute('role', opts.kind === 'reconciled' ? 'status' : 'alert');
+  div.setAttribute(
+    'role',
+    opts.kind === 'reconciled' || opts.kind === 'stats-not-published'
+      ? 'status'
+      : 'alert',
+  );
   div.dataset['gameId'] = String(opts.gameId);
   div.dataset['kind'] = opts.kind;
 
   const icon = document.createElement('span');
   icon.className = 'anomaly-banner-icon';
   icon.setAttribute('aria-hidden', 'true');
-  icon.textContent = opts.kind === 'reconciled' ? '✅' : '⚠️';
+  icon.textContent =
+    opts.kind === 'reconciled'
+      ? '✅'
+      : opts.kind === 'stats-not-published'
+        ? 'ℹ️'
+        : '⚠️';
   div.appendChild(icon);
 
   const text = document.createElement('span');
@@ -51,6 +64,10 @@ function buildMessage(opts: AnomalyBannerOpts): string {
   const team = opts.teamName ? ` for ${opts.teamName}` : '';
   if (opts.kind === 'reconciled') {
     return `Stats reconciled${team}: per-player goals now match the recorded team score.`;
+  }
+  if (opts.kind === 'stats-not-published') {
+    const score = typeof opts.teamScore === 'number' ? ` (team scored ${opts.teamScore})` : '';
+    return `No individual player stats were published${team}${score}. The source post only listed the other side's scorers.`;
   }
   const sum = opts.playerSum;
   const score = opts.teamScore;
