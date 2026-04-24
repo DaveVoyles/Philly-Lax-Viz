@@ -33,19 +33,19 @@ describe('openDb', () => {
     for (const t of EXPECTED_TABLES) {
       expect(names, `missing table: ${t}`).toContain(t);
     }
-    // user_version tracks the highest applied migration. Wave-18 W2L1 added 012 (laxnumbers_provenance).
-    expect(db.pragma('user_version', { simple: true })).toBe(12);
+    // user_version tracks the highest applied migration. Wave H9 added 013 (score_sources).
+    expect(db.pragma('user_version', { simple: true })).toBe(13);
     db.close();
   });
 
   it('is idempotent — re-opening does not re-apply migrations', () => {
     const db1 = openDb(':memory:');
-    expect(db1.pragma('user_version', { simple: true })).toBe(12);
+    expect(db1.pragma('user_version', { simple: true })).toBe(13);
     db1.close();
 
     // Run migrations a second time on a brand-new DB and confirm same end state.
     const db2 = openDb(':memory:');
-    expect(db2.pragma('user_version', { simple: true })).toBe(12);
+    expect(db2.pragma('user_version', { simple: true })).toBe(13);
     db2.close();
   });
 
