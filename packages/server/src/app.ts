@@ -53,7 +53,18 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 const DEFAULT_LOGOS_DIR = path.join(REPO_ROOT, 'data', 'logos');
 
 export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<FastifyInstance> {
-  const app = Fastify({ logger: opts.logger ?? false });
+  // Fastify v5 API: pre-built pino instances go on `loggerInstance`; the
+  // `logger` option only accepts boolean or a config object. Passing a
+  // pino instance via `logger` throws FST_ERR_LOG_INVALID_LOGGER_CONFIG.
+  // The cast keeps FastifyInstance's default logger generic so route types
+  // throughout the app stay homogenous (pino.Logger is structurally a
+  // superset of FastifyBaseLogger but TS's generic inference makes them
+  // appear incompatible at the route layer).
+  const loggerOpt = opts.logger;
+  const app: FastifyInstance =
+    loggerOpt && typeof loggerOpt === 'object'
+      ? (Fastify({ loggerInstance: loggerOpt as never }) as unknown as FastifyInstance)
+      : Fastify({ logger: loggerOpt ?? false });
 
   const corsOriginsEnv = process.env.CORS_ORIGINS?.trim();
   const corsOrigins = corsOriginsEnv
