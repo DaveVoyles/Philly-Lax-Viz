@@ -69,6 +69,12 @@ importers:
       fastify:
         specifier: ^5.1.0
         version: 5.8.5
+      fastify-plugin:
+        specifier: ^5.1.0
+        version: 5.1.0
+      lru-cache:
+        specifier: ^11.3.5
+        version: 11.3.5
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.11

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Database } from 'better-sqlite3';
 import { getStatements } from '../queries/statements.js';
+import { getSnapshotEpoch } from '../snapshot.js';
 
 // Bumped when the response shape changes. Consumers (Docker healthcheck,
 // monitoring) can compare against this. W17 L3 (R2) added richer fields.
@@ -53,6 +54,7 @@ export async function healthRoutes(app: FastifyInstance, db: Database): Promise<
       schemaVersion,
       seasons: seasons.map((r) => ({ year: r.season, games: r.games })),
       counts,
+      snapshotEpoch: getSnapshotEpoch(),
     };
   });
 }

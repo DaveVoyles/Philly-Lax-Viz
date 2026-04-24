@@ -25,11 +25,24 @@ import { freshnessRoutes } from './routes/freshness.js';
 import { postImagesRoutes } from './routes/postImages.js';
 import { searchRoutes } from './routes/search.js';
 import { comparePlayersRoutes } from './routes/comparePlayers.js';
+import { responseCachePlugin, type ResponseCacheOptions } from './plugins/responseCache.js';
 
 export interface BuildOptions {
   logger?: boolean;
   logosDir?: string;
+  responseCache?: ResponseCacheOptions | false;
 }
+
+// Routes that opt into the in-memory response cache + ETag/Cache-Control.
+// See docs/improvements/03-api-response-cache-and-http-caching.md.
+// MUST NOT include /api/health or /api/freshness — those communicate
+// snapshot/deploy state and need to bypass the cache.
+const CACHED_ROUTES: readonly string[] = [
+  '/api/teams',
+  '/api/games',
+  '/api/leaders/players',
+  '/api/leaders/teams',
+];
 
 // Resolve the default logos directory the same way index.ts resolves the DB:
 // relative to the repo root (../../.. from packages/server/src/).
@@ -48,6 +61,11 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
     origin: corsOrigins,
     methods: ['GET', 'OPTIONS'],
   });
+
+  if (opts.responseCache !== false) {
+    await app.register(responseCachePlugin, opts.responseCache ?? {});
+    for (const routeId of CACHED_ROUTES) app.cacheRoute(routeId);
+  }
 
   await app.register(fastifyStatic, {
     root: opts.logosDir ?? DEFAULT_LOGOS_DIR,
