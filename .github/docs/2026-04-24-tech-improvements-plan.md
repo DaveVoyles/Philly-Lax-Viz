@@ -153,3 +153,70 @@ None — Wave 4 closed cleanly.
 ### Decision: Ready for Wave 5? (Y/N)
 - Awaiting user input on Option A / B / C
 - Recommended: **C then A** — apply alias seeds first to clean up the dataset, then ship the pure-code wave while DevOps decisions stay queued for when Azure AD time is available.
+
+---
+
+## Phase C — Alias seed application (solo, ~7 min, 14:00–14:07)
+
+| Step | Result |
+|------|--------|
+| `pnpm seed:aliases --apply` | 6 aliases inserted (cr south, khs, dt east, pr, parland, dccs) |
+| `pnpm ingest --reparse --category=hs-summaries` | 42 posts reprocessed in 465ms |
+| Anomalies | 708 → **663** (-45) |
+| Player stats | 6790 → **6825** (+35 newly attributed to correct teams) |
+| Players | 1929 → **2023** (+94 new player records spawned by alias-resolved sub-headers) |
+| WAL checkpoint + Azure Files upload | ✅ pllstorage3426/pll-data |
+| Container restart | revision 0000006 restarted, /api/freshness confirms 605/2023 |
+
+Predicted ~210 anomaly drop didn't materialize (-45 actual) because most were "team hint did not resolve" anomalies whose root cause is the long tail of unique abbreviations rejected as ambiguous, not the 6 high-confidence ones. The +94 player records / +35 stats are the real win.
+
+---
+
+## Wave 5 — Pure-code fleet (Han/Yoda/Leia, 14:08–14:25)
+
+| Lane | Fleet | RFC | Estimated | Actual | Status | Commit |
+|------|-------|-----|-----------|--------|--------|--------|
+| A | Han 😉🚀 | #04 web bundle splitting | M (30m) | 8m28s | ✅ | `3e55333` |
+| B | Yoda 👽✨ | #07 centralized logger | L (45m) | 12m30s | ✅ | `7641220` |
+| C | Leia 👑💁‍♀️ | #05 team radar chart | M (30m) | 9m26s | ✅ | `4d13ec7` |
+
+### Headline metrics
+- **Bundle:** entry chunk 411 KB → **15 KB** uncompressed (96% reduction); 15 lazy routes; shared `charts` chunk 77 KB
+- **Logger:** 338 → **27** `console.*` in server+ingest (all 27 documented exempt: 5 CLI safety, 20 just-shipped Wave 4 files, 2 comments)
+- **Radar chart:** new component, +27 tests, wired into `teamDetail.ts`
+- **Test totals across workspace:** shared 6 / server 136 / ingest 473+1skip / web 116 = **731 passing**
+
+### Wave 5 Retrospective
+
+**What went well**
+- Explicit `git add <paths>` rule from Wave 4 retro held in all 3 lanes — zero cross-lane file capture even though 38 files were in the worktree from Yoda mid-wave.
+- All lanes finished WELL under hard stop (Han 28%, Leia 31%, Yoda 28% of budget). Pre-flight L sizing for Yoda was generous; could have been M.
+- Package-boundary discipline again perfect: vite-only / shared+server+ingest / web-component — zero conflicts.
+- Lane C used Lane Wave-4-A (gameFlowChart) as a reference pattern → consistent a11y story across both new charts.
+
+**What didn't go well**
+- Phase C anomaly delta (-45) far below RFC #01 prediction (-210). The miner needs a smarter ambiguity rule (e.g., context-aware: same alias resolves differently in different game blocks).
+- RFC #07 mechanically mapped `console.log → log.info` instead of doing the level reclassification the spec called for. Yoda flagged this as a follow-up — a future wave should grade calls into debug/info/warn.
+- No Azure redeploy after RFC #07 — production server is still running pre-logger image. Decision deferred.
+
+**Decision log**
+- ✅ Yoda L sizing acceptable (tasks-with-tests systematically run high; better to overshoot than hit hard stop).
+- ✅ `mineAliases.ts`/`seedAliasesFromMine.ts` added to don't-touch list for Yoda — Wave 4 work stayed unchanged.
+- 🟡 Production Azure deploy of logger change deferred to user choice (not destructive but rebuilds image).
+
+### Next Wave Improvements (Wave 6)
+
+**Identified issues from Wave 5**
+1. Logger level reclassification (debug vs info vs warn) wasn't mechanical-safe — needs human-graded pass.
+2. Anomaly miner is too conservative on ambiguous aliases — left ~140 anomalies on the table.
+3. RFC #07 changes need Azure container rebuild to take effect in prod.
+
+**Wave 6 candidate options**
+- **#04+05 redeploy** — push web changes to a static host (none exists yet — would need Azure SWA provisioning, which is medium-risk infra work).
+- **#08 domain type consolidation** (Chewy 🐻💪, M) — convert `: any` usages, share types between server/web via @pll/shared.
+- **#02 losing-side stats backfill** (Han 😉🚀, M) — uses stats-only posts to backfill 70 "period sum != total" anomalies.
+- **#09 OIDC + #10 deploy gates** (R2 + Chewy, L+M) — needs Azure AD app registration, user must be in the loop.
+- **Alias miner v2** (Yoda 👽✨, M) — context-aware ambiguity resolution to recover the 140 rejected candidates.
+
+**Decision: Ready for Wave 6? (Y/N)** — awaiting user input.
+
