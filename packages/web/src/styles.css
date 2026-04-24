@@ -353,8 +353,22 @@ table.stat th.sortable:focus { outline: 2px solid var(--accent); outline-offset:
 .scoreboard-sep { font-size: 1.5rem; color: var(--muted); }
 .scoreboard-meta { text-align: center; margin-top: 0.5rem; font-size: 0.9em; }
 
-.chart-slot { min-height: 0; margin: 0.5rem 0; }
+.chart-slot {
+  min-height: 0;
+  margin: 0.5rem 0;
+  /* Cap chart width so SVGs (which scale to 100%) don't blow up on wide
+     viewports. Without this, a 360x220 donut renders at full container
+     width — i.e. 3x its intended size on a desktop. */
+  max-width: 640px;
+}
 .chart-slot:empty { display: none; }
+/* Per-chart caps near the chart's intrinsic viewBox so each renders at
+   roughly its design size instead of stretching across the page. */
+.chart-slot[data-chart="seasonRecord"] { max-width: 360px; }
+.chart-slot[data-chart="topScorers"] { max-width: 720px; }
+.chart-slot[data-chart="perGameTrend"] { max-width: 640px; }
+.chart-slot[data-chart="teamScoreTrend"] { max-width: 720px; }
+.chart-slot[data-chart="quarterByQuarter"] { max-width: 480px; }
 
 .result-w { color: #15803d; font-weight: 600; }
 .result-l { color: var(--error); font-weight: 600; }
@@ -382,7 +396,8 @@ table.stat th.sortable:focus { outline: 2px solid var(--accent); outline-offset:
 }
 .team-score-trend {
   display: block;
-  max-width: 100%;
+  max-width: 720px;
+  width: 100%;
   height: auto;
   margin: 0.25rem 0 1rem;
 }
