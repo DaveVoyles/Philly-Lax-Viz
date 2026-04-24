@@ -230,7 +230,6 @@ table.stat tbody tr.row-link:focus { outline: 2px solid var(--accent); outline-o
 .team-grid li a {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.5rem;
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--border);
@@ -238,6 +237,14 @@ table.stat tbody tr.row-link:focus { outline: 2px solid var(--accent); outline-o
   color: inherit;
   text-decoration: none;
 }
+.team-grid li a > .team-badge { flex: 1 1 auto; min-width: 0; margin-right: auto; }
+.team-grid li a > .team-badge .team-badge__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.team-grid li a > .piaa-badge,
+.team-grid li a > .team-row__gap { flex: 0 0 auto; }
 .team-grid li a:hover { background: var(--accent); color: var(--accent-fg); text-decoration: none; }
 .team-grid li a:hover .team-badge__name { color: var(--accent-fg); }
 
