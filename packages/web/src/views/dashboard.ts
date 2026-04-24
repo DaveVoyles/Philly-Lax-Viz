@@ -79,6 +79,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   const teamsHeader = document.createElement('h2');
   teamsHeader.textContent = 'All Teams';
   teamsSection.appendChild(teamsHeader);
+  teamsSection.appendChild(buildPiaaLegend());
   const teamsBody = document.createElement('div');
   teamsBody.id = 'teams-body';
   teamsBody.textContent = 'Loading…';
@@ -243,6 +244,69 @@ async function loadHealth(target: HTMLElement): Promise<void> {
   } catch (err) {
     target.replaceChildren(errorBlock(err, "Is Leia's API server running on :3001?"));
   }
+}
+
+// PIAA validation badge legend. Explains the ✅/⚠️/🔴/⚪ icons next to team
+// names and reminds the reader that PIAA always wins on conflict (decision
+// 2026-04-23, enforced server-side in routes/teams.ts).
+const PIAA_LEGEND_ROWS: ReadonlyArray<{
+  icon: string;
+  status: string;
+  meaning: string;
+}> = [
+  { icon: '✅', status: 'match',     meaning: 'Our derived W-L matches the official PIAA record exactly.' },
+  { icon: '⚠️', status: 'close',     meaning: 'Off by 1-2 games. Displayed record uses PIAA; the small gap is flagged for follow-up.' },
+  { icon: '🔴', status: 'divergent', meaning: 'Material disagreement. Displayed record uses PIAA — investigate our coverage gap.' },
+  { icon: '⚪', status: 'unmapped',  meaning: 'No PIAA mapping (private/out-of-state, or not yet linked). Displayed record falls back to PhillyLacrosse-derived.' },
+];
+
+function buildPiaaLegend(): HTMLElement {
+  const details = document.createElement('details');
+  details.className = 'piaa-legend';
+  const summary = document.createElement('summary');
+  summary.textContent = 'What do the badges (✅ ⚠️ 🔴 ⚪) mean?';
+  details.appendChild(summary);
+
+  const note = document.createElement('p');
+  note.className = 'muted';
+  note.textContent =
+    'When the official PIAA record disagrees with our PhillyLacrosse-scraped record, ' +
+    'PIAA always wins. Hover any team badge for the exact diff; click through to see the source.';
+  details.appendChild(note);
+
+  const table = document.createElement('table');
+  table.className = 'piaa-legend__table';
+
+  const thead = document.createElement('thead');
+  const htr = document.createElement('tr');
+  for (const h of ['Icon', 'Status', 'Meaning']) {
+    const th = document.createElement('th');
+    th.textContent = h;
+    htr.appendChild(th);
+  }
+  thead.appendChild(htr);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  for (const row of PIAA_LEGEND_ROWS) {
+    const tr = document.createElement('tr');
+    const iconCell = document.createElement('td');
+    iconCell.className = 'piaa-legend__icon';
+    iconCell.textContent = row.icon;
+    const statusCell = document.createElement('td');
+    const code = document.createElement('code');
+    code.textContent = row.status;
+    statusCell.appendChild(code);
+    const meaningCell = document.createElement('td');
+    meaningCell.textContent = row.meaning;
+    tr.appendChild(iconCell);
+    tr.appendChild(statusCell);
+    tr.appendChild(meaningCell);
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  details.appendChild(table);
+  return details;
 }
 
 function buildHealthBanner(h: ServerHealthResponse): HTMLElement {
