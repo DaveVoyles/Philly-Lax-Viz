@@ -153,6 +153,14 @@ The Fastify server (`:3001`) exposes JSON endpoints consumed by the SPA:
 - `gpg` — goals per game (`goals_for / gamesPlayed`).
 - `gapg` — goals against per game (`goals_against / gamesPlayed`).
 
+## Data sources & authority
+
+Per-game scores: **MaxPreps** > PhillyLacrosse.
+Season W/L records: **PIAA** > computed-from-games > PhillyLacrosse.
+Per-player stats: **PhillyLacrosse** (sole source).
+
+When sources conflict, the higher-authority source wins. PIAA publishes season totals only — it cannot resolve disputes about an individual game's score. See `docs/runbooks/source-priority.md` for the full reconciliation flow.
+
 ## Data quality
 
 Some real-world phillylacrosse.com posts don't fit any clean parser strategy.
