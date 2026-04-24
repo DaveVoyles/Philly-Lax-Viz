@@ -26,7 +26,9 @@
     "snapshot:db": "tsx src/scripts/snapshotDb.ts",
     "split:composite-players": "tsx src/scripts/splitCompositePlayers.ts",
     "dedup:cross-team": "tsx src/scripts/dedupCrossTeam.ts",
-    "detect:cross-team-dups": "tsx src/scripts/detectCrossTeamDups.ts"
+    "detect:cross-team-dups": "tsx src/scripts/detectCrossTeamDups.ts",
+    "reconcile:scores": "tsx src/scripts/reconcileWithSources.ts",
+    "piaa:check-totals": "tsx src/scripts/piaaCheckTotals.ts"
   },
   "dependencies": {
     "@pll/shared": "workspace:*",
