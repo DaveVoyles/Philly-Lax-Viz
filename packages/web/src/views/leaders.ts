@@ -19,6 +19,7 @@ import { drawSparkline } from '../charts/sparkline.js';
 import type { ChartHandle } from '../charts/types.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderEmptyState } from '../components/emptyState.js';
+import { wrapResponsive } from '../util/responsiveTable.js';
 
 type Tab = 'players' | 'teams';
 
@@ -351,6 +352,7 @@ function decorateWithSparklines(
     const th = document.createElement('th');
     th.textContent = 'Trend';
     th.setAttribute('data-trend-col', '1');
+    th.classList.add('col-secondary');
     headRow.appendChild(th);
   }
 
@@ -358,6 +360,7 @@ function decorateWithSparklines(
   bodyRows.forEach((tr, idx) => {
     const td = document.createElement('td');
     td.setAttribute('data-trend-cell', '1');
+    td.classList.add('col-secondary');
     // The sortable table preserves source order when sort is null; rows are
     // ordered the same as the rows[] array passed in. We can't recover the
     // player_id from the cell content reliably, so attach via the table's
@@ -510,19 +513,18 @@ function renderPlayerTable(
   rows: PlayerLeaderRow[],
   state: ViewState,
 ): void {
-  el.replaceChildren(
-    buildSortableTable(
-      PLAYER_COLS,
-      rows,
-      state.playerSort,
-      (s) => {
-        state.playerSort = s;
-        renderPlayerTable(el, rows, state);
-      },
-      (r) => `#/players/${r.playerId}`,
-      (r) => r.playerId,
-    ),
-  );
+  const table = buildSortableTable(
+    PLAYER_COLS,
+    rows,
+    state.playerSort,
+    (s) => {
+      state.playerSort = s;
+      renderPlayerTable(el, rows, state);
+    },
+    (r) => `#/players/${r.playerId}`,
+    (r) => r.playerId,
+  ) as HTMLTableElement;
+  el.replaceChildren(wrapResponsive(table));
 }
 
 function renderTeamTable(
@@ -530,18 +532,17 @@ function renderTeamTable(
   rows: TeamLeaderRow[],
   state: ViewState,
 ): void {
-  el.replaceChildren(
-    buildSortableTable(
-      TEAM_COLS,
-      rows,
-      state.teamSort,
-      (s) => {
-        state.teamSort = s;
-        renderTeamTable(el, rows, state);
-      },
-      (r) => `#/teams/${r.teamId}`,
-    ),
-  );
+  const table = buildSortableTable(
+    TEAM_COLS,
+    rows,
+    state.teamSort,
+    (s) => {
+      state.teamSort = s;
+      renderTeamTable(el, rows, state);
+    },
+    (r) => `#/teams/${r.teamId}`,
+  ) as HTMLTableElement;
+  el.replaceChildren(wrapResponsive(table));
 }
 
 function buildSortableTable<T>(

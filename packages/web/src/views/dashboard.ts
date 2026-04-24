@@ -19,6 +19,7 @@ import { renderGameThumb } from '../components/postImage.js';
 import { renderHorizontalLeaderboard } from '../charts/index.js';
 import type { ChartHandle } from '../charts/types.js';
 import { renderEmptyState } from '../components/emptyState.js';
+import { wrapResponsive } from '../util/responsiveTable.js';
 import { apiUrl } from '../apiBase.js';
 
 type SortKey = 'name' | 'gap';
@@ -452,9 +453,16 @@ function buildRecentGamesTable(
 
   const thead = document.createElement('thead');
   const trh = document.createElement('tr');
-  for (const label of ['', 'Date', 'Matchup', 'Score']) {
+  const headerCols: { label: string; secondary?: boolean }[] = [
+    { label: '', secondary: true },
+    { label: 'Date' },
+    { label: 'Matchup' },
+    { label: 'Score' },
+  ];
+  for (const col of headerCols) {
     const th = document.createElement('th');
-    th.textContent = label;
+    th.textContent = col.label;
+    if (col.secondary) th.classList.add('col-secondary');
     trh.appendChild(th);
   }
   thead.appendChild(trh);
@@ -480,6 +488,7 @@ function buildRecentGamesTable(
     // Wave 17 Lane 2 (Han) -- tiny recap thumbnail (60x40) if we have one.
     const tdImg = document.createElement('td');
     tdImg.style.width = '64px';
+    tdImg.classList.add('col-secondary');
     const img = images[g.sourcePostId];
     if (img) {
       tdImg.appendChild(renderGameThumb(img.imageUrl, img.altText));
@@ -534,7 +543,7 @@ function buildRecentGamesTable(
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
-  return table;
+  return wrapResponsive(table);
 }
 
 function errorBlock(err: unknown, hint?: string): HTMLElement {

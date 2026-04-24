@@ -15,6 +15,7 @@ import { extractScoreTrend, renderTeamScoreTrend } from '../charts/teamScoreTren
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderProvenanceBadge } from '../components/provenanceBadge.js';
 import { renderPiaaBadge, piaaBadgeTooltip } from '../components/piaaBadge.js';
+import { wrapResponsive } from '../util/responsiveTable.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   root.replaceChildren();
@@ -279,7 +280,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     renderTeamScoreTrend(trendCanvas, trendPoints);
   }
 
-  root.appendChild(buildGamesTable(detail.games, teamId, teamsById));
+  root.appendChild(wrapResponsive(buildGamesTable(detail.games, teamId, teamsById)));
 }
 
 /**
@@ -380,7 +381,7 @@ async function loadUpcoming(slot: HTMLElement, teamId: number): Promise<void> {
   slot.appendChild(ul);
 }
 
-function buildGamesTable(games: Game[], teamId: number, teamsById: Map<number, string>): HTMLElement {
+function buildGamesTable(games: Game[], teamId: number, teamsById: Map<number, string>): HTMLTableElement {
   const sorted = [...games].sort((a, b) => {
     if (a.date !== b.date) return a.date < b.date ? 1 : -1;
     return b.id - a.id;
@@ -393,6 +394,7 @@ function buildGamesTable(games: Game[], teamId: number, teamsById: Map<number, s
   for (const label of ['Date', 'Opponent', 'H/A', 'Score', 'Result']) {
     const th = document.createElement('th');
     th.textContent = label;
+    if (label === 'H/A') th.classList.add('col-secondary');
     trh.appendChild(th);
   }
   thead.appendChild(trh);
@@ -434,6 +436,7 @@ function buildGamesTable(games: Game[], teamId: number, teamsById: Map<number, s
 
     const tdHa = document.createElement('td');
     tdHa.textContent = isHome ? 'Home' : 'Away';
+    tdHa.classList.add('col-secondary');
     tr.appendChild(tdHa);
 
     const tdScore = document.createElement('td');

@@ -191,6 +191,23 @@ tbody tr:nth-child(even) { background: var(--table-stripe); }
 }
 .anomaly-more:hover { filter: brightness(1.1); }
 
+/* === Wave H8 Lane 2 (Yoda) — responsive data tables ===
+   `.table-scroll` is the wrapper applied by `util/responsiveTable.ts`.
+   On narrow viewports we shrink type + padding and hide columns tagged
+   `.col-secondary` (e.g. inline sparklines that aren't legible <700px). */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+@media (max-width: 700px) {
+  table { font-size: 0.85rem; }
+  th, td { padding: 0.35rem 0.4rem; }
+  .col-secondary,
+  th.col-secondary,
+  td.col-secondary { display: none; }
+}
+
 /* === W3L1 (Luke) view extensions === */
 
 table.stat { border-collapse: collapse; width: 100%; margin: 1rem 0; }
