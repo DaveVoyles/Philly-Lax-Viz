@@ -204,6 +204,53 @@ export const LAXNUMBERS_HIGH_CONF: readonly AliasMapping[] = [
 
 export const LAXNUMBERS_HIGH_CONF_SOURCE = 'laxnumbers-high-conf-2026-04-24';
 
+// ─── Wave I-E (2026-04-24) — LaxNumbers curated aliases ─────────────────
+//
+// The 96 mid/low-confidence rows from the same CSV were triaged by hand
+// (combination of rule-based filters + PA HS lacrosse domain knowledge,
+// see .github/docs/triage-laxnumbers*.py and the CSV's reviewer_decision
+// column). 84 were rejected as out-of-region (Pittsburgh / Erie / York /
+// Lancaster / Harrisburg / NEPA) or out-of-state. The 12 below are the
+// curated ACCEPTs:
+//
+//   PA suffix convention ("X Area" → "X"):
+//     "Nazareth Area"     → "Nazareth"
+//     "Oxford Area"       → "Oxford"
+//     "Northampton Area"  → "Northampton"
+//
+//   School renamed:
+//     "Bayard Rustin"     → "WC Rustin"   (West Chester Rustin renamed in 2017)
+//
+//   City qualifier vs short form (Lehigh Valley schools):
+//     "Freedom Bethlehem" → "Freedom"
+//     "Liberty Bethlehem" → "Liberty"
+//
+//   Formal name vs short form / abbrev:
+//     "Delaware County Christian" → "Delco Christian"
+//     "Governor Mifflin"          → "Gov. Mifflin"
+//     "La Salle College"          → "La Salle"   (La Salle College HS, Wyndmoor)
+//     "West Chester Henderson"    → "WC Henderson"
+//     "Bonner-Prendergast"        → "Bonner-Prendie"
+//     "Church Farm School"        → "Church Farm"
+//
+// Aliases are written in normalized form (lowercased; whitespace collapsed).
+export const LAXNUMBERS_CURATED_2026_04_24: readonly AliasMapping[] = [
+  { alias: 'nazareth area', teamId: 22, teamName: 'Nazareth' },
+  { alias: 'oxford area', teamId: 78, teamName: 'Oxford' },
+  { alias: 'northampton area', teamId: 8, teamName: 'Northampton' },
+  { alias: 'bayard rustin', teamId: 45, teamName: 'WC Rustin' },
+  { alias: 'freedom bethlehem', teamId: 104, teamName: 'Freedom' },
+  { alias: 'liberty bethlehem', teamId: 91, teamName: 'Liberty' },
+  { alias: 'delaware county christian', teamId: 165, teamName: 'Delco Christian' },
+  { alias: 'governor mifflin', teamId: 30, teamName: 'Gov. Mifflin' },
+  { alias: 'la salle college', teamId: 58, teamName: 'La Salle' },
+  { alias: 'west chester henderson', teamId: 41, teamName: 'WC Henderson' },
+  { alias: 'bonner-prendergast', teamId: 279, teamName: 'Bonner-Prendie' },
+  { alias: 'church farm school', teamId: 207, teamName: 'Church Farm' },
+];
+
+export const LAXNUMBERS_CURATED_2026_04_24_SOURCE = 'laxnumbers-curated-2026-04-24';
+
 // Tokens deliberately NOT seeded — too ambiguous for a high-confidence
 // alias. Parser will continue to log these as anomalies for manual triage.
 export interface SkippedAmbiguousNote {
@@ -437,6 +484,7 @@ function main(): void {
     { label: 'PIAA_ALIASES', mappings: PIAA_ALIASES, source: ALIAS_SOURCE },
     { label: 'PARSER_ABBREVIATIONS', mappings: PARSER_ABBREVIATIONS, source: PARSER_ABBREV_SOURCE },
     { label: 'LAXNUMBERS_HIGH_CONF', mappings: LAXNUMBERS_HIGH_CONF, source: LAXNUMBERS_HIGH_CONF_SOURCE },
+    { label: 'LAXNUMBERS_CURATED_2026_04_24', mappings: LAXNUMBERS_CURATED_2026_04_24, source: LAXNUMBERS_CURATED_2026_04_24_SOURCE },
   ];
 
   if (!apply) {
