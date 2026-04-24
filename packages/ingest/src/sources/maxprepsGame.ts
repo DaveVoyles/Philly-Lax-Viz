@@ -36,6 +36,12 @@ export interface FetchMaxprepsGameOpts {
   html?: string;
   /** Optional MaxprepsSchool index for slug lookup. */
   schools?: MaxprepsSchool[];
+  /**
+   * Optional Cookie header value for authenticated requests
+   * (e.g. `document.cookie` from a logged-in browser session). Lets the
+   * fetcher reach pages that anon traffic 404s on.
+   */
+  cookie?: string;
 }
 
 const USER_AGENT =
@@ -242,11 +248,19 @@ interface FetchedPage {
 async function tryFetch(
   url: string,
   fetchFn: typeof globalThis.fetch,
+  cookie?: string,
 ): Promise<FetchedPage | null> {
   try {
+    const headers: Record<string, string> = {
+      'User-Agent': USER_AGENT,
+      Accept: 'text/html',
+    };
+    if (cookie && cookie.length > 0) {
+      headers.Cookie = cookie;
+    }
     const res = await fetchFn(url, {
       redirect: 'follow',
-      headers: { 'User-Agent': USER_AGENT, Accept: 'text/html' },
+      headers,
     });
     if (!res.ok) return null;
     if (res.status === 401) return null;
@@ -294,7 +308,7 @@ export async function fetchMaxprepsGameScore(
   await sleepFn(DEFAULT_SLEEP_MS);
 
   for (const url of candidates) {
-    const fetched = await tryFetch(url, fetchFn);
+    const fetched = await tryFetch(url, fetchFn, opts.cookie);
     if (!fetched) continue;
     const rows = parseMaxprepsGameHtml(fetched.html);
     const mapped = mapParsedScores(rows, opts.homeName, opts.awayName);

@@ -439,14 +439,41 @@ async function loadProductionFetcher(): Promise<MaxprepsFetcher> {
   try {
     // Dynamic import so missing module doesn't break dry-run-with-mocks usage.
     const mod = (await import('../sources/maxprepsGame.js')) as {
-      fetchMaxprepsGameScore?: MaxprepsFetcher;
+      fetchMaxprepsGameScore?: (
+        opts: import('../sources/maxprepsGame.js').FetchMaxprepsGameOpts,
+      ) => Promise<import('../sources/maxprepsGame.js').MaxprepsGameScore | null>;
     };
     if (typeof mod.fetchMaxprepsGameScore !== 'function') {
       throw new Error(
         'maxprepsGame.ts present but does not export fetchMaxprepsGameScore',
       );
     }
-    return mod.fetchMaxprepsGameScore;
+    const cookie = process.env.MAXPREPS_COOKIE?.trim();
+    if (cookie && cookie.length > 0) {
+      console.log(
+        `[reconcileWithSources] MAXPREPS_COOKIE detected (${cookie.length} bytes) — using authenticated fetch`,
+      );
+    } else {
+      console.log(
+        '[reconcileWithSources] MAXPREPS_COOKIE not set — anon fetch only (most pages 404)',
+      );
+    }
+    const inner = mod.fetchMaxprepsGameScore;
+    // Wrap to inject cookie + adapt to the reconciler's narrow contract.
+    return async (args: FetchMaxprepsArgs) => {
+      const result = await inner({
+        homeName: args.homeName,
+        awayName: args.awayName,
+        dateISO: args.dateISO,
+        cookie,
+      });
+      if (!result) return null;
+      return {
+        homeScore: result.homeScore,
+        awayScore: result.awayScore,
+        sourceUrl: result.sourceUrl,
+      };
+    };
   } catch (err) {
     const e = err as NodeJS.ErrnoException;
     if (e.code === 'ERR_MODULE_NOT_FOUND' || e.code === 'MODULE_NOT_FOUND') {

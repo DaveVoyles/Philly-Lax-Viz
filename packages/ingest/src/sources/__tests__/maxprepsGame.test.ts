@@ -291,4 +291,43 @@ describe('fetchMaxprepsGameScore — network path (injected fetch)', () => {
       requestedUrls.some((u) => u.includes('spring-ford-vs-pottsgrove.htm')),
     ).toBe(true);
   });
+
+  it('passes Cookie header through when opts.cookie is set', async () => {
+    const sleepImpl = vi.fn(async () => {});
+    const seenHeaders: Array<Record<string, string>> = [];
+    const fetchImpl = vi.fn(async (_url: string | URL, init?: RequestInit) => {
+      const h = init?.headers as Record<string, string> | undefined;
+      if (h) seenHeaders.push(h);
+      return new Response('not found', { status: 404 });
+    }) as unknown as typeof globalThis.fetch;
+    await fetchMaxprepsGameScore({
+      homeName: 'A',
+      awayName: 'B',
+      dateISO: '2026-04-16',
+      cookie: 'session=abc123; foo=bar',
+      fetchImpl,
+      sleepImpl,
+    });
+    expect(seenHeaders.length).toBeGreaterThan(0);
+    expect(seenHeaders[0]?.Cookie).toBe('session=abc123; foo=bar');
+  });
+
+  it('omits Cookie header when opts.cookie is undefined', async () => {
+    const sleepImpl = vi.fn(async () => {});
+    const seenHeaders: Array<Record<string, string>> = [];
+    const fetchImpl = vi.fn(async (_url: string | URL, init?: RequestInit) => {
+      const h = init?.headers as Record<string, string> | undefined;
+      if (h) seenHeaders.push(h);
+      return new Response('not found', { status: 404 });
+    }) as unknown as typeof globalThis.fetch;
+    await fetchMaxprepsGameScore({
+      homeName: 'A',
+      awayName: 'B',
+      dateISO: '2026-04-16',
+      fetchImpl,
+      sleepImpl,
+    });
+    expect(seenHeaders.length).toBeGreaterThan(0);
+    expect(seenHeaders[0]?.Cookie).toBeUndefined();
+  });
 });
