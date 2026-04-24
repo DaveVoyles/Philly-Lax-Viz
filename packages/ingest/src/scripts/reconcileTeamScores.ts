@@ -24,6 +24,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDb } from '../db.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:reconcileTeamScores' });
 export interface SuspectRow {
   gameId: number;
   date: string;
@@ -151,8 +153,8 @@ function main(): void {
     mkdirSync(dirname(outPath), { recursive: true });
     writeFileSync(outPath, `${JSON.stringify(suspects, null, 2)}\n`, 'utf8');
 
-    console.log(`reconcile: scanned ${scanned} games, ${suspects.length} suspect team-game rows`);
-    console.log(`reconcile: queue written to ${outPath}`);
+    log.info(`reconcile: scanned ${scanned} games, ${suspects.length} suspect team-game rows`);
+    log.info(`reconcile: queue written to ${outPath}`);
   } finally {
     db.close();
   }

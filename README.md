@@ -187,3 +187,20 @@ Common anomaly kinds:
   paragraph break sometimes can't be matched back to their parent game.
 - Top scorers + per-game trend charts only consider games already ingested;
   re-run `pnpm ingest` after a fresh `pnpm crawl` to refresh.
+
+## Logging
+
+Server and ingest packages emit structured logs through a shared Pino-based
+logger (`packages/shared/src/logger.ts`). Set `LOG_LEVEL` to one of
+`fatal | error | warn | info | debug | trace | silent` to control verbosity:
+
+```bash
+LOG_LEVEL=warn pnpm --filter @pll/ingest dedup:players  # quiet
+LOG_LEVEL=debug pnpm dev                                # verbose request logs
+```
+
+Output is human-readable (`pino-pretty`) when stdout is a TTY and JSON
+otherwise (CI, container runs). The `web` package is exempt and continues
+to use `console.*` for browser dev-tools ergonomics. See
+`docs/improvements/07-centralized-logger-rollout.md` for the full RFC and
+`scripts/lint-no-console.sh` for the regression guard.

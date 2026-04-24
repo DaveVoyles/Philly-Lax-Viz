@@ -40,6 +40,8 @@ import type { Database } from 'better-sqlite3';
 import { openDb } from '../db.js';
 import { checkServerProcs } from './lib/checkServerProcs.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:dedupCrossTeam' });
 export interface PlayerRow {
   id: number;
   name: string;
@@ -201,22 +203,22 @@ export function applyPlan(db: Database, plan: DedupPlan): DedupResult {
 
 function printPlan(plan: DedupPlan, apply: boolean): void {
   const header = apply ? 'Applying' : 'Dry-run plan';
-  console.log(`──────── ${header}: dedupCrossTeam ────────`);
-  console.log(`Pre-count: ${plan.preCount} players`);
-  console.log(`Cross-team duplicate groups detected: ${plan.actions.length}`);
+  log.info(`──────── ${header}: dedupCrossTeam ────────`);
+  log.info(`Pre-count: ${plan.preCount} players`);
+  log.info(`Cross-team duplicate groups detected: ${plan.actions.length}`);
   if (plan.actions.length === 0) {
-    console.log('  (none — nothing to do)');
+    log.info('  (none — nothing to do)');
     return;
   }
   let n = 0;
   for (const a of plan.actions) {
     n += 1;
-    console.log(
+    log.info(
       `\n  ${n}. "${a.displayName}" (key="${a.normalizedKey}")` +
         `\n     keep #${a.keepId} team=${a.keepTeamId} games=${a.keepGames}`,
     );
     for (const o of a.others) {
-      console.log(
+      log.info(
         `     drop #${o.id} team=${o.team_id} games=${o.games_played}` +
           ` → repoint stats to #${a.keepId}`,
       );
@@ -225,21 +227,21 @@ function printPlan(plan: DedupPlan, apply: boolean): void {
 }
 
 function printResult(r: DedupResult): void {
-  console.log('\n──────── Apply result ────────');
-  console.log(`players               ${r.preCount} → ${r.postCount}`);
-  console.log(`pairs found          : ${r.actions.length}`);
-  console.log(`stat rows repointed  : ${r.rowsRepointed}`);
-  console.log(`rows skipped (collision): ${r.rowsSkippedCollision}`);
-  console.log(`players deleted      : ${r.playersDeleted}`);
+  log.info('\n──────── Apply result ────────');
+  log.info(`players               ${r.preCount} → ${r.postCount}`);
+  log.info(`pairs found          : ${r.actions.length}`);
+  log.info(`stat rows repointed  : ${r.rowsRepointed}`);
+  log.info(`rows skipped (collision): ${r.rowsSkippedCollision}`);
+  log.info(`players deleted      : ${r.playersDeleted}`);
   if (r.collisions.length > 0) {
-    console.log('\n⚠️  Game-id collisions (other player kept, manual review):');
+    log.info('\n⚠️  Game-id collisions (other player kept, manual review):');
     for (const c of r.collisions) {
-      console.log(
+      log.info(
         `   - game=${c.gameId}: both player#${c.keepId} (keep) and #${c.otherId} have stats`,
       );
     }
   }
-  console.log('──────────────────────────────');
+  log.info('──────────────────────────────');
 }
 
 function parseArgs(argv: string[]): { apply: boolean; force: boolean } {
@@ -256,7 +258,7 @@ function main(): void {
   if (args.apply) {
     checkServerProcs({ force: args.force });
   }
-  console.log(
+  log.info(
     `[dedupCrossTeam] opening ${dbPath} (${args.apply ? 'APPLY' : 'dry-run'})`,
   );
   const db = openDb(dbPath);
@@ -266,7 +268,7 @@ function main(): void {
   printPlan(plan, args.apply);
 
   if (!args.apply) {
-    console.log('\n(Dry-run only. Re-run with --apply to write.)');
+    log.info('\n(Dry-run only. Re-run with --apply to write.)');
     db.close();
     return;
   }

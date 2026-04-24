@@ -2,6 +2,8 @@
 import * as path from 'node:path';
 import * as url from 'node:url';
 import * as fs from 'node:fs';
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:crawl' });
 import {
   ALL_CATEGORIES,
   type Category,
@@ -72,7 +74,7 @@ function parseArgs(argv: string[]): CliArgs {
 }
 
 function printHelp(): void {
-  console.log(
+  log.info(
     `Usage: tsx src/cli/crawl.ts [--max-pages=N] [--category=scoreboard|hs-summaries|rankings|all] [--year=YYYY|--years=YYYY,YYYY]
 
 Crawls the configured PhillyLacrosse.com category archives and writes
@@ -120,7 +122,7 @@ async function openCacheStore(repoRoot: string): Promise<{
       backend: 'sqlite',
     };
   } catch (err) {
-    console.warn(
+    log.warn(
       `[crawl] SQLite db not yet available (${(err as Error).message}); using in-memory cache store.`,
     );
     return { store: new InMemoryCacheStore(), backend: 'memory' };
@@ -134,7 +136,7 @@ async function main(): Promise<void> {
   const cacheDir = defaultCacheDir(repoRoot);
 
   const { store, closer, backend } = await openCacheStore(repoRoot);
-  console.log(
+  log.info(
     `[crawl] backend=${backend} cacheDir=${cacheDir} category=${args.category} seasons=${args.seasons.join(',')} maxPages=${args.maxPages ?? 'unlimited'}`,
   );
 
@@ -157,9 +159,9 @@ async function main(): Promise<void> {
   );
   const elapsed = Date.now() - start;
 
-  console.log(`[crawl] done in ${elapsed}ms`);
+  log.info(`[crawl] done in ${elapsed}ms`);
   for (const s of summaries) {
-    console.log(
+    log.info(
       `  ${s.category}/${s.season}: pages=${s.pagesFetched} seen=${s.postsSeen} fetched=${s.postsFetched} cached=${s.postsAlreadyCached} skipped-girls=${s.postsSkippedGirls} stop=${s.stoppedReason}`,
     );
   }
@@ -168,6 +170,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error('[crawl] FAILED:', err);
+  log.error('[crawl] FAILED:', err);
   process.exit(1);
 });

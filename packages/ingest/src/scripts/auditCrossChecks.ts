@@ -21,6 +21,8 @@ import type { Database as DatabaseType } from 'better-sqlite3';
 import { resolve } from 'node:path';
 import type { ParserStrategy } from '@pll/shared';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:auditCrossChecks' });
 export const SEASON = 2026;
 export const TEAM_SLACK = 3;
 export const SHORT_NAME_MAX_LEN = 3;
@@ -358,13 +360,13 @@ function main(): void {
   );
 
   if (!apply) {
-    console.log(JSON.stringify(reports, null, 2));
-    console.log('// DRY RUN — pass --apply to insert into ingest_anomalies');
+    log.info(JSON.stringify(reports, null, 2));
+    log.info('// DRY RUN — pass --apply to insert into ingest_anomalies');
     return;
   }
 
   const insertCounts = applyAnomalies(db, reports, findings);
-  console.log(JSON.stringify({ reports, insertCounts }, null, 2));
+  log.info(JSON.stringify({ reports, insertCounts }, null, 2));
 }
 
 const isDirectInvocation =

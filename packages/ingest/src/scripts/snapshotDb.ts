@@ -24,6 +24,8 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
+import { createLogger } from '@pll/shared';
+const moduleLog = createLogger({ name: 'ingest:snapshotDb' });
 export interface SnapshotEnv {
   AZURE_STORAGE_CONNECTION_STRING?: string;
   DB_PATH?: string;
@@ -89,8 +91,8 @@ function defaultUpload(args: {
  * `process.exit` so it can be unit-tested without spawning a subprocess.
  */
 export function runSnapshot(env: SnapshotEnv, deps: SnapshotDeps = {}): number {
-  const log = deps.log ?? ((m) => console.log(m));
-  const err = deps.err ?? ((m) => console.error(m));
+  const log = deps.log ?? ((m) => moduleLog.info(m));
+  const err = deps.err ?? ((m) => moduleLog.error(m));
   const fileExists = deps.fileExists ?? existsSync;
   const upload = deps.upload ?? defaultUpload;
   const now = deps.now ?? (() => new Date());

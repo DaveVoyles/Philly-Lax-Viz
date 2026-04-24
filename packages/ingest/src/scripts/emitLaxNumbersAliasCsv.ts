@@ -12,6 +12,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDb } from '../db.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:emitLaxNumbersAliasCsv' });
 interface AnomalyRow {
   raw_line: string;
 }
@@ -212,7 +214,7 @@ async function main(): Promise<void> {
     mkdirSync(dirname(outPath), { recursive: true });
     writeFileSync(outPath, csv, 'utf8');
 
-    console.log(
+    log.info(
       `Wrote ${rows.length} distinct LN names (${anomalies.length} anomalies) -> ${outPath}`,
     );
   } finally {
@@ -224,7 +226,7 @@ const invokedPath = process.argv[1] ? resolve(process.argv[1]) : '';
 const thisPath = fileURLToPath(import.meta.url);
 if (invokedPath === thisPath) {
   main().catch((err) => {
-    console.error(err);
+    log.error(err);
     process.exit(1);
   });
 }

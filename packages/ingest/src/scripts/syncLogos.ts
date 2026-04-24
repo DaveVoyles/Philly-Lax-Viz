@@ -26,6 +26,8 @@ import {
 } from '../sources/maxprepsSchools.js';
 import { downloadLogo } from '../sources/logoDownload.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:syncLogos' });
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const DB_PATH = process.env.DB_PATH ?? process.env.PLL_DB_PATH ?? path.join(REPO_ROOT, 'data', 'lacrosse.db');
 const LOGOS_DIR = path.join(REPO_ROOT, 'data', 'logos');
@@ -131,7 +133,7 @@ function loadOverrides(): Record<string, string> {
       return out;
     }
   } catch (err) {
-    console.warn(`[syncLogos] could not parse ${OVERRIDES_PATH}: ${(err as Error).message}`);
+    log.warn(`[syncLogos] could not parse ${OVERRIDES_PATH}: ${(err as Error).message}`);
   }
   return {};
 }
@@ -145,13 +147,13 @@ interface DownloadOutcome {
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 async function main(): Promise<void> {
-  console.log(`[syncLogos] db=${DB_PATH}`);
-  console.log(`[syncLogos] logos dir=${LOGOS_DIR}`);
+  log.info(`[syncLogos] db=${DB_PATH}`);
+  log.info(`[syncLogos] logos dir=${LOGOS_DIR}`);
   fs.mkdirSync(LOGOS_DIR, { recursive: true });
 
   const db = openDb(DB_PATH);
   const teams = db.prepare('SELECT id, name, slug FROM teams').all() as TeamRow[];
-  console.log(`[syncLogos] ${teams.length} teams in DB`);
+  log.info(`[syncLogos] ${teams.length} teams in DB`);
 
   // For each team, index ALL of its candidate keys. Exact key = index 0;
   // looser keys (suffix-stripped, WC→West Chester) are subsequent. We track
@@ -187,9 +189,9 @@ async function main(): Promise<void> {
 
   // Fetch MaxPreps directory.
   const schools = await fetchMaxprepsSchools();
-  console.log(`[syncLogos] fetched ${schools.length} MaxPreps schools`);
+  log.info(`[syncLogos] fetched ${schools.length} MaxPreps schools`);
   if (schools.length === 0) {
-    console.error('[syncLogos] zero schools parsed — aborting');
+    log.error('[syncLogos] zero schools parsed — aborting');
     db.close();
     process.exitCode = 1;
     return;
@@ -212,9 +214,9 @@ async function main(): Promise<void> {
     const school = schools.find((s) => s.maxprepsSlug === mpSlug);
     if (team && school) overrideMatches.push({ team, school });
     else if (!school)
-      console.warn(`[syncLogos] override target slug not found in MaxPreps: ${mpSlug}`);
+      log.warn(`[syncLogos] override target slug not found in MaxPreps: ${mpSlug}`);
     else if (!team)
-      console.warn(`[syncLogos] override DB team not found: ${phillyName}`);
+      log.warn(`[syncLogos] override DB team not found: ${phillyName}`);
   }
 
   const matchesByTeamId = new Map<number, MatchResult>();
@@ -296,11 +298,11 @@ async function main(): Promise<void> {
   for (const m of matchesByTeamId.values()) usedSlugs.add(m.school.maxprepsSlug);
   const unmatched = stillUnmatched.filter((s) => !usedSlugs.has(s.maxprepsSlug));
 
-  console.log(
+  log.info(
     `[syncLogos] matched ${matchesByTeamId.size}/${teams.length} teams ` +
       `(${((matchesByTeamId.size / teams.length) * 100).toFixed(1)}%)`,
   );
-  console.log(`[syncLogos] ${unmatched.length} MaxPreps schools have no DB team`);
+  log.info(`[syncLogos] ${unmatched.length} MaxPreps schools have no DB team`);
 
   // Prepare updates.
   const updateTeam = db.prepare(
@@ -333,7 +335,7 @@ async function main(): Promise<void> {
       dbWrites += 1;
     } catch (err) {
       failed += 1;
-      console.warn(
+      log.warn(
         `[syncLogos] failed to download ${team.name} from ${school.logoUrl}: ` +
           (err as Error).message,
       );
@@ -346,24 +348,24 @@ async function main(): Promise<void> {
     .prepare('SELECT COUNT(*) AS c FROM teams WHERE logo_url IS NOT NULL')
     .get() as { c: number };
 
-  console.log('');
-  console.log('[syncLogos] ===== summary =====');
-  console.log(`  teams in db:        ${teams.length}`);
-  console.log(`  maxpreps schools:   ${schools.length}`);
-  console.log(`  matched:            ${matchesByTeamId.size}`);
-  console.log(`  db rows updated:    ${dbWrites}`);
-  console.log(`  logos downloaded:   ${downloaded}`);
-  console.log(`  logos skipped:      ${skipped} (already cached)`);
-  console.log(`  download failures:  ${failed}`);
-  console.log(`  teams with logo:    ${withLogo.c}`);
-  console.log(`  total logo bytes:   ${totalBytes} (${(totalBytes / 1024).toFixed(1)} KiB)`);
-  console.log('');
-  console.log('[syncLogos] ===== unmatched MaxPreps schools =====');
+  log.info('');
+  log.info('[syncLogos] ===== summary =====');
+  log.info(`  teams in db:        ${teams.length}`);
+  log.info(`  maxpreps schools:   ${schools.length}`);
+  log.info(`  matched:            ${matchesByTeamId.size}`);
+  log.info(`  db rows updated:    ${dbWrites}`);
+  log.info(`  logos downloaded:   ${downloaded}`);
+  log.info(`  logos skipped:      ${skipped} (already cached)`);
+  log.info(`  download failures:  ${failed}`);
+  log.info(`  teams with logo:    ${withLogo.c}`);
+  log.info(`  total logo bytes:   ${totalBytes} (${(totalBytes / 1024).toFixed(1)} KiB)`);
+  log.info('');
+  log.info('[syncLogos] ===== unmatched MaxPreps schools =====');
   if (unmatched.length === 0) {
-    console.log('  (none)');
+    log.info('  (none)');
   } else {
     for (const s of unmatched) {
-      console.log(`  - ${s.name} (${s.city}, ${s.state}) [/${s.maxprepsSlug}/]`);
+      log.info(`  - ${s.name} (${s.city}, ${s.state}) [/${s.maxprepsSlug}/]`);
     }
   }
 
@@ -371,6 +373,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error('[syncLogos] failed:', err);
+  log.error('[syncLogos] failed:', err);
   process.exit(1);
 });

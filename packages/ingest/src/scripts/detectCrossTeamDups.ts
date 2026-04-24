@@ -22,6 +22,8 @@ import type { Database } from 'better-sqlite3';
 import { openDb } from '../db.js';
 import { insertAnomaly } from '../pipelines/anomalies.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:detectCrossTeamDups' });
 export interface DetectionGroup {
   name: string;
   instances: { id: number; team_id: number }[];
@@ -123,16 +125,16 @@ function main(): void {
   const dbPath =
     process.env.PLL_DB_PATH ??
     resolve(here, '..', '..', '..', '..', 'data', 'lacrosse.db');
-  console.log(`[detectCrossTeamDups] opening ${dbPath}`);
+  log.info(`[detectCrossTeamDups] opening ${dbPath}`);
   const db = openDb(dbPath);
   db.pragma('foreign_keys = ON');
 
   const result = detectAndEmit(db);
-  console.log(`──────── detectCrossTeamDups summary ────────`);
-  console.log(`cross-team groups found : ${result.groupsFound}`);
-  console.log(`anomalies inserted      : ${result.anomaliesInserted}`);
-  console.log(`anomalies skipped (dupe): ${result.anomaliesSkipped}`);
-  console.log(`──────────────────────────────────────────────`);
+  log.info(`──────── detectCrossTeamDups summary ────────`);
+  log.info(`cross-team groups found : ${result.groupsFound}`);
+  log.info(`anomalies inserted      : ${result.anomaliesInserted}`);
+  log.info(`anomalies skipped (dupe): ${result.anomaliesSkipped}`);
+  log.info(`──────────────────────────────────────────────`);
   db.close();
 }
 

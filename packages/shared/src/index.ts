@@ -2,6 +2,8 @@
 // All ingest, server, and web packages import from here so the data shape is
 // the single source of truth across the monorepo.
 
+export { createLogger, type Logger, type CreateLoggerOpts } from './logger.js';
+
 export type Gender = 'boys' | 'girls';
 export type Division = 'high-school' | 'd1' | 'd2' | 'd3' | 'unknown';
 export type RankingSource = 'philly' | 'pa-state';

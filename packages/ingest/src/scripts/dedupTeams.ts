@@ -36,6 +36,8 @@ import { openDb } from '../db.js';
 import { normalizeTeamName, slugifyTeamName } from '../pipelines/teamResolver.js';
 import { checkServerProcs } from './lib/checkServerProcs.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:dedupTeams' });
 interface TeamRow {
   id: number;
   name: string;
@@ -250,7 +252,7 @@ export function applyExplicitPairs(
     const gamesMoved = (countGames.get(pair.mergeFromId, pair.mergeFromId) as { c: number }).c;
     const playersMoved = (countPlayers.get(pair.mergeFromId) as { c: number }).c;
     const aliasesMoved = (countAliases.get(pair.mergeFromId) as { c: number }).c;
-    console.log(
+    log.info(
       `[explicit] keep id=${keep.id} "${keep.name}" <- merge id=${src.id} "${src.name}" ` +
         `(games=${gamesMoved}, players=${playersMoved}, aliases=${aliasesMoved})`,
     );
@@ -432,12 +434,12 @@ function main(): void {
   const backupPath = `${dbPath}.bak-w8-pre-dedup`;
   if (!existsSync(backupPath)) {
     copyFileSync(dbPath, backupPath);
-    console.log(`[dedupTeams] backup written: ${backupPath}`);
+    log.info(`[dedupTeams] backup written: ${backupPath}`);
   } else {
-    console.log(`[dedupTeams] backup already present: ${backupPath} (skipped)`);
+    log.info(`[dedupTeams] backup already present: ${backupPath} (skipped)`);
   }
 
-  console.log(`[dedupTeams] opening ${dbPath}`);
+  log.info(`[dedupTeams] opening ${dbPath}`);
   const db = openDb(dbPath);
   db.pragma('foreign_keys = ON');
 
@@ -543,7 +545,7 @@ function main(): void {
           // a loser still holding the desired name.
         }
         for (const loser of losers) {
-          console.log(
+          log.info(
             `[merge state] ${loser.name} (id=${loser.id}) → ${winner.name} (id=${winner.id})`,
           );
           result.collisions += mergeTeam(db, loser.id, winner.id, result.anomalies);
@@ -556,7 +558,7 @@ function main(): void {
             newSlug,
             winner.id,
           );
-          console.log(
+          log.info(
             `[rename] ${winner.name} (id=${winner.id}) → ${desiredName} (slug=${newSlug})`,
           );
           result.renamed += 1;
@@ -581,7 +583,7 @@ function main(): void {
         const target =
           exact ??
           [...candidates].sort((a, b) => gameCount(db, b.id) - gameCount(db, a.id))[0]!;
-        console.log(
+        log.info(
           `[merge] ${team.name} (id=${team.id}) → ${target.name} (id=${target.id})`,
         );
         result.collisions += mergeTeam(db, team.id, target.id, result.anomalies);
@@ -594,7 +596,7 @@ function main(): void {
           newSlug,
           team.id,
         );
-        console.log(
+        log.info(
           `[rename] ${team.name} (id=${team.id}) → ${canonicalName} (slug=${newSlug})`,
         );
         result.renamed += 1;
@@ -614,43 +616,43 @@ function main(): void {
     ).c,
   };
 
-  console.log('\n──────────── Explicit-pair Pass (W8) ────────────');
+  log.info('\n──────────── Explicit-pair Pass (W8) ────────────');
   for (const r of explicitReports) {
     if (r.applied) {
-      console.log(
+      log.info(
         `  applied: keep=#${r.pair.keepId} "${r.keepName}" <- merge=#${r.pair.mergeFromId} "${r.mergeFromName}" ` +
           `games=${r.gamesMoved} players=${r.playersMoved} aliases=${r.aliasesMoved} collisions=${r.collisions}`,
       );
     } else {
-      console.log(
+      log.info(
         `  skipped: keep=#${r.pair.keepId} merge=#${r.pair.mergeFromId} (${r.reasonSkipped})`,
       );
     }
   }
 
-  console.log('\n──────────── Dedup Summary ────────────');
-  console.log(`merged (suffix)   : ${result.merged}`);
-  console.log(`renamed-in-place  : ${result.renamed}`);
-  console.log(`collisions skipped: ${result.collisions}`);
-  console.log(`explicit-pair runs: ${explicitReports.filter((r) => r.applied).length}/${explicitReports.length}`);
-  console.log(`teams        ${pre.teams} → ${post.teams}`);
-  console.log(`games        ${pre.games} → ${post.games}`);
-  console.log(`players      ${pre.players} → ${post.players}`);
-  console.log(`player_stats ${pre.player_stats} → ${post.player_stats}`);
+  log.info('\n──────────── Dedup Summary ────────────');
+  log.info(`merged (suffix)   : ${result.merged}`);
+  log.info(`renamed-in-place  : ${result.renamed}`);
+  log.info(`collisions skipped: ${result.collisions}`);
+  log.info(`explicit-pair runs: ${explicitReports.filter((r) => r.applied).length}/${explicitReports.length}`);
+  log.info(`teams        ${pre.teams} → ${post.teams}`);
+  log.info(`games        ${pre.games} → ${post.games}`);
+  log.info(`players      ${pre.players} → ${post.players}`);
+  log.info(`player_stats ${pre.player_stats} → ${post.player_stats}`);
   if (result.anomalies.length > 0) {
-    console.log('\nAnomalies:');
-    for (const a of result.anomalies) console.log(`  - ${a}`);
+    log.info('\nAnomalies:');
+    for (const a of result.anomalies) log.info(`  - ${a}`);
   }
-  console.log('───────────────────────────────────────');
+  log.info('───────────────────────────────────────');
 
   // FK integrity sanity check.
   const fkIssues = db.pragma('foreign_key_check') as unknown[];
   if (fkIssues.length > 0) {
-    console.error('FOREIGN KEY CHECK reported issues:');
-    console.error(fkIssues);
+    log.error('FOREIGN KEY CHECK reported issues:');
+    log.error(fkIssues);
     process.exitCode = 1;
   } else {
-    console.log('foreign_key_check: clean');
+    log.info('foreign_key_check: clean');
   }
 
   db.close();

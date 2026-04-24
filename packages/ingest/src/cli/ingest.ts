@@ -28,6 +28,8 @@ import { DEFAULT_SEASON, seasonFromUrl } from '../crawler.js';
 
 import { runLaxNumbersIngest } from '../pipelines/laxnumbers.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:ingest' });
 interface CliArgs {
   limit?: number;
   category: 'all' | PipelineCategory;
@@ -107,7 +109,7 @@ function parseArgs(argv: string[]): CliArgs {
 }
 
 function printHelp(): void {
-  console.log(
+  log.info(
     `Usage: tsx src/cli/ingest.ts [--limit=N] [--category=scoreboard|hs-summaries|rankings|all] [--reparse]
 
 Walks data/raw-cache/<post-id>.html via raw_cache_meta. Each post is routed to
@@ -281,7 +283,7 @@ function processPost(
   } catch (err) {
     upsertPostLog(db, meta.post_id, cat.category, 'error', (err as Error).message, 0, 0, 0, season);
     summary.postsErrored++;
-    console.error(`[ingest] post ${meta.post_id} failed: ${(err as Error).message}`);
+    log.error(`[ingest] post ${meta.post_id} failed: ${(err as Error).message}`);
   }
 }
 
@@ -331,7 +333,7 @@ async function main(): Promise<void> {
   const dbPath = args.dbPath ?? process.env.DB_PATH ?? process.env.PLL_DB_PATH ?? path.join(repoRoot, 'data', 'lacrosse.db');
   const cacheDir = args.cacheDir ?? path.join(repoRoot, 'data', 'raw-cache');
 
-  console.log(
+  log.info(
     `[ingest] db=${dbPath} cacheDir=${cacheDir} category=${args.category} reparse=${args.reparse} parser=${PARSER_VERSION}`,
   );
 
@@ -381,9 +383,9 @@ async function main(): Promise<void> {
   }
   // skips the recap/scoreboard pipelines, writes image URLs into post_images.
   if (args.extractImages) {
-    console.log(`[ingest:images] cacheDir=${cacheDir} limit=${args.limit ?? 'all'}`);
+    log.info(`[ingest:images] cacheDir=${cacheDir} limit=${args.limit ?? 'all'}`);
     const r = runImageExtraction(db, cacheDir, { limit: args.limit });
-    console.log(
+    log.info(
       `[ingest:images] scanned=${r.postsScanned} with_image=${r.postsWithImage} inserted=${r.imagesInserted} skipped_existing=${r.imagesSkippedExisting}`,
     );
     db.close();
@@ -394,13 +396,13 @@ async function main(): Promise<void> {
   // post-cache walker. Skips the recap pipeline entirely.
   if (args.schedule) {
     const scheduleCacheDir = path.join(repoRoot, 'data', 'schedule-cache');
-    console.log(`[ingest:schedule] season=${args.scheduleSeason} cacheDir=${scheduleCacheDir} force=${args.scheduleForce}`);
+    log.info(`[ingest:schedule] season=${args.scheduleSeason} cacheDir=${scheduleCacheDir} force=${args.scheduleForce}`);
     const fetched = await fetchPiaaScheduleCsv({
       season: args.scheduleSeason,
       cacheDir: scheduleCacheDir,
       force: args.scheduleForce,
     });
-    console.log(`[ingest:schedule] csv source=${fetched.source} bytes=${fetched.csv.length} url=${fetched.url}`);
+    log.info(`[ingest:schedule] csv source=${fetched.source} bytes=${fetched.csv.length} url=${fetched.url}`);
     const parsed = parseScheduleCsv(fetched.csv);
     const r = ingestScheduleRows(db, {
       source: 'piaa-d1',
@@ -408,8 +410,8 @@ async function main(): Promise<void> {
       season: args.scheduleSeason,
       rows: parsed.rows,
     });
-    console.log(`[ingest:schedule] parsed_rows=${parsed.rows.length} malformed=${parsed.malformed.length}`);
-    console.log(`[ingest:schedule] upserted=${r.scheduleRowsUpserted} skipped_completed=${r.scheduleRowsSkippedCompleted} home_unresolved=${r.homeUnresolved} away_unresolved=${r.awayUnresolved} anomalies_added=${r.anomaliesAdded}`);
+    log.info(`[ingest:schedule] parsed_rows=${parsed.rows.length} malformed=${parsed.malformed.length}`);
+    log.info(`[ingest:schedule] upserted=${r.scheduleRowsUpserted} skipped_completed=${r.scheduleRowsSkippedCompleted} home_unresolved=${r.homeUnresolved} away_unresolved=${r.awayUnresolved} anomalies_added=${r.anomaliesAdded}`);
     db.close();
     return;
   }
@@ -450,14 +452,14 @@ async function main(): Promise<void> {
     elapsed,
   );
 
-  console.log(`[ingest] done in ${elapsed}ms`);
-  console.log(`  considered=${summary.postsConsidered} processed=${summary.postsProcessed} skipped=${summary.postsSkippedAlreadyDone} uncategorized=${summary.postsSkippedUncategorized} errors=${summary.postsErrored}`);
-  console.log(`  scoreboard_games=${summary.scoreboardGames} summaries_games=${summary.summariesGames} periods=${summary.periodsAdded} player_stats=${summary.playerStatsAdded} rankings=${summary.rankingsAdded} anomalies=${summary.anomaliesAdded}`);
+  log.info(`[ingest] done in ${elapsed}ms`);
+  log.info(`  considered=${summary.postsConsidered} processed=${summary.postsProcessed} skipped=${summary.postsSkippedAlreadyDone} uncategorized=${summary.postsSkippedUncategorized} errors=${summary.postsErrored}`);
+  log.info(`  scoreboard_games=${summary.scoreboardGames} summaries_games=${summary.summariesGames} periods=${summary.periodsAdded} player_stats=${summary.playerStatsAdded} rankings=${summary.rankingsAdded} anomalies=${summary.anomaliesAdded}`);
 
   db.close();
 }
 
 main().catch((err) => {
-  console.error('[ingest] FAILED:', err);
+  log.error('[ingest] FAILED:', err);
   process.exit(1);
 });

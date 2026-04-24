@@ -19,6 +19,8 @@ import { fileURLToPath } from 'node:url';
 import type { Database } from 'better-sqlite3';
 import { openDb } from '../db.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:cleanOrphanAliases' });
 export interface OrphanAliasRow {
   id: number;
   alias: string;
@@ -84,7 +86,7 @@ function main(): void {
     resolve(here, '..', '..', '..', '..', 'data', 'lacrosse.db');
   const auditPath = resolve(here, '..', '..', '..', '..', 'data', 'orphan-aliases-w15.json');
 
-  console.log(`[cleanOrphanAliases] db=${dbPath} apply=${apply}`);
+  log.info(`[cleanOrphanAliases] db=${dbPath} apply=${apply}`);
   const db = openDb(dbPath);
   db.pragma('foreign_keys = ON');
 
@@ -106,10 +108,10 @@ function main(): void {
     ),
   );
 
-  console.log(`[cleanOrphanAliases] scanned=${report.scanned}`);
-  console.log(`[cleanOrphanAliases] orphans=${report.orphans.length}`);
-  console.log(`[cleanOrphanAliases] deleted=${report.deleted}${apply ? '' : ' (dry-run)'}`);
-  console.log(`[cleanOrphanAliases] audit=${auditPath}`);
+  log.info(`[cleanOrphanAliases] scanned=${report.scanned}`);
+  log.info(`[cleanOrphanAliases] orphans=${report.orphans.length}`);
+  log.info(`[cleanOrphanAliases] deleted=${report.deleted}${apply ? '' : ' (dry-run)'}`);
+  log.info(`[cleanOrphanAliases] audit=${auditPath}`);
 
   db.close();
 }

@@ -27,6 +27,8 @@ import { openDb } from '../db.js';
 import { normalizeTeamName } from '../pipelines/teamResolver.js';
 import { mergeTeam } from './dedupTeams.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:dedupStateSuffixTeams' });
 interface TeamRow {
   id: number;
   name: string;
@@ -213,7 +215,7 @@ function main(): void {
     'state-suffix-dedup-w15.json',
   );
 
-  console.log(`[dedupStateSuffixTeams] db=${dbPath} apply=${apply}`);
+  log.info(`[dedupStateSuffixTeams] db=${dbPath} apply=${apply}`);
   const db = openDb(dbPath);
   db.pragma('foreign_keys = ON');
 
@@ -237,18 +239,18 @@ function main(): void {
 
   for (const r of reports) {
     const verb = r.applied ? 'merged' : 'WOULD-merge';
-    console.log(
+    log.info(
       `[${verb}] "${r.pair.suffixedName}" id=${r.pair.suffixedId} → "${r.pair.bareName}" id=${r.pair.bareId} ` +
         `(games=${r.gamesMoved} players=${r.playersMoved} aliases=${r.aliasesMoved} collisions=${r.collisions} aliasIns=${r.aliasInserted})`,
     );
   }
 
-  console.log('\n──────── State-Suffix Dedup Summary (W15) ────────');
-  console.log(`pairs found : ${reports.length}`);
-  console.log(`applied     : ${apply}`);
-  console.log(`teams       : ${pre.teams} → ${post.teams}`);
-  console.log(`games       : ${pre.games} → ${post.games}`);
-  console.log(`aliases     : ${pre.aliases} → ${post.aliases}`);
+  log.info('\n──────── State-Suffix Dedup Summary (W15) ────────');
+  log.info(`pairs found : ${reports.length}`);
+  log.info(`applied     : ${apply}`);
+  log.info(`teams       : ${pre.teams} → ${post.teams}`);
+  log.info(`games       : ${pre.games} → ${post.games}`);
+  log.info(`aliases     : ${pre.aliases} → ${post.aliases}`);
 
   writeFileSync(
     auditPath,
@@ -276,16 +278,16 @@ function main(): void {
       2,
     ),
   );
-  console.log(`audit       : ${auditPath}`);
+  log.info(`audit       : ${auditPath}`);
 
   if (apply) {
     const fkIssues = db.pragma('foreign_key_check') as unknown[];
     if (fkIssues.length > 0) {
-      console.error('FOREIGN KEY CHECK reported issues:');
-      console.error(fkIssues);
+      log.error('FOREIGN KEY CHECK reported issues:');
+      log.error(fkIssues);
       process.exitCode = 1;
     } else {
-      console.log('foreign_key_check: clean');
+      log.info('foreign_key_check: clean');
     }
   }
 

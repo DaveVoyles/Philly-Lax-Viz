@@ -30,6 +30,8 @@ import { normalizePlayerName } from '../normalize/playerName.js';
 import { splitCompositeNames } from '../parsers/playerStat.js';
 import { checkServerProcs } from './lib/checkServerProcs.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:splitCompositePlayers' });
 export interface CompositeRow {
   id: number;
   name: string;
@@ -181,33 +183,33 @@ export function applyPlan(db: Database, plan: SplitPlan): SplitResult {
 
 function printPlan(plan: SplitPlan, apply: boolean): void {
   const header = apply ? 'Applying' : 'Dry-run plan';
-  console.log(`──────── ${header}: splitCompositePlayers ────────`);
-  console.log(`Pre-count: ${plan.preCount} players`);
-  console.log(`Composite player rows detected: ${plan.actions.length}`);
+  log.info(`──────── ${header}: splitCompositePlayers ────────`);
+  log.info(`Pre-count: ${plan.preCount} players`);
+  log.info(`Composite player rows detected: ${plan.actions.length}`);
   if (plan.actions.length === 0) {
-    console.log('  (none — nothing to do)');
+    log.info('  (none — nothing to do)');
     return;
   }
   let n = 0;
   for (const a of plan.actions) {
     n += 1;
-    console.log(
+    log.info(
       `\n  ${n}. composite #${a.composite.id} team=${a.composite.team_id} ` +
         `"${a.composite.name}"`,
     );
-    console.log(`     → split into: ${a.splitNames.map((s) => `"${s}"`).join(', ')}`);
-    console.log(
+    log.info(`     → split into: ${a.splitNames.map((s) => `"${s}"`).join(', ')}`);
+    log.info(
       `     → ${a.stats.length} stat row(s) will be reassigned to FIRST split ` +
         `player ("${a.splitNames[0]}")`,
     );
     if (a.stats.length > 0 && a.splitNames.length > 1) {
-      console.log(
+      log.info(
         `     ⚠️  WARNING: ${a.splitNames.length} players share these stats. ` +
           `Apportioning is unsafe — assigning to "${a.splitNames[0]}" only. ` +
           `Manual review recommended for stat rows below.`,
       );
       for (const s of a.stats) {
-        console.log(
+        log.info(
           `       - stat#${s.id} game=${s.game_id}: ` +
             `g=${s.goals} a=${s.assists} gb=${s.ground_balls} ` +
             `cto=${s.caused_turnovers} sv=${s.saves} fo=${s.fo_won}/${s.fo_taken}`,
@@ -218,13 +220,13 @@ function printPlan(plan: SplitPlan, apply: boolean): void {
 }
 
 function printResult(r: SplitResult): void {
-  console.log('\n──────── Apply result ────────');
-  console.log(`players       ${r.preCount} → ${r.postCount}`);
-  console.log(`composites detected: ${r.actions.length}`);
-  console.log(`players created    : ${r.playersCreated}`);
-  console.log(`stat rows moved    : ${r.statRowsMoved}`);
-  console.log(`composite players deleted: ${r.playersDeleted}`);
-  console.log('──────────────────────────────');
+  log.info('\n──────── Apply result ────────');
+  log.info(`players       ${r.preCount} → ${r.postCount}`);
+  log.info(`composites detected: ${r.actions.length}`);
+  log.info(`players created    : ${r.playersCreated}`);
+  log.info(`stat rows moved    : ${r.statRowsMoved}`);
+  log.info(`composite players deleted: ${r.playersDeleted}`);
+  log.info('──────────────────────────────');
 }
 
 function parseArgs(argv: string[]): { apply: boolean } {
@@ -236,7 +238,7 @@ function main(): void {
   if (args.apply) checkServerProcs({ force: process.argv.includes('--force') });
   const here = dirname(fileURLToPath(import.meta.url));
   const dbPath = resolve(here, '..', '..', '..', '..', 'data', 'lacrosse.db');
-  console.log(
+  log.info(
     `[splitCompositePlayers] opening ${dbPath} (${args.apply ? 'APPLY' : 'dry-run'})`,
   );
   const db = openDb(dbPath);
@@ -246,7 +248,7 @@ function main(): void {
   printPlan(plan, args.apply);
 
   if (!args.apply) {
-    console.log('\n(Dry-run only. Re-run with --apply to write.)');
+    log.info('\n(Dry-run only. Re-run with --apply to write.)');
     db.close();
     return;
   }

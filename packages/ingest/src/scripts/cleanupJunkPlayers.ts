@@ -31,6 +31,8 @@ import { fileURLToPath } from 'node:url';
 import type { Database } from 'better-sqlite3';
 import { openDb } from '../db.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:cleanupJunkPlayers' });
 export interface JunkRow {
   id: number;
   name: string;
@@ -101,16 +103,16 @@ export function applyPlan(db: Database, plan: CleanupPlan): CleanupResult {
 
 function printPlan(plan: CleanupPlan, apply: boolean): void {
   const header = apply ? 'Applying' : 'Dry-run plan';
-  console.log(`-------- ${header}: cleanupJunkPlayers --------`);
-  console.log(`Pre-count: ${plan.preCount} players`);
-  console.log(`Deletable (no linked stats): ${plan.deletable.length}`);
+  log.info(`-------- ${header}: cleanupJunkPlayers --------`);
+  log.info(`Pre-count: ${plan.preCount} players`);
+  log.info(`Deletable (no linked stats): ${plan.deletable.length}`);
   for (const r of plan.deletable) {
-    console.log(`  delete  id=${r.id}  team=${r.team_id}  name="${r.name}"`);
+    log.info(`  delete  id=${r.id}  team=${r.team_id}  name="${r.name}"`);
   }
   if (plan.skipped.length > 0) {
-    console.log(`\n!! Skipped (linked player_stats present — manual review): ${plan.skipped.length}`);
+    log.info(`\n!! Skipped (linked player_stats present — manual review): ${plan.skipped.length}`);
     for (const r of plan.skipped) {
-      console.log(
+      log.info(
         `  KEEP    id=${r.id}  team=${r.team_id}  name="${r.name}"  linkedStats=${r.linkedStats}`,
       );
     }
@@ -122,7 +124,7 @@ function main(): void {
   const here = dirname(fileURLToPath(import.meta.url));
   const defaultDb = resolve(here, '..', '..', '..', '..', 'data', 'lacrosse.db');
   const dbPath = process.env.DB_PATH ?? defaultDb;
-  console.log(`[cleanupJunkPlayers] opening ${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
+  log.info(`[cleanupJunkPlayers] opening ${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
   const db = openDb(dbPath);
   db.pragma('foreign_keys = ON');
 
@@ -130,25 +132,25 @@ function main(): void {
   printPlan(plan, apply);
 
   if (!apply) {
-    console.log('\n(Dry-run only. Re-run with --apply to write.)');
+    log.info('\n(Dry-run only. Re-run with --apply to write.)');
     db.close();
     return;
   }
 
   const result = applyPlan(db, plan);
-  console.log('\n-------- Apply result --------');
-  console.log(`players  ${result.preCount} -> ${result.postCount}  (deleted ${result.deleted})`);
+  log.info('\n-------- Apply result --------');
+  log.info(`players  ${result.preCount} -> ${result.postCount}  (deleted ${result.deleted})`);
   if (result.skipped.length > 0) {
-    console.log(`preserved (linked stats): ${result.skipped.length}`);
+    log.info(`preserved (linked stats): ${result.skipped.length}`);
   }
 
   const fkIssues = db.pragma('foreign_key_check') as unknown[];
   if (fkIssues.length > 0) {
-    console.error('FOREIGN KEY CHECK reported issues:');
-    console.error(fkIssues);
+    log.error('FOREIGN KEY CHECK reported issues:');
+    log.error(fkIssues);
     process.exitCode = 1;
   } else {
-    console.log('foreign_key_check: clean');
+    log.info('foreign_key_check: clean');
   }
   db.close();
 }

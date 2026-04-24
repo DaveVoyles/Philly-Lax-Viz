@@ -1,6 +1,8 @@
 import * as path from 'node:path';
 import * as cheerio from 'cheerio';
 import type { RawCacheMeta } from '@pll/shared';
+import { createLogger } from '@pll/shared';
+const moduleLog = createLogger({ name: 'ingest:crawler' });
 import {
   type CacheStore,
   postIdFromUrl,
@@ -148,7 +150,7 @@ export async function crawlCategory(
     delayMs = DEFAULT_DELAY_MS,
     now = () => new Date(),
     sleep = DEFAULT_DEPS_SLEEP,
-    log = (m: string) => console.log(m),
+    log = (m: string) => moduleLog.info(m),
   } = deps;
   const maxPages = opts.maxPages ?? 50;
   const season = opts.season ?? DEFAULT_SEASON;

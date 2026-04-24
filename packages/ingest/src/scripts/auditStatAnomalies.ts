@@ -20,6 +20,8 @@
 import Database from 'better-sqlite3';
 import { resolve } from 'node:path';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:auditStatAnomalies' });
 const STAT_CAPS: Record<string, number> = {
   goals: 15,
   assists: 15,
@@ -71,7 +73,7 @@ function main(): void {
     )
     .all() as Row[];
 
-  console.log(`[audit] found ${overCapRows.length} player_stats rows above caps`);
+  log.info(`[audit] found ${overCapRows.length} player_stats rows above caps`);
 
   // 2. trailing-punctuation player names
   const colonNames = db
@@ -86,18 +88,18 @@ function main(): void {
            OR name LIKE '%, goalie,'`,
     )
     .all() as Array<{ id: number; name: string }>;
-  console.log(`[audit] found ${colonNames.length} players with trailing punctuation in name`);
+  log.info(`[audit] found ${colonNames.length} players with trailing punctuation in name`);
 
   if (!apply) {
     for (const r of overCapRows.slice(0, 20)) {
-      console.log(
+      log.info(
         `  over-cap: id=${r.id} player=${r.player_name} g=${r.goals} a=${r.assists} sv=${r.saves}`,
       );
     }
     for (const p of colonNames.slice(0, 20)) {
-      console.log(`  bad-name: id=${p.id} name=${JSON.stringify(p.name)}`);
+      log.info(`  bad-name: id=${p.id} name=${JSON.stringify(p.name)}`);
     }
-    console.log('[audit] DRY RUN — pass --apply to commit changes');
+    log.info('[audit] DRY RUN — pass --apply to commit changes');
     return;
   }
 
@@ -190,21 +192,21 @@ function main(): void {
           )
           .get(cleaned, p.id, p.id) as { id: number } | undefined;
         if (existing) {
-          console.log(`  SKIP rename ${p.id} (${p.name}) → would collide with player ${existing.id}`);
+          log.info(`  SKIP rename ${p.id} (${p.name}) → would collide with player ${existing.id}`);
           continue;
         }
         updateName.run(cleaned, p.id);
         renamed++;
       }
     }
-    console.log(`[audit] clamped ${clamped} rows, deleted ${deleted} empty rows, renamed ${renamed} players`);
+    log.info(`[audit] clamped ${clamped} rows, deleted ${deleted} empty rows, renamed ${renamed} players`);
   });
   tx();
 
   // Suppress unused warning — kept for potential future callers.
   void updateStats;
 
-  console.log('[audit] done');
+  log.info('[audit] done');
 }
 
 main();

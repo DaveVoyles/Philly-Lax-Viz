@@ -49,6 +49,8 @@ import type { Database } from 'better-sqlite3';
 import { openDb } from '../db.js';
 import { normalizePlayerName } from '../normalize/playerName.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:reattributeJunkStats' });
 export type ActionKind = 'rename' | 'reattribute' | 'soft-flag';
 
 export interface RenamePlan {
@@ -335,29 +337,29 @@ export function applyPlan(db: Database, planResult: BuildPlanResult): ApplyResul
 
 function printPlan(planResult: BuildPlanResult, apply: boolean): void {
   const header = apply ? 'Applying' : 'Dry-run plan';
-  console.log(`-------- ${header}: reattributeJunkStats --------`);
+  log.info(`-------- ${header}: reattributeJunkStats --------`);
   for (const p of planResult.plans) {
     if (p.kind === 'rename') {
-      console.log(
+      log.info(
         `  rename       id=${p.junkId}  "${p.fromName}" -> "${p.toName}" (norm="${p.toNormalized}")`,
       );
     } else if (p.kind === 'reattribute') {
-      console.log(
+      log.info(
         `  reattribute  id=${p.junkId} "${p.fromName}" -> id=${p.canonicalId} "${p.canonicalName}"  stats=[${p.statIds.join(',')}]  then DELETE junk player`,
       );
     } else {
-      console.log(
+      log.info(
         `  soft-flag    id=${p.junkId} "${p.fromName}"  games=[${p.gameIds.join(',')}]  (FK left in place)`,
       );
     }
   }
   if (planResult.alreadyResolved.length > 0) {
-    console.log(`already resolved (no-op): ${planResult.alreadyResolved.join(',')}`);
+    log.info(`already resolved (no-op): ${planResult.alreadyResolved.join(',')}`);
   }
   if (planResult.unresolved.length > 0) {
-    console.log(`!! UNRESOLVED (manual review):`);
+    log.info(`!! UNRESOLVED (manual review):`);
     for (const u of planResult.unresolved) {
-      console.log(`    id=${u.junkId}: ${u.reason}`);
+      log.info(`    id=${u.junkId}: ${u.reason}`);
     }
   }
 }
@@ -367,7 +369,7 @@ function main(): void {
   const here = dirname(fileURLToPath(import.meta.url));
   const defaultDb = resolve(here, '..', '..', '..', '..', 'data', 'lacrosse.db');
   const dbPath = process.env.DB_PATH ?? defaultDb;
-  console.log(`[reattributeJunkStats] opening ${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
+  log.info(`[reattributeJunkStats] opening ${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
 
   const db = openDb(dbPath);
   db.pragma('foreign_keys = ON');
@@ -376,26 +378,26 @@ function main(): void {
   printPlan(planResult, apply);
 
   if (!apply) {
-    console.log('\n(Dry-run only. Re-run with --apply to write.)');
+    log.info('\n(Dry-run only. Re-run with --apply to write.)');
     db.close();
     return;
   }
 
   const result = applyPlan(db, planResult);
-  console.log('\n-------- Apply result --------');
-  console.log(JSON.stringify(result, null, 2));
+  log.info('\n-------- Apply result --------');
+  log.info(JSON.stringify(result, null, 2));
 
   const fkIssues = db.pragma('foreign_key_check') as unknown[];
   if (fkIssues.length > 0) {
-    console.error('FOREIGN KEY CHECK reported issues:');
-    console.error(fkIssues);
+    log.error('FOREIGN KEY CHECK reported issues:');
+    log.error(fkIssues);
     process.exitCode = 1;
   } else {
-    console.log('foreign_key_check: clean');
+    log.info('foreign_key_check: clean');
   }
 
   const playerCount = (db.prepare('SELECT COUNT(*) AS n FROM players').get() as { n: number }).n;
-  console.log(`players total: ${playerCount}`);
+  log.info(`players total: ${playerCount}`);
   db.close();
 }
 

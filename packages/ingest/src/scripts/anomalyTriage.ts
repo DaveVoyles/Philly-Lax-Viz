@@ -17,6 +17,8 @@ import { fileURLToPath } from 'node:url';
 import type { Database } from 'better-sqlite3';
 import { openDb } from '../db.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:anomalyTriage' });
 export interface AnomalyGroup {
   strategy: string;
   reason: string;
@@ -267,14 +269,14 @@ function parseArgs(argv: string[], here: string): CliArgs {
 function main(): void {
   const here = dirname(fileURLToPath(import.meta.url));
   const args = parseArgs(process.argv.slice(2), here);
-  console.log(`[anomalyTriage] reading ${args.dbPath}`);
+  log.info(`[anomalyTriage] reading ${args.dbPath}`);
   const db = openDb(args.dbPath);
   try {
     const report = buildReport(db, args.topN);
     const md = renderMarkdown(report);
     mkdirSync(dirname(args.outPath), { recursive: true });
     writeFileSync(args.outPath, md, 'utf8');
-    console.log(
+    log.info(
       `[anomalyTriage] wrote ${args.outPath} -- ${report.totalAnomalies} anomalies, ${report.topGroups.length} groups (top ${args.topN})`,
     );
   } finally {

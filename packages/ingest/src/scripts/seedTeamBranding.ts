@@ -37,6 +37,8 @@ import { fileURLToPath } from 'node:url';
 import type { Database } from 'better-sqlite3';
 import { openDb } from '../db.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:seedTeamBranding' });
 export interface BrandingEntry {
   /** teams.id -- look up via:
    *    SELECT id, name FROM teams WHERE name = '...';
@@ -517,19 +519,19 @@ export function seedBranding(
 
 function printResult(result: SeedResult, apply: boolean): void {
   const header = apply ? 'Applied' : 'Dry-run plan';
-  console.log(`-------- ${header}: seedTeamBranding --------`);
-  console.log(`updated:        ${result.updated}`);
-  console.log(`unchanged:      ${result.unchanged}`);
+  log.info(`-------- ${header}: seedTeamBranding --------`);
+  log.info(`updated:        ${result.updated}`);
+  log.info(`unchanged:      ${result.unchanged}`);
   if (result.missingTeam.length > 0) {
-    console.log(`!! missing team rows (skipped): ${result.missingTeam.length}`);
+    log.info(`!! missing team rows (skipped): ${result.missingTeam.length}`);
     for (const m of result.missingTeam) {
-      console.log(`    team_id=${m.teamId} (${m.teamName})`);
+      log.info(`    team_id=${m.teamId} (${m.teamName})`);
     }
   }
   if (result.invalidColor.length > 0) {
-    console.log(`!! invalid colors (refused): ${result.invalidColor.length}`);
+    log.info(`!! invalid colors (refused): ${result.invalidColor.length}`);
     for (const m of result.invalidColor) {
-      console.log(`    team_id=${m.teamId} (${m.teamName}) primary=${m.primaryColor}`);
+      log.info(`    team_id=${m.teamId} (${m.teamName}) primary=${m.primaryColor}`);
     }
   }
 }
@@ -539,7 +541,7 @@ function main(): void {
   const here = dirname(fileURLToPath(import.meta.url));
   const defaultDb = resolve(here, '..', '..', '..', '..', 'data', 'lacrosse.db');
   const dbPath = process.env.DB_PATH ?? defaultDb;
-  console.log(`[seedTeamBranding] opening ${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
+  log.info(`[seedTeamBranding] opening ${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
 
   const db = openDb(dbPath);
 
@@ -566,7 +568,7 @@ function main(): void {
       { updated: wouldUpdate, unchanged: alreadySet, missingTeam: missing, invalidColor: validateBranding(TEAM_BRANDING) },
       false,
     );
-    console.log('\n(Dry-run only. Re-run with --apply to write.)');
+    log.info('\n(Dry-run only. Re-run with --apply to write.)');
     db.close();
     return;
   }

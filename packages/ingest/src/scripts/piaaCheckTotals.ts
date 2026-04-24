@@ -32,6 +32,8 @@ import { fileURLToPath } from 'node:url';
 import { openDb } from '../db.js';
 import { getPiaaForTeam } from '../queries/piaa.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:piaaCheckTotals' });
 export interface MismatchRow {
   teamId: number;
   teamName: string;
@@ -193,9 +195,9 @@ function main(): void {
     mkdirSync(dirname(outPath), { recursive: true });
     writeFileSync(outPath, `${JSON.stringify(mismatches, null, 2)}\n`, 'utf8');
 
-    console.log(`piaa:check-totals — ${mismatches.length} mismatches`);
-    console.log(formatTopTable(mismatches));
-    console.log(`piaa:check-totals — wrote ${outPath}`);
+    log.info(`piaa:check-totals — ${mismatches.length} mismatches`);
+    log.info(formatTopTable(mismatches));
+    log.info(`piaa:check-totals — wrote ${outPath}`);
   } finally {
     db.close();
   }

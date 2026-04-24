@@ -15,6 +15,8 @@
 import { readdirSync, statSync, unlinkSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:pruneBackups' });
 export interface BackupEntry {
   path: string;
   mtimeMs: number;
@@ -114,34 +116,34 @@ function main(): void {
   const backups = listBackups(dataDir);
   const plan = planPrune(backups, keep);
 
-  console.log(`pruneBackups: scanned ${dataDir}`);
-  console.log(`  total backup files found: ${plan.totalFound}`);
-  console.log(`  keeping (${plan.keep.length}):`);
+  log.info(`pruneBackups: scanned ${dataDir}`);
+  log.info(`  total backup files found: ${plan.totalFound}`);
+  log.info(`  keeping (${plan.keep.length}):`);
   for (const e of plan.keep) {
-    console.log(`    ${e.path}  (${fmtBytes(e.size)})`);
+    log.info(`    ${e.path}  (${fmtBytes(e.size)})`);
   }
-  console.log(`  deleting primaries (${plan.deletePrimaries.length}):`);
+  log.info(`  deleting primaries (${plan.deletePrimaries.length}):`);
   for (const e of plan.deletePrimaries) {
-    console.log(`    ${e.path}  (${fmtBytes(e.size)})`);
+    log.info(`    ${e.path}  (${fmtBytes(e.size)})`);
   }
-  console.log(`  deleting siblings (${plan.deleteSiblings.length}):`);
+  log.info(`  deleting siblings (${plan.deleteSiblings.length}):`);
   for (const e of plan.deleteSiblings) {
-    console.log(`    ${e.path}  (${fmtBytes(e.size)})`);
+    log.info(`    ${e.path}  (${fmtBytes(e.size)})`);
   }
-  console.log(`  total bytes to free: ${fmtBytes(plan.bytesToFree)} (${plan.bytesToFree} B)`);
+  log.info(`  total bytes to free: ${fmtBytes(plan.bytesToFree)} (${plan.bytesToFree} B)`);
 
   if (!apply) {
-    console.log('// DRY RUN — pass --apply to unlink the files above');
+    log.info('// DRY RUN — pass --apply to unlink the files above');
     return;
   }
 
   let unlinked = 0;
   for (const e of [...plan.deletePrimaries, ...plan.deleteSiblings]) {
     unlinkSync(e.path);
-    console.log(`  unlinked ${e.path}`);
+    log.info(`  unlinked ${e.path}`);
     unlinked++;
   }
-  console.log(`pruneBackups: removed ${unlinked} files (~${fmtBytes(plan.bytesToFree)})`);
+  log.info(`pruneBackups: removed ${unlinked} files (~${fmtBytes(plan.bytesToFree)})`);
 }
 
 const isDirectInvocation =

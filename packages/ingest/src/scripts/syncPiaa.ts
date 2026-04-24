@@ -8,15 +8,17 @@ import path from 'node:path';
 import { openDb } from '../db.js';
 import { fetchPiaaTeams, type PiaaTeamRow } from '../sources/piaa.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:syncPiaa' });
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const DB_PATH = process.env.DB_PATH ?? process.env.PLL_DB_PATH ?? path.join(REPO_ROOT, 'data', 'lacrosse.db');
 
 async function main(): Promise<void> {
   const db = openDb(DB_PATH);
-  console.log(`[syncPiaa] db=${DB_PATH}`);
+  log.info(`[syncPiaa] db=${DB_PATH}`);
   const rows = await fetchPiaaTeams();
   if (rows.length === 0) {
-    console.error('[syncPiaa] no rows parsed — aborting (would otherwise wipe table)');
+    log.error('[syncPiaa] no rows parsed — aborting (would otherwise wipe table)');
     process.exitCode = 1;
     db.close();
     return;
@@ -58,14 +60,14 @@ async function main(): Promise<void> {
   });
   tx();
 
-  console.log(`[syncPiaa] inserted ${rows.length} rows at ${fetchedAt}`);
+  log.info(`[syncPiaa] inserted ${rows.length} rows at ${fetchedAt}`);
   for (const [classification, items] of byClass) {
-    console.log(`  ${classification}: ${items.length} teams`);
+    log.info(`  ${classification}: ${items.length} teams`);
   }
   db.close();
 }
 
 main().catch((err) => {
-  console.error('[syncPiaa] failed:', err);
+  log.error('[syncPiaa] failed:', err);
   process.exit(1);
 });

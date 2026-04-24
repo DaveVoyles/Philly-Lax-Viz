@@ -19,6 +19,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:auditShortNames' });
 export const DEFAULT_MAX_LEN = 4;
 
 export interface ShortNameRow {
@@ -134,12 +136,12 @@ function main(): void {
   db.pragma('foreign_keys = ON');
 
   if (apply) {
-    console.log('auditShortNames is read-only; --apply has no effect');
+    log.info('auditShortNames is read-only; --apply has no effect');
   }
 
   const rows = findShortNamePlayers(db, maxLen);
-  console.log(`[audit-short-names] flagged ${rows.length} players (max-len=${maxLen})`);
-  console.log(formatTable(rows));
+  log.info(`[audit-short-names] flagged ${rows.length} players (max-len=${maxLen})`);
+  log.info(formatTable(rows));
 
   const report = buildReport(rows);
   // Script lives at packages/ingest/src/scripts/auditShortNames.ts; repo root is 4 dirs up.
@@ -148,7 +150,7 @@ function main(): void {
   const reportPath = resolve(repoRoot, '.github', 'docs', `${todayIsoDate()}-short-names-report.json`);
   mkdirSync(dirname(reportPath), { recursive: true });
   writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n');
-  console.log(`[audit-short-names] wrote ${reportPath}`);
+  log.info(`[audit-short-names] wrote ${reportPath}`);
 }
 
 const isDirectInvocation =

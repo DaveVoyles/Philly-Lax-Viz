@@ -6,6 +6,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import type { Database } from 'better-sqlite3';
+import type { Logger } from '@pll/shared';
 
 import { healthRoutes } from './routes/health.js';
 import { teamsRoutes } from './routes/teams.js';
@@ -28,7 +29,9 @@ import { comparePlayersRoutes } from './routes/comparePlayers.js';
 import { responseCachePlugin, type ResponseCacheOptions } from './plugins/responseCache.js';
 
 export interface BuildOptions {
-  logger?: boolean;
+  /** A pino logger instance (preferred), or `true` to enable Fastify's
+   *  default pino, or `false`/undefined to disable. */
+  logger?: Logger | boolean;
   logosDir?: string;
   responseCache?: ResponseCacheOptions | false;
 }

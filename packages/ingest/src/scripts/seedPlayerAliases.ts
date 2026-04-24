@@ -22,6 +22,8 @@ import type { Database } from 'better-sqlite3';
 import { openDb } from '../db.js';
 import { mergePlayers } from './dedupPlayers.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:seedPlayerAliases' });
 export interface PlayerAliasSeed {
   /** Player ID to drop (the duplicate). */
   dropId: number;
@@ -61,11 +63,11 @@ export function applySeedPlayerAliases(db: Database): number {
       .prepare('SELECT COUNT(*) AS c FROM players WHERE id = ?')
       .get(seed.dropId) as { c: number };
     if (dropExists.c === 0) {
-      console.log(`  [skip] drop id=${seed.dropId} already gone — ${seed.note}`);
+      log.info(`  [skip] drop id=${seed.dropId} already gone — ${seed.note}`);
       continue;
     }
     const result = mergePlayers(db, seed.keepId, seed.dropId, SEED_SOURCE, 1.0);
-    console.log(
+    log.info(
       `  [merge] keep=#${result.keptId}  drop=#${result.droppedId}  ` +
         `stats_reassigned=${result.statRowsReassigned}  ` +
         `dups_dropped=${result.duplicateStatsDropped}  ` +
@@ -80,11 +82,11 @@ function main(): void {
   const apply = process.argv.includes('--apply');
   const here = dirname(fileURLToPath(import.meta.url));
   const dbPath = resolve(here, '..', '..', '..', '..', 'data', 'lacrosse.db');
-  console.log(`[seedPlayerAliases] opening ${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
+  log.info(`[seedPlayerAliases] opening ${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
   const db = openDb(dbPath);
   db.pragma('foreign_keys = ON');
 
-  console.log(`Seeds defined: ${PLAYER_ALIAS_SEEDS.length}`);
+  log.info(`Seeds defined: ${PLAYER_ALIAS_SEEDS.length}`);
   for (const s of PLAYER_ALIAS_SEEDS) {
     const dropRow = db
       .prepare('SELECT name FROM players WHERE id = ?')
@@ -92,20 +94,20 @@ function main(): void {
     const keepRow = db
       .prepare('SELECT name FROM players WHERE id = ?')
       .get(s.keepId) as { name: string } | undefined;
-    console.log(
+    log.info(
       `  drop=#${s.dropId} "${dropRow?.name ?? '(not found)'}"  ` +
         `→ keep=#${s.keepId} "${keepRow?.name ?? '(not found)'}"`,
     );
   }
 
   if (!apply) {
-    console.log('\n(Dry-run only. Re-run with --apply to write.)');
+    log.info('\n(Dry-run only. Re-run with --apply to write.)');
     db.close();
     return;
   }
 
   const applied = applySeedPlayerAliases(db);
-  console.log(`\napplied: ${applied} / ${PLAYER_ALIAS_SEEDS.length} seeds`);
+  log.info(`\napplied: ${applied} / ${PLAYER_ALIAS_SEEDS.length} seeds`);
   db.close();
 }
 

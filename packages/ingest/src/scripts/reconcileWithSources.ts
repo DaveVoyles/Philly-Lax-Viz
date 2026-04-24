@@ -32,6 +32,8 @@ import { fileURLToPath } from 'node:url';
 import { openDb } from '../db.js';
 import { checkServerProcs } from './lib/checkServerProcs.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:reconcileWithSources' });
 // ─── Types ──────────────────────────────────────────────────────────────
 
 /** Shape of one entry in the reconcile queue JSON (matches reconcileTeamScores.ts). */
@@ -277,7 +279,7 @@ export async function reconcile(
       // Treat thrown errors as fetch failures (Lane 2's contract is to return
       // null on parse/network problems, but be defensive).
       mp = null;
-      console.warn(
+      log.warn(
         `[reconcile] fetcher threw for game ${entry.gameId}: ${(err as Error).message}`,
       );
     }
@@ -398,15 +400,15 @@ function loadQueue(path: string): QueueEntry[] {
 
 function printPlan(result: RunResult, opts: RunOptions): void {
   const header = opts.apply ? 'APPLY' : 'DRY-RUN';
-  console.log(`──────── reconcileWithSources (${header}) ────────`);
-  console.log(`queue:    ${opts.queuePath}`);
-  console.log(`entries:  ${result.rows.length}${opts.limit ? ` (limit=${opts.limit})` : ''}`);
-  console.log('');
+  log.info(`──────── reconcileWithSources (${header}) ────────`);
+  log.info(`queue:    ${opts.queuePath}`);
+  log.info(`entries:  ${result.rows.length}${opts.limit ? ` (limit=${opts.limit})` : ''}`);
+  log.info('');
   // Compact table
   const cols = ['game', 'side', 'team', 'cur→mp', 'pSum', 'decision', 'reason'];
-  console.log(cols.join('\t'));
+  log.info(cols.join('\t'));
   for (const r of result.rows) {
-    console.log(
+    log.info(
       [
         r.entry.gameId,
         r.teamSide ?? '?',
@@ -419,15 +421,15 @@ function printPlan(result: RunResult, opts: RunOptions): void {
     );
   }
   const wouldApply = result.rows.filter((r) => r.decision === 'apply').length;
-  console.log('');
-  console.log(`would-apply: ${wouldApply}`);
+  log.info('');
+  log.info(`would-apply: ${wouldApply}`);
   if (opts.apply) {
-    console.log(`applied:     ${result.applied}`);
-    console.log(`logged-only: ${result.loggedOnly}`);
+    log.info(`applied:     ${result.applied}`);
+    log.info(`logged-only: ${result.loggedOnly}`);
   } else {
-    console.log('(dry-run only — re-run with --apply to write)');
+    log.info('(dry-run only — re-run with --apply to write)');
   }
-  console.log('────────────────────────────────────────────────');
+  log.info('────────────────────────────────────────────────');
 }
 
 /**
@@ -459,11 +461,11 @@ async function loadProductionFetcher(
     }
     const cookie = process.env.MAXPREPS_COOKIE?.trim();
     if (cookie && cookie.length > 0) {
-      console.log(
+      log.info(
         `[reconcileWithSources] MAXPREPS_COOKIE detected (${cookie.length} bytes) — using authenticated fetch`,
       );
     } else {
-      console.log(
+      log.info(
         '[reconcileWithSources] MAXPREPS_COOKIE not set — anon fetch only',
       );
     }
@@ -493,7 +495,7 @@ async function loadProductionFetcher(
             cookie,
           });
           scheduleCache.set(ownSlug, schedule);
-          console.log(
+          log.info(
             `[reconcileWithSources] schedule for ${ownSlug}: ${
               schedule === null ? 'fetch failed' : `${schedule.length} entries`
             }`,
@@ -602,7 +604,7 @@ async function main(): Promise<void> {
     process.env.PLL_DB_PATH ??
     resolve(REPO_ROOT, 'data', 'lacrosse.db');
 
-  console.log(
+  log.info(
     `[reconcileWithSources] db=${dbPath} mode=${opts.apply ? 'APPLY' : 'dry-run'}`,
   );
 
@@ -623,7 +625,7 @@ async function main(): Promise<void> {
 const invokedPath = process.argv[1] ? resolve(process.argv[1]) : '';
 if (invokedPath === fileURLToPath(import.meta.url)) {
   main().catch((err: unknown) => {
-    console.error(err);
+    log.error(err);
     process.exit(1);
   });
 }

@@ -33,6 +33,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDb } from '../db.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:seedTestDb' });
 const HERE = dirname(fileURLToPath(import.meta.url));
 // packages/ingest/src/scripts → repo root is ../../../..
 export const REPO_ROOT = resolve(HERE, '..', '..', '..', '..');
@@ -178,5 +180,5 @@ if (isMain) {
   const target = process.argv[2] ? resolve(process.argv[2]) : DEFAULT_TEST_DB_PATH;
   const out = seedTestDb(target);
   // eslint-disable-next-line no-console
-  console.log(`seeded test db: ${out}`);
+  log.info(`seeded test db: ${out}`);
 }

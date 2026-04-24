@@ -31,6 +31,8 @@ import type { Database } from 'better-sqlite3';
 import { openDb } from '../db.js';
 import { partialMatchesTeam } from '../pipelines/summaries.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:cleanGhostTeams' });
 export interface GhostCandidate {
   id: number;
   name: string;
@@ -212,28 +214,28 @@ export function applyPlan(db: Database, plan: GhostCleanupPlan): GhostCleanupRes
 
 function printPlan(plan: GhostCleanupPlan, apply: boolean): void {
   const header = apply ? 'Applying' : 'Dry-run plan';
-  console.log(`-------- ${header}: cleanGhostTeams (W14) --------`);
-  console.log(`Pre-count: ${plan.preTeams} teams`);
-  console.log(`Ghost candidates: ${plan.candidates.length}`);
+  log.info(`-------- ${header}: cleanGhostTeams (W14) --------`);
+  log.info(`Pre-count: ${plan.preTeams} teams`);
+  log.info(`Ghost candidates: ${plan.candidates.length}`);
   for (const c of plan.candidates) {
-    console.log(
+    log.info(
       `  id=${c.id}  name="${c.name}"  games=${c.games} players=${c.players} stats=${c.playerStats}`,
     );
   }
-  console.log(`\nDeletable: ${plan.deletable.length}`);
+  log.info(`\nDeletable: ${plan.deletable.length}`);
   for (const c of plan.deletable) {
-    console.log(`  delete  id=${c.id}  name="${c.name}"`);
+    log.info(`  delete  id=${c.id}  name="${c.name}"`);
   }
-  console.log(`\nPlayer repoints: ${plan.repoints.length}`);
+  log.info(`\nPlayer repoints: ${plan.repoints.length}`);
   for (const rp of plan.repoints) {
-    console.log(
+    log.info(
       `  player ${rp.playerId}: team ${rp.fromTeamId} -> ${rp.toTeamId} (${rp.reason})`,
     );
   }
   if (plan.skipped.length > 0) {
-    console.log(`\n!! Skipped (have games or unrepointable players): ${plan.skipped.length}`);
+    log.info(`\n!! Skipped (have games or unrepointable players): ${plan.skipped.length}`);
     for (const c of plan.skipped) {
-      console.log(`  KEEP  id=${c.id}  name="${c.name}"  games=${c.games} players=${c.players}`);
+      log.info(`  KEEP  id=${c.id}  name="${c.name}"  games=${c.games} players=${c.players}`);
     }
   }
 }
@@ -244,7 +246,7 @@ function main(): void {
   const defaultDb = resolve(here, '..', '..', '..', '..', 'data', 'lacrosse.db');
   const dbPath = process.env.DB_PATH ?? defaultDb;
   const auditPath = resolve(here, '..', '..', '..', '..', 'data', 'cleanup-log-w14.json');
-  console.log(`[cleanGhostTeams] opening ${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
+  log.info(`[cleanGhostTeams] opening ${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
   const db = openDb(dbPath);
   db.pragma('foreign_keys = ON');
 
@@ -253,25 +255,25 @@ function main(): void {
 
   if (!apply) {
     writeFileSync(auditPath, JSON.stringify({ mode: 'dry-run', plan }, null, 2));
-    console.log(`\n(Dry-run only. Audit written to ${auditPath}. Re-run with --apply to write.)`);
+    log.info(`\n(Dry-run only. Audit written to ${auditPath}. Re-run with --apply to write.)`);
     db.close();
     return;
   }
 
   const result = applyPlan(db, plan);
   writeFileSync(auditPath, JSON.stringify({ mode: 'apply', result }, null, 2));
-  console.log('\n-------- Apply result --------');
-  console.log(`teams  ${result.preTeams} -> ${result.postTeams}  (deleted ${result.deleted})`);
-  console.log(`players repointed: ${result.repointed}`);
-  console.log(`audit log: ${auditPath}`);
+  log.info('\n-------- Apply result --------');
+  log.info(`teams  ${result.preTeams} -> ${result.postTeams}  (deleted ${result.deleted})`);
+  log.info(`players repointed: ${result.repointed}`);
+  log.info(`audit log: ${auditPath}`);
 
   const fkIssues = db.pragma('foreign_key_check') as unknown[];
   if (fkIssues.length > 0) {
-    console.error('FOREIGN KEY CHECK reported issues:');
-    console.error(fkIssues);
+    log.error('FOREIGN KEY CHECK reported issues:');
+    log.error(fkIssues);
     process.exitCode = 1;
   } else {
-    console.log('foreign_key_check: clean');
+    log.info('foreign_key_check: clean');
   }
   db.close();
 }

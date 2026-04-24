@@ -1,6 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { platform } from 'node:os';
 
+// User-facing CLI safety guard: messages here MUST go through `console.*`
+// (not the shared logger) so they reach a developer's terminal verbatim
+// even when LOG_LEVEL silences pino output, and so that test spies on
+// `console.error`/`console.warn` continue to work. See RFC #07
+// (allow-console escape hatch). allow-console
+
 // Pattern matches dev servers that hold the SQLite DB open:
 //   - `pnpm dev` / `pnpm start` for `@pll/server` (matches `pll/server` in cwd)
 //   - direct `tsx src/index.ts` invocations

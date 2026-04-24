@@ -35,6 +35,8 @@ import { fileURLToPath } from 'node:url';
 import type { Database } from 'better-sqlite3';
 import { openDb } from '../db.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:seedTeamAliases' });
 export interface AliasMapping {
   alias: string;
   teamId: number;
@@ -455,13 +457,13 @@ export function seedAliases(
 
 function printResult(result: SeedResult, apply: boolean): void {
   const header = apply ? 'Applied' : 'Dry-run plan';
-  console.log(`-------- ${header}: seedTeamAliases --------`);
-  console.log(`inserted:        ${result.inserted}`);
-  console.log(`already present: ${result.alreadyPresent}`);
+  log.info(`-------- ${header}: seedTeamAliases --------`);
+  log.info(`inserted:        ${result.inserted}`);
+  log.info(`already present: ${result.alreadyPresent}`);
   if (result.missingTeam.length > 0) {
-    console.log(`!! missing team rows (skipped): ${result.missingTeam.length}`);
+    log.info(`!! missing team rows (skipped): ${result.missingTeam.length}`);
     for (const m of result.missingTeam) {
-      console.log(`    alias="${m.alias}" -> team_id=${m.teamId} (${m.teamName})`);
+      log.info(`    alias="${m.alias}" -> team_id=${m.teamId} (${m.teamName})`);
     }
   }
 }
@@ -471,7 +473,7 @@ function main(): void {
   const here = dirname(fileURLToPath(import.meta.url));
   const defaultDb = resolve(here, '..', '..', '..', '..', 'data', 'lacrosse.db');
   const dbPath = process.env.DB_PATH ?? defaultDb;
-  console.log(`[seedTeamAliases] opening ${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
+  log.info(`[seedTeamAliases] opening ${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
 
   const db = openDb(dbPath);
   db.pragma('foreign_keys = ON');
@@ -495,25 +497,25 @@ function main(): void {
         .all(...g.mappings.map((m) => m.alias)) as Array<{ alias: string }>;
       const presentSet = new Set(present.map((r) => r.alias));
       const wouldInsert = g.mappings.filter((m) => !presentSet.has(m.alias));
-      console.log(`-------- Dry-run plan: ${g.label} --------`);
-      console.log(`would insert: ${wouldInsert.length} / ${g.mappings.length}`);
+      log.info(`-------- Dry-run plan: ${g.label} --------`);
+      log.info(`would insert: ${wouldInsert.length} / ${g.mappings.length}`);
       for (const m of wouldInsert) {
-        console.log(`  + alias="${m.alias}" -> team_id=${m.teamId} (${m.teamName})`);
+        log.info(`  + alias="${m.alias}" -> team_id=${m.teamId} (${m.teamName})`);
       }
     }
-    console.log(`\nSKIPPED_AMBIGUOUS (documented, not seeded): ${SKIPPED_AMBIGUOUS.length}`);
+    log.info(`\nSKIPPED_AMBIGUOUS (documented, not seeded): ${SKIPPED_AMBIGUOUS.length}`);
     for (const s of SKIPPED_AMBIGUOUS) {
-      console.log(`  · ${s.token} — ${s.rationale}`);
+      log.info(`  · ${s.token} — ${s.rationale}`);
     }
     const byCategory = new Map<string, number>();
     for (const u of UNMAPPABLE_PIAA) {
       byCategory.set(u.category, (byCategory.get(u.category) ?? 0) + 1);
     }
-    console.log(`\nUNMAPPABLE_PIAA (documented non-PIAA-D1 teams): ${UNMAPPABLE_PIAA.length}`);
+    log.info(`\nUNMAPPABLE_PIAA (documented non-PIAA-D1 teams): ${UNMAPPABLE_PIAA.length}`);
     for (const [cat, n] of byCategory) {
-      console.log(`  · ${cat}: ${n}`);
+      log.info(`  · ${cat}: ${n}`);
     }
-    console.log('\n(Dry-run only. Re-run with --apply to write.)');
+    log.info('\n(Dry-run only. Re-run with --apply to write.)');
     db.close();
     return;
   }
@@ -521,11 +523,11 @@ function main(): void {
   for (const g of groups) {
     const result = seedAliases(db, g.mappings, g.source);
     printResult(result, apply);
-    console.log(`(group: ${g.label}, source: ${g.source})\n`);
+    log.info(`(group: ${g.label}, source: ${g.source})\n`);
   }
 
   const total = (db.prepare('SELECT COUNT(*) AS n FROM team_aliases').get() as { n: number }).n;
-  console.log(`team_aliases total: ${total}`);
+  log.info(`team_aliases total: ${total}`);
   db.close();
 }
 

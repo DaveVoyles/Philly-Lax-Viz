@@ -32,6 +32,8 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { htmlToTextLines } from '../parsers/text.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:scanCareerProse' });
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
@@ -242,7 +244,7 @@ function main(): void {
     .all();
   const targetPosts = allCache.filter((r) => isBoysSummaryPost(r.url, r.post_id));
 
-  console.log(
+  log.info(
     `[scanCareerProse] cache rows: ${allCache.length}; boys-summary candidates: ${targetPosts.length}`,
   );
 
@@ -287,7 +289,7 @@ function main(): void {
     try {
       lines = htmlToTextLines(html);
     } catch (err) {
-      console.warn(`  ! failed to parse ${post.post_id}: ${(err as Error).message}`);
+      log.warn(`  ! failed to parse ${post.post_id}: ${(err as Error).message}`);
       continue;
     }
 
@@ -449,20 +451,20 @@ function main(): void {
   mkdirSync(dirname(REPORT_PATH), { recursive: true });
   writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2), 'utf8');
 
-  console.log('');
-  console.log('=== scanCareerProse summary ===');
-  console.log(`posts_scanned             : ${postsScanned}`);
-  console.log(`posts_missing_html        : ${postsMissingHtml}`);
-  console.log(`boys_summary_posts_total  : ${targetPosts.length}`);
-  console.log(`suspect_lines_total       : ${suspectLines}`);
-  console.log(`  parsed-and-suspect      : ${byCategory['parsed-and-suspect']}`);
-  console.log(`  parsed-and-clean        : ${byCategory['parsed-and-clean']}`);
-  console.log(`  not-parsed              : ${byCategory['not-parsed']}`);
-  console.log(`top markers (count)       :`);
+  log.info('');
+  log.info('=== scanCareerProse summary ===');
+  log.info(`posts_scanned             : ${postsScanned}`);
+  log.info(`posts_missing_html        : ${postsMissingHtml}`);
+  log.info(`boys_summary_posts_total  : ${targetPosts.length}`);
+  log.info(`suspect_lines_total       : ${suspectLines}`);
+  log.info(`  parsed-and-suspect      : ${byCategory['parsed-and-suspect']}`);
+  log.info(`  parsed-and-clean        : ${byCategory['parsed-and-clean']}`);
+  log.info(`  not-parsed              : ${byCategory['not-parsed']}`);
+  log.info(`top markers (count)       :`);
   for (const [m, c] of topMarkers.slice(0, 10)) {
-    console.log(`  ${c.toString().padStart(4)}  ${m}`);
+    log.info(`  ${c.toString().padStart(4)}  ${m}`);
   }
-  console.log(`report written to         : ${REPORT_PATH}`);
+  log.info(`report written to         : ${REPORT_PATH}`);
 
   db.close();
 }

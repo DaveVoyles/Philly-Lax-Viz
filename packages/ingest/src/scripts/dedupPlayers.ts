@@ -38,6 +38,8 @@ import { openDb } from '../db.js';
 import { normalizePlayerName } from '../normalize/playerName.js';
 import { checkServerProcs } from './lib/checkServerProcs.js';
 
+import { createLogger } from '@pll/shared';
+const log = createLogger({ name: 'ingest:dedupPlayers' });
 export interface PlayerRow {
   id: number;
   team_id: number;
@@ -310,12 +312,12 @@ export function applyPlan(db: Database, plan: DedupPlan): DedupResult {
 
 function printPlan(plan: DedupPlan, apply: boolean): void {
   const header = apply ? 'Applying' : 'Dry-run plan';
-  console.log(`──────── ${header}: dedupPlayers ────────`);
-  console.log(`Pre-count: ${plan.preCount} players`);
-  console.log(`Merges: ${plan.merges.length}`);
+  log.info(`──────── ${header}: dedupPlayers ────────`);
+  log.info(`Pre-count: ${plan.preCount} players`);
+  log.info(`Merges: ${plan.merges.length}`);
   for (const m of plan.merges) {
     const tag = m.reason === 'pattern7' ? '[p7]' : '[norm]';
-    console.log(
+    log.info(
       `  ${tag} team=${m.teamId} key="${m.normalizedKey}" canonical=#${m.canonicalId} "${m.canonicalName}"  ←  ` +
         m.duplicateIds
           .map((id, i) => `#${id} "${m.duplicateNames[i]}"`)
@@ -323,10 +325,10 @@ function printPlan(plan: DedupPlan, apply: boolean): void {
     );
   }
   if (plan.skippedAmbiguous.length > 0) {
-    console.log(`\nSkipped (Pattern 7 ambiguity): ${plan.skippedAmbiguous.length}`);
+    log.info(`\nSkipped (Pattern 7 ambiguity): ${plan.skippedAmbiguous.length}`);
     for (const s of plan.skippedAmbiguous) {
       if (s.reason === 'no-candidate') continue; // noisy, omit from console
-      console.log(
+      log.info(
         `  team=${s.teamId} partial=#${s.partialId} "${s.partialName}" — candidates: ` +
           s.candidateIds
             .map((id, i) => `#${id} "${s.candidateNames[i]}"`)
@@ -337,13 +339,13 @@ function printPlan(plan: DedupPlan, apply: boolean): void {
 }
 
 function printResult(r: DedupResult): void {
-  console.log('\n──────── Apply result ────────');
-  console.log(`players       ${r.preCount} → ${r.postCount}  (Δ -${r.preCount - r.postCount})`);
-  console.log(`stats redirected to canonical : ${r.statsRedirected}`);
-  console.log(`per-game duplicate stats dropped: ${r.duplicateStatsDeleted}`);
-  console.log(`player rows deleted             : ${r.playersDeleted}`);
-  console.log(`name_normalized refreshed       : ${r.normalizedRowsRefreshed}`);
-  console.log('──────────────────────────────');
+  log.info('\n──────── Apply result ────────');
+  log.info(`players       ${r.preCount} → ${r.postCount}  (Δ -${r.preCount - r.postCount})`);
+  log.info(`stats redirected to canonical : ${r.statsRedirected}`);
+  log.info(`per-game duplicate stats dropped: ${r.duplicateStatsDeleted}`);
+  log.info(`player rows deleted             : ${r.playersDeleted}`);
+  log.info(`name_normalized refreshed       : ${r.normalizedRowsRefreshed}`);
+  log.info('──────────────────────────────');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -735,10 +737,10 @@ export function pickKeepFromCandidate(c: Candidate): { keepId: number; dropId: n
 }
 
 function printCandidates(cands: Candidate[]): void {
-  console.log(`\n──────── Fuzzy candidates (${cands.length}) ────────`);
+  log.info(`\n──────── Fuzzy candidates (${cands.length}) ────────`);
   const byConf = { high: 0, medium: 0 };
   for (const c of cands) byConf[c.confidence]++;
-  console.log(`  high: ${byConf.high}   medium: ${byConf.medium}`);
+  log.info(`  high: ${byConf.high}   medium: ${byConf.medium}`);
   for (const c of cands) {
     const tag = c.confidence === 'high' ? '[H]' : '[M]';
     const { keepId, dropId } = pickKeepFromCandidate(c);
@@ -746,7 +748,7 @@ function printCandidates(cands: Candidate[]): void {
     const dropName = dropId === c.leftId ? c.leftName : c.rightName;
     const keepStats = keepId === c.leftId ? c.leftStatCount : c.rightStatCount;
     const dropStats = dropId === c.leftId ? c.leftStatCount : c.rightStatCount;
-    console.log(
+    log.info(
       `  ${tag} d=${c.editDistance} team=${c.teamId} "${c.teamName}"  ` +
         `KEEP #${keepId} "${keepName}" (${keepStats} stats)  ←  ` +
         `DROP #${dropId} "${dropName}" (${dropStats} stats)`,
@@ -780,7 +782,7 @@ function main(): void {
   if (args.apply) checkServerProcs({ force: process.argv.includes('--force') });
   const here = dirname(fileURLToPath(import.meta.url));
   const dbPath = resolve(here, '..', '..', '..', '..', 'data', 'lacrosse.db');
-  console.log(`[dedupPlayers] opening ${dbPath} (${args.apply ? 'APPLY' : 'dry-run'})`);
+  log.info(`[dedupPlayers] opening ${dbPath} (${args.apply ? 'APPLY' : 'dry-run'})`);
   const db = openDb(dbPath);
   db.pragma('foreign_keys = ON');
 
@@ -796,7 +798,7 @@ function main(): void {
   }
 
   if (!args.apply) {
-    console.log('\n(Dry-run only. Re-run with --apply to write.)');
+    log.info('\n(Dry-run only. Re-run with --apply to write.)');
     db.close();
     return;
   }
@@ -826,9 +828,9 @@ function main(): void {
       mergePlayers(db, keepId, dropId);
       merged++;
     }
-    console.log(`\n──────── Fuzzy merges ────────`);
-    console.log(`merged : ${merged}`);
-    console.log(`skipped: ${skipped} (already merged or below confidence cutoff)`);
+    log.info(`\n──────── Fuzzy merges ────────`);
+    log.info(`merged : ${merged}`);
+    log.info(`skipped: ${skipped} (already merged or below confidence cutoff)`);
   }
 
   // FK integrity sanity. Only fail on issues in tables this script touches
@@ -839,13 +841,13 @@ function main(): void {
   const ourTables = new Set(['players', 'player_stats', 'player_aliases']);
   const ours = fkIssues.filter((i) => ourTables.has(i.table));
   if (ours.length > 0) {
-    console.error('FOREIGN KEY CHECK reported issues in tables this script touches:');
-    console.error(ours);
+    log.error('FOREIGN KEY CHECK reported issues in tables this script touches:');
+    log.error(ours);
     process.exitCode = 1;
   } else {
-    console.log('foreign_key_check: clean ✓ (for players/player_stats/player_aliases)');
+    log.info('foreign_key_check: clean ✓ (for players/player_stats/player_aliases)');
     if (fkIssues.length > 0) {
-      console.log(
+      log.info(
         `  (${fkIssues.length} pre-existing FK issues in unrelated tables — ignored)`,
       );
     }
