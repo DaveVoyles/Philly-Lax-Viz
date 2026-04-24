@@ -1,29 +1,44 @@
 import { onRoute, startRouter, type RouteMatch } from './router.js';
 import { apiUrl } from './apiBase.js';
-import * as dashboard from './views/dashboard.js';
-import * as teamDetail from './views/teamDetail.js';
-import * as gameDetail from './views/gameDetail.js';
-import * as playerDetail from './views/playerDetail.js';
-import * as dataQuality from './views/dataQuality.js';
-import * as leaders from './views/leaders.js';
-import * as anomalies from './views/anomalies.js';
-import * as graph from './views/graph.js';
 import { mountSearchBox } from './components/searchBox.js';
 
-// Wave 14 Lane 3 — game scrubber view, kept lazy so pixi/scrubber chunk
-// stays out of the entry bundle. Coordinated with Han to add only ONE line
-// for view + ONE for teardown to minimise router/main.ts churn.
-let scrubberDestroy: (() => void) | null = null;
-// W15 L2 (R2): same lazy-chunk pattern as the scrubber so the constellation
-// view + its axis labels live in their own chunk.
-let constellationDestroy: (() => void) | null = null;
-// W16 L2 (Leia): same lazy-chunk pattern for the schedule view.
-let scheduleDestroy: (() => void) | null = null;
+// W18 Lane A (Han) — proposal 04: every view module is now lazy-loaded so the
+// entry chunk only carries the router, shell, and search box. Each route's
+// chunk is fetched on first navigation; subsequent visits resolve from the
+// browser's module cache. See docs/improvements/04-web-bundle-code-splitting.md.
+
+type ViewModule = {
+  render: (root: HTMLElement, params: Record<string, string>) => void | Promise<void>;
+  destroy?: () => void;
+};
+
+type RouteName = RouteMatch['name'];
+
+// Map every navigable route to a dynamic loader. Vite/Rollup emits one chunk
+// per import() target; previously eager views (dashboard, leaders, etc.) now
+// produce their own per-route chunks.
+const loaders: Record<Exclude<RouteName, 'notFound'>, () => Promise<ViewModule>> = {
+  dashboard: () => import('./views/dashboard.js'),
+  teamDetail: () => import('./views/teamDetail.js'),
+  gameDetail: () => import('./views/gameDetail.js'),
+  gameScrubber: () => import('./views/game.js'),
+  playerDetail: () => import('./views/playerDetail.js'),
+  comparePlayers: () => import('./views/comparePlayers.js'),
+  dataQuality: () => import('./views/dataQuality.js'),
+  leaders: () => import('./views/leaders.js'),
+  anomalies: () => import('./views/anomalies.js'),
+  graph: () => import('./views/graph.js'),
+  constellation: () => import('./views/constellation.js'),
+  h2h: () => import('./views/h2h.js'),
+  schedule: () => import('./views/schedule.js'),
+  sources: () => import('./views/sources.js'),
+  status: () => import('./views/status.js'),
+};
 
 interface NavLink {
   href: string;
   label: string;
-  match: RouteMatch['name'];
+  match: RouteName;
 }
 
 const NAV: NavLink[] = [
@@ -41,7 +56,7 @@ const NAV: NavLink[] = [
 
 function mountShell(app: HTMLElement): {
   main: HTMLElement;
-  setActive: (name: RouteMatch['name']) => void;
+  setActive: (name: RouteName) => void;
 } {
   app.innerHTML = `
     <header class="site-header">
@@ -86,66 +101,88 @@ function mountShell(app: HTMLElement): {
   };
 }
 
-function dispatch(main: HTMLElement, match: RouteMatch): void {
-  // Tear down any active GPU/pixi resources from the previous view before
-  // mounting the next one.
-  graph.destroy();
-  if (scrubberDestroy) { scrubberDestroy(); scrubberDestroy = null; }
-  if (constellationDestroy) { constellationDestroy(); constellationDestroy = null; }
-  if (scheduleDestroy) { scheduleDestroy(); scheduleDestroy = null; }
-  switch (match.name) {
-    case 'dashboard':
-      dashboard.render(main, match.params);
-      return;
-    case 'teamDetail':
-      teamDetail.render(main, match.params);
-      return;
-    case 'gameDetail':
-      gameDetail.render(main, match.params);
-      return;
-    case 'gameScrubber':
-      void import('./views/game.js').then((m) => { scrubberDestroy = m.destroy; m.render(main, match.params); });
-      return;
-    case 'playerDetail':
-      playerDetail.render(main, match.params);
-      return;
-    case 'comparePlayers':
-      void import('./views/comparePlayers.js').then((m) => m.render(main, match.params));
-      return;
-    case 'dataQuality':
-      dataQuality.render(main, match.params);
-      return;
-    case 'leaders':
-      leaders.render(main, match.params);
-      return;
-    case 'anomalies':
-      anomalies.render(main, match.params);
-      return;
-    case 'graph':
-      void graph.render(main, match.params);
-      return;
-    case 'constellation':
-      void import('./views/constellation.js').then((m) => {
-        constellationDestroy = m.destroy;
-        m.render(main, match.params);
-      });
-      return;
-    case 'h2h':
-      void import('./views/h2h.js').then((m) => m.render(main, match.params));
-      return;
-    case 'schedule':
-      void import('./views/schedule.js').then((m) => { scheduleDestroy = m.destroy; m.render(main, match.params); });
-      return;
-    case 'sources':
-      void import('./views/sources.js').then((m) => m.render(main, match.params));
-      return;
-    case 'status':
-      void import('./views/status.js').then((m) => m.render(main, match.params));
-      return;
-    case 'notFound':
-      main.innerHTML = `<h1>Not found</h1><p>No route for <code>${match.path}</code>. <a href="#/">Go home</a>.</p>`;
-      return;
+// Shared spinner overlay. We only show it if the dynamic import takes longer
+// than ~100 ms, otherwise cached chunks would cause a visible flicker.
+function showSpinner(main: HTMLElement): void {
+  if (main.querySelector('[data-route-spinner]')) return;
+  const el = document.createElement('div');
+  el.dataset['routeSpinner'] = '1';
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+  el.style.cssText =
+    'padding:2rem;text-align:center;color:var(--muted);font-size:0.9rem;';
+  el.textContent = 'Loading view…';
+  main.appendChild(el);
+}
+
+function hideSpinner(main: HTMLElement): void {
+  const el = main.querySelector('[data-route-spinner]');
+  if (el) el.remove();
+}
+
+let currentDestroy: (() => void) | null = null;
+let navToken = 0;
+
+async function dispatch(main: HTMLElement, match: RouteMatch): Promise<void> {
+  const myToken = ++navToken;
+  // Tear down any active GPU/pixi/scrubber resources from the previous view
+  // before mounting the next one.
+  if (currentDestroy) {
+    try { currentDestroy(); } catch (e) { console.error('view destroy failed', e); }
+    currentDestroy = null;
   }
+
+  if (match.name === 'notFound') {
+    main.innerHTML = `<h1>Not found</h1><p>No route for <code>${match.path}</code>. <a href="#/">Go home</a>.</p>`;
+    return;
+  }
+
+  const loader = loaders[match.name];
+  if (!loader) {
+    main.innerHTML = `<h1>Not found</h1><p>Unknown route.</p>`;
+    return;
+  }
+
+  const spinTimer = window.setTimeout(() => {
+    if (myToken === navToken) showSpinner(main);
+  }, 100);
+
+  try {
+    const mod = await loader();
+    // If the user has navigated again while we were waiting on the chunk,
+    // drop this result on the floor — a newer dispatch is in flight.
+    if (myToken !== navToken) {
+      window.clearTimeout(spinTimer);
+      return;
+    }
+    window.clearTimeout(spinTimer);
+    hideSpinner(main);
+    await mod.render(main, match.params);
+    if (myToken === navToken && typeof mod.destroy === 'function') {
+      currentDestroy = mod.destroy;
+    }
+  } catch (err) {
+    window.clearTimeout(spinTimer);
+    if (myToken === navToken) {
+      hideSpinner(main);
+      main.innerHTML = `<h1>Failed to load view</h1><p class="muted">${
+        err instanceof Error ? err.message : 'Unknown error'
+      }</p>`;
+    }
+    console.error('route load failed', err);
+  }
+}
+
+// Idle-prefetch the most-likely next routes from the dashboard so subsequent
+// navigation feels instant. Honours `saveData` on metered connections.
+function prefetchLikelyViews(): void {
+  const conn = (navigator as { connection?: { saveData?: boolean } }).connection;
+  if (conn?.saveData) return;
+  const idle =
+    (window as unknown as { requestIdleCallback?: (cb: () => void) => number })
+      .requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 250));
+  idle(() => { void loaders.leaders(); });
+  idle(() => { void loaders.teamDetail(); });
 }
 
 function boot(): void {
@@ -183,9 +220,12 @@ function boot(): void {
 
   onRoute((match) => {
     setActive(match.name);
-    dispatch(main, match);
+    void dispatch(main, match);
   });
   startRouter();
+
+  // Warm the most-likely secondary routes after first paint.
+  prefetchLikelyViews();
 }
 
 boot();
