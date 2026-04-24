@@ -176,6 +176,34 @@ export const PARSER_ABBREVIATIONS: readonly AliasMapping[] = [
 
 export const PARSER_ABBREV_SOURCE = 'parser-abbrev-w10';
 
+// ─── Wave I-D (2026-04-24) — LaxNumbers high-confidence aliases ─────────
+//
+// Generated from .github/docs/2026-04-23-laxnumbers-aliases.csv. Only the
+// entries with confidence_1 ≥ 0.95 are auto-seeded here — these are
+// unambiguous typo/punctuation/whitespace variants of canonical team names
+// in our dataset:
+//
+//   "Cardinal OHara"          → "Cardinal O'Hara"        (1.000, missing apostrophe)
+//   "Plymouth-Whitemarsh"     → "Plymouth Whitemarsh"    (1.000, hyphen vs space)
+//   "St Josephs Prep"         → "St. Joseph's Prep"      (1.000, missing punctuation)
+//   "Schuylkill Valley"       → "Schuykill Valley"       (0.991, source typo in DB)
+//   "Wilkes-Barre Area"       → "Wilkes Barre Area"      (1.000, hyphen vs space)
+//   "Lawrenceville School Prep" → "Lawrenceville School" (0.950, redundant suffix)
+//
+// Aliases are written in normalized form (lowercased; whitespace collapsed).
+// The remaining 96 mid/low-confidence rows in the CSV require human review
+// before seeding — see the CSV's `reviewer_decision` column.
+export const LAXNUMBERS_HIGH_CONF: readonly AliasMapping[] = [
+  { alias: 'cardinal ohara', teamId: 65, teamName: "Cardinal O'Hara" },
+  { alias: 'plymouth-whitemarsh', teamId: 61, teamName: 'Plymouth Whitemarsh' },
+  { alias: 'st josephs prep', teamId: 108, teamName: "St. Joseph's Prep" },
+  { alias: 'schuylkill valley', teamId: 257, teamName: 'Schuykill Valley' },
+  { alias: 'wilkes-barre area', teamId: 210, teamName: 'Wilkes Barre Area' },
+  { alias: 'lawrenceville school prep', teamId: 249, teamName: 'Lawrenceville School' },
+];
+
+export const LAXNUMBERS_HIGH_CONF_SOURCE = 'laxnumbers-high-conf-2026-04-24';
+
 // Tokens deliberately NOT seeded — too ambiguous for a high-confidence
 // alias. Parser will continue to log these as anomalies for manual triage.
 export interface SkippedAmbiguousNote {
@@ -408,6 +436,7 @@ function main(): void {
   }> = [
     { label: 'PIAA_ALIASES', mappings: PIAA_ALIASES, source: ALIAS_SOURCE },
     { label: 'PARSER_ABBREVIATIONS', mappings: PARSER_ABBREVIATIONS, source: PARSER_ABBREV_SOURCE },
+    { label: 'LAXNUMBERS_HIGH_CONF', mappings: LAXNUMBERS_HIGH_CONF, source: LAXNUMBERS_HIGH_CONF_SOURCE },
   ];
 
   if (!apply) {
