@@ -144,7 +144,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
 
   const sub = document.createElement('p');
   sub.className = 'muted';
-  sub.textContent = 'Season aggregate leaderboards across players and teams.';
+  sub.textContent = 'Season aggregate leaderboards across players and teams. Utilizes publicly available data, probably not very accurate.';
   root.appendChild(sub);
 
   // Tab strip
@@ -168,8 +168,8 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
 
   // Chart container
   const chartWrap = document.createElement('section');
-  const chartTitle = document.createElement('h2');
-  chartTitle.style.marginBottom = '.5rem';
+  const chartTitle = document.createElement('h3');
+  chartTitle.style.cssText = 'margin-bottom:.2rem; font-size:.95rem; font-weight:600;';
   chartWrap.appendChild(chartTitle);
   const chartEl = document.createElement('div');
   chartEl.id = 'leaders-chart';
@@ -309,7 +309,7 @@ async function loadPlayers(
         href: `#/players/${r.playerId}`,
         sublabel: r.teamName,
       })),
-      { valueFormat: metricDef.format, xAxisLabel: metricDef.label },
+      { valueFormat: metricDef.format, xAxisLabel: metricDef.label, margin: { top: 8, right: 56, bottom: 40, left: 180 } },
     );
   }
 
@@ -413,7 +413,7 @@ async function loadTeams(
         value: r.value,
         href: `#/teams/${r.teamId}`,
       })),
-      { valueFormat: metricDef.format, xAxisLabel: metricDef.label },
+      { valueFormat: metricDef.format, xAxisLabel: metricDef.label, margin: { top: 8, right: 56, bottom: 40, left: 180 } },
     );
   }
 
