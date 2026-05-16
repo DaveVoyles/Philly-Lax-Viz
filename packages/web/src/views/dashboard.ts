@@ -235,7 +235,7 @@ function buildPiaaLegend(): HTMLElement {
   const details = document.createElement('details');
   details.className = 'piaa-legend';
   const summary = document.createElement('summary');
-  summary.textContent = 'What do the badges (✅ ⚠️ 🔴 ⚪) mean?';
+  summary.textContent = 'What do the icons and numbers mean?';
   details.appendChild(summary);
 
   const note = document.createElement('p');
@@ -277,6 +277,39 @@ function buildPiaaLegend(): HTMLElement {
   }
   table.appendChild(tbody);
   details.appendChild(table);
+
+  // Gap number legend
+  const gapHeading = document.createElement('p');
+  gapHeading.style.cssText = 'margin: 0.75rem 0 0.25rem; font-weight: 600; font-size: 0.9rem;';
+  gapHeading.textContent = 'The number on the right of each team row:';
+  details.appendChild(gapHeading);
+
+  const gapRows: { label: string; meaning: string }[] = [
+    { label: '✓',   meaning: 'All games accounted for — our count matches PIAA exactly.' },
+    { label: '2, 3, …', meaning: 'We are missing that many games compared to the official PIAA total. The score or summary may not have been published yet.' },
+    { label: '+1, +4, …', meaning: 'We have more games on file than PIAA lists — usually pre-season scrimmages or junior-varsity games picked up by the scraper.' },
+    { label: '—',   meaning: 'No PIAA reference data available for this team.' },
+  ];
+
+  const gapTable = document.createElement('table');
+  gapTable.className = 'piaa-legend__table';
+  const gapTbody = document.createElement('tbody');
+  for (const row of gapRows) {
+    const tr = document.createElement('tr');
+    const labelCell = document.createElement('td');
+    labelCell.className = 'piaa-legend__icon';
+    labelCell.style.fontVariantNumeric = 'tabular-nums';
+    labelCell.textContent = row.label;
+    const meaningCell = document.createElement('td');
+    meaningCell.setAttribute('colspan', '2');
+    meaningCell.textContent = row.meaning;
+    tr.appendChild(labelCell);
+    tr.appendChild(meaningCell);
+    gapTbody.appendChild(tr);
+  }
+  gapTable.appendChild(gapTbody);
+  details.appendChild(gapTable);
+
   return details;
 }
 
