@@ -9,7 +9,7 @@
 // GPU after the layout settles. `destroy()` tears down the pixi app + DOM
 // listeners so a route change frees the GPU resources.
 
-import { Application, Container, Graphics, FederatedPointerEvent } from 'pixi.js';
+import { Application, Container, Graphics, Text, FederatedPointerEvent } from 'pixi.js';
 import {
   forceCenter,
   forceLink,
@@ -75,7 +75,7 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
 
   const subtitle = document.createElement('p');
   subtitle.className = 'muted';
-  subtitle.textContent = 'WebGL force-directed graph of every team that has played a completed game.';
+  subtitle.textContent = 'Drag to pan · Scroll or pinch to zoom · Click a team to view their page.';
   root.appendChild(subtitle);
 
   const status = document.createElement('div');
@@ -129,6 +129,20 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
   tooltip.style.zIndex = '2';
   stage.appendChild(tooltip);
 
+  // Controls overlay (top-right corner).
+  const controls = document.createElement('div');
+  controls.style.cssText = 'position:absolute; top:8px; right:8px; display:flex; gap:6px; z-index:3;';
+  const btnStyle = 'background:rgba(14,17,25,0.85); color:#e6e8eb; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px 10px; font:12px/1.4 system-ui,sans-serif; cursor:pointer;';
+  const resetBtn = document.createElement('button');
+  resetBtn.textContent = 'Reset view';
+  resetBtn.style.cssText = btnStyle;
+  const rerunBtn = document.createElement('button');
+  rerunBtn.textContent = 'Re-run layout';
+  rerunBtn.style.cssText = btnStyle;
+  controls.appendChild(resetBtn);
+  controls.appendChild(rerunBtn);
+  stage.appendChild(controls);
+
   let data: { nodes: RivalryNode[]; edges: RivalryEdge[] };
   try {
     data = await getRivalries();
@@ -169,6 +183,9 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
   world.addChild(edgeContainer);
   const nodeContainer = new Container();
   world.addChild(nodeContainer);
+  const labelContainer = new Container();
+  labelContainer.eventMode = 'none';
+  world.addChild(labelContainer);
 
   // Build sim datasets. d3-force mutates these objects with x/y in place.
   const simNodes: SimNode[] = data.nodes.map((n) => ({ ...n }));
@@ -196,14 +213,14 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
 
   // Pre-tick the simulation so the first paint is laid out.
   const sim: Simulation<SimNode, SimEdge> = forceSimulation<SimNode>(simNodes)
-    .force('charge', forceManyBody<SimNode>().strength(-30))
-    .force('link', forceLink<SimNode, SimEdge>(simEdges).id((d) => d.id).distance(60).strength(0.15))
+    .force('charge', forceManyBody<SimNode>().strength(-160))
+    .force('link', forceLink<SimNode, SimEdge>(simEdges).id((d) => d.id).distance(90).strength(0.15))
     .force('center', forceCenter<SimNode>(width / 2, height / 2))
     .alphaMin(0.01)
     .stop();
 
   const settleStart = performance.now();
-  for (let i = 0; i < 300 && sim.alpha() > sim.alphaMin(); i += 1) sim.tick();
+  for (let i = 0; i < 400 && sim.alpha() > sim.alphaMin(); i += 1) sim.tick();
   const settleMs = Math.round(performance.now() - settleStart);
   // eslint-disable-next-line no-console
   console.log(`[graph] settled ${simNodes.length} nodes / ${simEdges.length} edges in ${settleMs}ms`);
@@ -220,6 +237,25 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
     (g as Graphics & { __id?: number }).__id = n.id;
     nodeContainer.addChild(g);
     nodeGfx.set(n.id, g);
+  }
+
+  // Always-visible name labels rendered below each node.
+  const labelGfx = new Map<number, Text>();
+  for (const n of simNodes) {
+    const lbl = new Text({
+      text: n.name,
+      style: {
+        fontSize: 10,
+        fill: '#c8cdd5',
+        fontFamily: 'system-ui, sans-serif',
+      },
+    });
+    lbl.anchor.set(0.5, 0);
+    lbl.x = n.x ?? width / 2;
+    lbl.y = (n.y ?? height / 2) + nodeRadius(n.games) + 2;
+    lbl.eventMode = 'none';
+    labelContainer.addChild(lbl);
+    labelGfx.set(n.id, lbl);
   }
 
   function drawAllEdges(highlightIdx: Set<number> | null): void {
@@ -250,13 +286,18 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
       }
       return;
     }
-    // Reset previous hovered node visuals.
+    // Reset previous hovered node + label visuals.
     if (hoveredId !== null) {
       const prev = nodeGfx.get(hoveredId);
       const prevData = idIndex.get(hoveredId);
       if (prev && prevData) {
         prev.clear();
         prev.circle(0, 0, nodeRadius(prevData.games)).fill({ color: NODE_FILL, alpha: 0.95 });
+      }
+      const prevLbl = labelGfx.get(hoveredId);
+      if (prevLbl) {
+        prevLbl.style.fill = '#c8cdd5';
+        prevLbl.style.fontWeight = 'normal';
       }
     }
     hoveredId = id;
@@ -275,7 +316,22 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
       tooltip.style.top = `${screenY}px`;
       tooltip.style.display = 'block';
     }
+    const curLbl = labelGfx.get(id);
+    if (curLbl) {
+      curLbl.style.fill = '#ffd166';
+      curLbl.style.fontWeight = 'bold';
+    }
     drawAllEdges(incidentByNode.get(id) ?? new Set());
+  }
+
+  function repositionLabels(): void {
+    for (const n of simNodes) {
+      const lbl = labelGfx.get(n.id);
+      if (lbl && n.x != null && n.y != null) {
+        lbl.x = n.x;
+        lbl.y = n.y + nodeRadius(n.games) + 2;
+      }
+    }
   }
 
   for (const [id, g] of nodeGfx) {
@@ -336,6 +392,40 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
   window.addEventListener('pointermove', onPointerMove);
   window.addEventListener('pointerup', onPointerUp);
   app.canvas.addEventListener('wheel', onWheel, { passive: false });
+
+  // Reset view: restore pan + zoom to initial state.
+  resetBtn.addEventListener('click', () => {
+    world.x = 0;
+    world.y = 0;
+    world.scale.set(1);
+    drawAllEdges(null);
+    setHovered(null);
+  });
+
+  // Re-run layout: scatter nodes and re-settle the simulation.
+  rerunBtn.addEventListener('click', () => {
+    setHovered(null);
+    const cx = width / 2;
+    const cy = height / 2;
+    for (const n of simNodes) {
+      n.x = cx + (Math.random() - 0.5) * width * 0.6;
+      n.y = cy + (Math.random() - 0.5) * height * 0.6;
+      n.vx = 0;
+      n.vy = 0;
+    }
+    sim.alpha(1).restart().stop();
+    for (let i = 0; i < 400 && sim.alpha() > sim.alphaMin(); i += 1) sim.tick();
+    // Reposition node graphics + labels.
+    for (const n of simNodes) {
+      const g = nodeGfx.get(n.id);
+      if (g && n.x != null && n.y != null) { g.x = n.x; g.y = n.y; }
+    }
+    repositionLabels();
+    drawAllEdges(null);
+    world.x = 0;
+    world.y = 0;
+    world.scale.set(1);
+  });
 
   // Throttled resize.
   let resizeTimer: number | null = null;

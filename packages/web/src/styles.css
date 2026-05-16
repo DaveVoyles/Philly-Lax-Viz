@@ -245,7 +245,7 @@ tbody tr:nth-child(even) { background: var(--table-stripe); }
 .anomaly-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
 .anomaly-table th, .anomaly-table td {
   text-align: left;
-  padding: 0.5rem 0.75rem;
+  padding: 0.3rem 0.5rem;
   border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
@@ -260,12 +260,12 @@ tbody tr:nth-child(even) { background: var(--table-stripe); }
 .anomaly-reason { max-width: 48ch; }
 .anomaly-reason-text { font-weight: 500; }
 .anomaly-raw {
-  margin: 0.4rem 0 0;
-  padding: 0.5rem 0.75rem;
+  margin: 0.25rem 0 0;
+  padding: 0.3rem 0.5rem;
   font-size: 0.85em;
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 8rem;
+  max-height: 3.5rem;
   overflow: auto;
 }
 .anomaly-src { white-space: nowrap; }

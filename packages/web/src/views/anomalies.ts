@@ -209,8 +209,12 @@ function renderSummary(host: HTMLElement, rows: IngestAnomaly[]): void {
     label: shortenReason(reason),
     value: count,
   }));
-  renderHorizontalLeaderboard(host, items, {
-    height: Math.max(220, 44 * items.length + 80),
+  const scroller = document.createElement('div');
+  scroller.style.cssText = 'max-height:340px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;';
+  host.appendChild(scroller);
+  renderHorizontalLeaderboard(scroller, items, {
+    height: Math.min(Math.max(200, 28 * items.length + 60), 320),
+    margin: { top: 8, right: 40, bottom: 28, left: 120 },
     valueFormat: (n: number) => n.toLocaleString(),
     xAxisLabel: 'count',
   });
