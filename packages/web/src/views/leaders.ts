@@ -309,7 +309,7 @@ async function loadPlayers(
         href: `#/players/${r.playerId}`,
         sublabel: r.teamName,
       })),
-      { valueFormat: metricDef.format, xAxisLabel: metricDef.label, margin: { top: 8, right: 56, bottom: 40, left: 180 } },
+      { valueFormat: metricDef.format, xAxisLabel: metricDef.label, height: 240, margin: { top: 8, right: 40, bottom: 36, left: 160 } },
     );
   }
 
@@ -413,7 +413,7 @@ async function loadTeams(
         value: r.value,
         href: `#/teams/${r.teamId}`,
       })),
-      { valueFormat: metricDef.format, xAxisLabel: metricDef.label, margin: { top: 8, right: 56, bottom: 40, left: 180 } },
+      { valueFormat: metricDef.format, xAxisLabel: metricDef.label, height: 240, margin: { top: 8, right: 40, bottom: 36, left: 160 } },
     );
   }
 
