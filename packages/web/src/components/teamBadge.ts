@@ -106,16 +106,16 @@ function buildLogoEl(opts: TeamBadgeOptions, px: number): HTMLElement {
   return buildInitialsEl(opts.name, px, opts.primaryColor);
 }
 
-/** Tiny vertical color bar rendered next to the name when a brand color is
- *  available. Inline styles keep this self-contained -- no CSS file edit. */
-function buildSwatchEl(color: string, px: number): HTMLElement {
+/** Tiny vertical color bar. Always rendered for alignment; transparent when
+ *  no brand color is available so all team names line up in grids/lists. */
+function buildSwatchEl(color: string | null, px: number): HTMLElement {
   const el = document.createElement('span');
   el.className = 'team-badge__swatch';
   el.setAttribute('aria-hidden', 'true');
   el.style.display = 'inline-block';
   el.style.width = '4px';
   el.style.height = `${Math.max(12, Math.round(px * 0.6))}px`;
-  el.style.background = color;
+  el.style.background = color ?? 'transparent';
   el.style.borderRadius = '2px';
   el.style.marginRight = '6px';
   el.style.verticalAlign = 'middle';
@@ -130,9 +130,8 @@ export function renderTeamBadge(opts: TeamBadgeOptions): HTMLElement {
   const wrap = document.createElement('span');
   wrap.className = `team-badge team-badge--${size}`;
 
-  if (isHex(opts.primaryColor)) {
-    wrap.appendChild(buildSwatchEl(opts.primaryColor, px));
-  }
+  // Always render swatch for consistent name alignment across all teams.
+  wrap.appendChild(buildSwatchEl(isHex(opts.primaryColor) ? opts.primaryColor : null, px));
 
   const logoEl = buildLogoEl(opts, px);
   wrap.appendChild(logoEl);

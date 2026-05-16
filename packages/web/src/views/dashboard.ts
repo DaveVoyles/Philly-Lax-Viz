@@ -49,21 +49,6 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   sub.textContent = 'Season scoreboard, team records, and recent games.';
   root.appendChild(sub);
 
-  // Prominent League Leaders nav card
-  const leadersCard = document.createElement('a');
-  leadersCard.href = '#/leaders';
-  leadersCard.className = 'leaders-card';
-  leadersCard.style.cssText =
-    'display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; margin:1rem 0 1.5rem; border:1px solid var(--accent); border-radius:8px; background:var(--accent); color:var(--accent-fg); text-decoration:none; font-weight:600;';
-  const leadersText = document.createElement('span');
-  leadersText.textContent = '🏆 League Leaders — top players & teams across every metric';
-  const leadersArrow = document.createElement('span');
-  leadersArrow.textContent = '→';
-  leadersArrow.style.fontSize = '1.25rem';
-  leadersCard.appendChild(leadersText);
-  leadersCard.appendChild(leadersArrow);
-  root.appendChild(leadersCard);
-
   const teamsSection = document.createElement('section');
   const teamsHeader = document.createElement('h2');
   teamsHeader.textContent = 'All Teams';
