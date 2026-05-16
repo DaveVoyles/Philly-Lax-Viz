@@ -76,17 +76,12 @@ jobs:
           path: packages/web/dist
 
       - name: Deploy to Azure Static Web Apps
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: upload
-          # Bundle is already built, point at the dist folder.
-          app_location: 'packages/web/dist'
-          api_location: ''            # API lives in Container Apps, not SWA.
-          output_location: ''
-          skip_app_build: true
-          skip_api_build: true
+        # Use swa CLI directly instead of the Docker-based action to avoid
+        # arm64/amd64 emulation issues on the self-hosted runner.
+        run: |
+          npx --yes @azure/static-web-apps-cli@latest deploy packages/web/dist \
+            --deployment-token ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }} \
+            --env production
 
   # ---------------------------------------------------------------------
   # 3. Build + push the server image, then update the Container App.
@@ -152,6 +147,14 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: false
 
+      - name: Compute lowercase image tag
+        id: image_tag
+        # OCI image references must be lowercase; github.repository_owner may
+        # contain uppercase letters (e.g. DaveVoyles), so we normalise here.
+        run: |
+          OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "sha_tag=ghcr.io/${OWNER_LC}/pll-server:sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
       - name: Azure login
         uses: azure/login@v2
         with:
@@ -162,7 +165,7 @@ jobs:
         with:
           resourceGroup: ${{ secrets.ACA_RESOURCE_GROUP }}
           containerAppName: ${{ secrets.ACA_NAME }}
-          imageToDeploy: ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          imageToDeploy: ${{ steps.image_tag.outputs.sha_tag }}
           # Server reads DB from /data/lacrosse.db via env (set on the app itself).
           # We don't override env here so the existing volume mount is preserved.
 
