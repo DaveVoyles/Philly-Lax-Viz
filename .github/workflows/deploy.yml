@@ -104,6 +104,23 @@ jobs:
           fi
           az --version | head -1
 
+      - name: Seed DB for Docker build
+        run: |
+          mkdir -p data
+          # The live DB lives in the persistent repo copy on this self-hosted runner.
+          # SEED_DB_PATH can be overridden via a repo secret; falls back to the
+          # well-known location of the live repo on the pll runner host.
+          SEED="${SEED_DB_PATH:-$HOME/Desktop/REPOS/Philly Lacrosse Vis/data/lacrosse.db}"
+          if [ -f "$SEED" ]; then
+            cp "$SEED" data/lacrosse.db
+            echo "Seeded Docker build with $(du -h data/lacrosse.db | cut -f1) DB"
+          else
+            echo "::warning::Seed DB not found at $SEED; image will start empty"
+            touch data/lacrosse.db
+          fi
+        env:
+          SEED_DB_PATH: ${{ secrets.SEED_DB_PATH }}
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
