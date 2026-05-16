@@ -150,7 +150,7 @@ tbody tr:nth-child(even) { background: var(--table-stripe); }
 }
 .anomaly-control input[type="search"] { min-width: 24ch; }
 .anomaly-section { margin-top: 1.5rem; }
-.anomaly-table { width: 100%; border-collapse: collapse; }
+.anomaly-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
 .anomaly-table th, .anomaly-table td {
   text-align: left;
   padding: 0.5rem 0.75rem;

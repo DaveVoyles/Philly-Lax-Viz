@@ -140,13 +140,6 @@ export function renderTeamBadge(opts: TeamBadgeOptions): HTMLElement {
   const label = document.createElement('span');
   label.className = 'team-badge__name';
   label.textContent = opts.name;
-  if (isHex(opts.primaryColor)) {
-    // Tint the team name with the brand color so the row has visible
-    // identity even when the logo is a generic placeholder. Slight darken
-    // via filter to keep contrast on light/dark themes.
-    label.style.color = opts.primaryColor;
-    label.style.fontWeight = '600';
-  }
   wrap.appendChild(label);
 
   if (opts.href) {

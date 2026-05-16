@@ -1,6 +1,5 @@
 import {
   ApiError,
-  getServerHealth,
   getTeams,
   getRecentGames,
   getPlayerLeaders,
@@ -8,7 +7,6 @@ import {
   type PlayerLeaderRow,
   type PlayerLeaderMetric,
   type PostImage,
-  type ServerHealthResponse,
   type TeamSeasonRecord,
 } from '../api.js';
 import type { Game, Team } from '@pll/shared';
@@ -66,16 +64,6 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   leadersCard.appendChild(leadersArrow);
   root.appendChild(leadersCard);
 
-  const healthSection = document.createElement('section');
-  const healthHeader = document.createElement('h2');
-  healthHeader.textContent = 'System health';
-  healthSection.appendChild(healthHeader);
-  const healthBanner = document.createElement('div');
-  healthBanner.id = 'health-banner';
-  healthBanner.textContent = 'Loading…';
-  healthSection.appendChild(healthBanner);
-  root.appendChild(healthSection);
-
   const teamsSection = document.createElement('section');
   const teamsHeader = document.createElement('h2');
   teamsHeader.textContent = 'All Teams';
@@ -127,7 +115,6 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   panelsGrid.appendChild(gbPanel.wrap);
   root.appendChild(leadersSection);
 
-  void loadHealth(healthBanner);
   void loadTeamsAndGames(teamsBody, gamesBody);
   void loadLeaderPanel(savesPanel.body, 'saves', { minGames: 3 }, intFmt, 'Saves');
   void loadLeaderPanel(foPctPanel.body, 'fo_pct', { minAttempts: 20 }, pctFmt, 'FO %');
@@ -238,15 +225,6 @@ async function loadLeaderPanel(
   }
 }
 
-async function loadHealth(target: HTMLElement): Promise<void> {
-  try {
-    const h = await getServerHealth();
-    target.replaceChildren(buildHealthBanner(h));
-  } catch (err) {
-    target.replaceChildren(errorBlock(err, "Is Leia's API server running on :3001?"));
-  }
-}
-
 // PIAA validation badge legend. Explains the ✅/⚠️/🔴/⚪ icons next to team
 // names and reminds the reader that PIAA always wins on conflict (decision
 // 2026-04-23, enforced server-side in routes/teams.ts).
@@ -308,24 +286,6 @@ function buildPiaaLegend(): HTMLElement {
   table.appendChild(tbody);
   details.appendChild(table);
   return details;
-}
-
-function buildHealthBanner(h: ServerHealthResponse): HTMLElement {
-  const wrap = document.createElement('div');
-  wrap.className = `health-banner ${h.ok ? 'ok' : 'degraded'}`;
-
-  const status = document.createElement('strong');
-  status.textContent = h.ok ? 'OK' : 'DEGRADED';
-  wrap.appendChild(status);
-
-  const counts = h.dbRows;
-  const summary = document.createElement('span');
-  summary.className = 'muted';
-  summary.textContent =
-    ` · ${counts.teams} teams · ${counts.games} games · ${counts.players} players` +
-    ` · ${counts.playerStats} stat lines · ${counts.rankings} rankings · ${counts.anomalies} anomalies`;
-  wrap.appendChild(summary);
-  return wrap;
 }
 
 async function loadTeamsAndGames(
