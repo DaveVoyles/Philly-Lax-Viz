@@ -49,6 +49,13 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   sub.textContent = 'Season scoreboard, team records, and recent games.';
   root.appendChild(sub);
 
+  const disclaimer = document.createElement('p');
+  disclaimer.className = 'muted';
+  disclaimer.style.cssText = 'font-size:0.85rem; margin-top:0.25rem;';
+  disclaimer.textContent =
+    'Data is compiled from multiple sources (PhillyLacrosse.com, PIAA, MaxPreps) and may be incomplete or contain errors.';
+  root.appendChild(disclaimer);
+
   const teamsSection = document.createElement('section');
   const teamsHeader = document.createElement('h2');
   teamsHeader.textContent = 'All Teams';
