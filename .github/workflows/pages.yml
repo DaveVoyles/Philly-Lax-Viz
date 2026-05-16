@@ -8,9 +8,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
@@ -20,13 +18,16 @@ env:
   NODE_VERSION: '20'
   PNPM_VERSION: '10.33.1'
   VITE_BASE_PATH: /Philly-Lax-Viz/
+  DB_LOCAL_PATH: data/lacrosse.db
+  DB_REMOTE_NAME: lacrosse.db
+  AZ_FILE_SHARE: pll-data
 
 jobs:
   build-and-deploy:
-    runs-on: [self-hosted, pll]
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # Uses GitHub-hosted runner — no self-hosted runner required.
+    # Downloads the live DB from Azure File Share, exports static JSON,
+    # builds the SPA, and force-pushes dist to the gh-pages branch.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -42,6 +43,32 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Install Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az --version | head -1
+
+      - name: Download DB from Azure File Share
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          mkdir -p data
+          if az storage file exists \
+               --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+               --share-name "${{ env.AZ_FILE_SHARE }}" \
+               --path "${{ env.DB_REMOTE_NAME }}" \
+               --query exists -o tsv | grep -q true; then
+            az storage file download \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --share-name "${{ env.AZ_FILE_SHARE }}" \
+              --path "${{ env.DB_REMOTE_NAME }}" \
+              --dest "${{ env.DB_LOCAL_PATH }}"
+            echo "Downloaded DB: $(du -h ${{ env.DB_LOCAL_PATH }})"
+          else
+            echo "::error::Remote DB not found on Azure File Share — cannot export static data."
+            exit 1
+          fi
+
       - name: Export static data
         run: pnpm export:static
 
@@ -51,14 +78,12 @@ jobs:
           VITE_STATIC_MODE: 'true'
           VITE_BASE_PATH: ${{ env.VITE_BASE_PATH }}
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
+      - name: Add .nojekyll
+        run: touch packages/web/dist/.nojekyll
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: packages/web/dist
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: packages/web/dist
+          force_orphan: true
