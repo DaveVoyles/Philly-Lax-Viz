@@ -78,6 +78,56 @@ pre {
   color: var(--accent-fg);
 }
 
+/* Hamburger — hidden on desktop, shown on mobile */
+.nav-hamburger {
+  display: none;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.3rem 0.5rem;
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .site-header { flex-wrap: wrap; gap: 0.5rem; padding: 0.6rem 1rem; }
+  .nav-hamburger { display: block; }
+  /* Nav collapses; only shown when .nav-open is toggled */
+  #main-nav {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    gap: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 0.5rem 0;
+  }
+  #main-nav.nav-open { display: flex; }
+  #main-nav a {
+    padding: 0.6rem 1rem;
+    border-radius: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  #main-nav a:last-child { border-bottom: none; }
+  /* More dropdown on mobile: show inline, not as a float */
+  .more-menu { width: 100%; }
+  .more-menu__btn { width: 100%; text-align: left; border-radius: 0; border: none; border-bottom: 1px solid var(--border); padding: 0.6rem 1rem; }
+  .more-menu__dropdown {
+    position: static;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    min-width: unset;
+  }
+  .more-menu__dropdown a { padding: 0.6rem 1.5rem; border-bottom: 1px solid var(--border); }
+  /* Hide search/season on very narrow so header stays tidy */
+  .search-host, .season-host { display: none; }
+}
+
 /* "More ▾" dropdown for developer/admin nav links */
 .more-menu { position: relative; }
 .more-menu__btn {

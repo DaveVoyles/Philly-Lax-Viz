@@ -64,7 +64,8 @@ function mountShell(app: HTMLElement): {
   app.innerHTML = `
     <header class="site-header">
       <div class="brand">🥍 Philly Lacrosse</div>
-      <nav>
+      <button class="nav-hamburger" aria-label="Open navigation" aria-expanded="false" aria-controls="main-nav">&#9776;</button>
+      <nav id="main-nav">
         ${NAV.map(
           (n) => `<a data-nav="${n.match}" href="${n.href}">${n.label}</a>`,
         ).join('')}
@@ -100,6 +101,30 @@ function mountShell(app: HTMLElement): {
   if (!main) throw new Error('shell mount missing');
   const searchHost = app.querySelector<HTMLElement>('#search-host');
   if (searchHost) mountSearchBox(searchHost);
+
+  // Hamburger toggle for mobile.
+  const hamburger = app.querySelector<HTMLButtonElement>('.nav-hamburger');
+  const mainNav = app.querySelector<HTMLElement>('#main-nav');
+  if (hamburger && mainNav) {
+    hamburger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = mainNav.classList.toggle('nav-open');
+      hamburger.setAttribute('aria-expanded', String(open));
+    });
+    // Close on any nav link click (route change).
+    mainNav.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).tagName === 'A') {
+        mainNav.classList.remove('nav-open');
+        hamburger.setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (!mainNav.contains(e.target as Node) && e.target !== hamburger) {
+        mainNav.classList.remove('nav-open');
+        hamburger.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
 
   // Wire up the More dropdown toggle.
   const moreBtn = app.querySelector<HTMLButtonElement>('.more-menu__btn');
