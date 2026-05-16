@@ -38,9 +38,9 @@ const GLOSSARY_ALIASES: Record<string, string> = {
 };
 
 /**
- * Renders a small "?" help icon that shows `definition` on hover/click.
- * Returns a <span> with role="img" aria-label and title tooltip.
- * Uses the CSS `title` attribute for the tooltip - works everywhere without JS.
+ * Renders a small "?" help icon that shows `definition` on hover.
+ * Uses a CSS tooltip (.glossary-tip + data-tooltip) so it works reliably
+ * across all browsers — the native title attribute is too inconsistent.
  */
 export function renderGlossaryIcon(metric: string): HTMLSpanElement | null {
   const key = STAT_GLOSSARY[metric] ? metric : GLOSSARY_ALIASES[metric];
@@ -48,10 +48,10 @@ export function renderGlossaryIcon(metric: string): HTMLSpanElement | null {
   if (!def) return null;
   const span = document.createElement('span');
   span.textContent = ' ?';
-  span.title = def;
-  span.style.cssText =
-    'cursor:help; font-size:0.75rem; color:var(--muted); vertical-align:super; user-select:none;';
+  span.className = 'glossary-tip';
+  span.dataset.tooltip = def;
   span.setAttribute('aria-label', `Help: ${def}`);
   span.setAttribute('role', 'img');
+  span.setAttribute('tabindex', '0');
   return span;
 }
