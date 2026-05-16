@@ -65,7 +65,9 @@ jobs:
   # ---------------------------------------------------------------------
   deploy-web:
     needs: build-and-test
-    runs-on: [self-hosted, pll]
+    # Use GitHub-hosted runner: the SWA CLI downloads an x86_64 StaticSitesClient
+    # binary that cannot run on the arm64 self-hosted runner.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
