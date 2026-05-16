@@ -330,7 +330,7 @@ async function loadTeamsAndGames(
   // Out-of-area teams typically appear in our DB only if they played a single
   // crossover/showcase against a Philly team. Hide them by default so the
   // grid focuses on teams with real season presence.
-  const filter: TeamFilter = { hideLowGames: true, minGames: 3 };
+  const filter: TeamFilter = { hideLowGames: true, minGames: 6 };
   const renderGrid = (): void => {
     teamsTarget.replaceChildren(buildTeamsGrid(teams, sort, filter, {
       onSort: (next) => {
