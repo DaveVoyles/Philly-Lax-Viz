@@ -20,7 +20,7 @@ import { renderEmptyState } from '../components/emptyState.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
 import { apiUrl } from '../apiBase.js';
 
-type SortKey = 'name' | 'gap';
+type SortKey = 'name' | 'gap' | 'wins';
 type SortDir = 'asc' | 'desc';
 interface TeamSort { key: SortKey; dir: SortDir; }
 interface TeamFilter { hideLowGames: boolean; minGames: number; }
@@ -326,7 +326,7 @@ async function loadTeamsAndGames(
     return;
   }
 
-  const sort: TeamSort = { key: 'name', dir: 'asc' };
+  const sort: TeamSort = { key: 'wins', dir: 'desc' };
   // Out-of-area teams typically appear in our DB only if they played a single
   // crossover/showcase against a Philly team. Hide them by default so the
   // grid focuses on teams with real season presence.
@@ -372,6 +372,21 @@ function sortTeams(teams: TeamSeasonRecord[], sort: TeamSort): TeamSeasonRecord[
     out.sort((a, b) => factor * a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
     return out;
   }
+  if (sort.key === 'wins') {
+    out.sort((a, b) => {
+      const aw = a.wins ?? 0;
+      const bw = b.wins ?? 0;
+      if (aw !== bw) return factor * (bw - aw); // higher wins first when desc
+      // tiebreak: win% (wins / total games)
+      const ag = (a.wins ?? 0) + (a.losses ?? 0);
+      const bg = (b.wins ?? 0) + (b.losses ?? 0);
+      const apct = ag > 0 ? aw / ag : 0;
+      const bpct = bg > 0 ? bw / bg : 0;
+      if (apct !== bpct) return factor * (bpct - apct);
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
+    return out;
+  }
   // gap: nulls (no PIAA data) always pushed to the bottom
   out.sort((a, b) => {
     const ag = a.coverage?.gap ?? null;
@@ -388,6 +403,8 @@ function sortTeams(teams: TeamSeasonRecord[], sort: TeamSort): TeamSeasonRecord[
 }
 
 const SORT_OPTIONS: { value: string; key: SortKey; dir: SortDir; label: string }[] = [
+  { value: 'wins-desc', key: 'wins', dir: 'desc', label: 'Wins (most first)' },
+  { value: 'wins-asc', key: 'wins', dir: 'asc', label: 'Wins (least first)' },
   { value: 'name-asc', key: 'name', dir: 'asc', label: 'Name (A-Z)' },
   { value: 'name-desc', key: 'name', dir: 'desc', label: 'Name (Z-A)' },
   { value: 'gap-asc', key: 'gap', dir: 'asc', label: 'Data gap (smallest first)' },
@@ -499,6 +516,14 @@ function buildTeamsGrid(
       }
     }
     a.appendChild(buildGapBadge(t));
+    // W-L record chip
+    if ((t.wins ?? 0) + (t.losses ?? 0) > 0) {
+      const rec = document.createElement('span');
+      rec.className = 'team-row__record';
+      rec.textContent = `${t.wins ?? 0}–${t.losses ?? 0}`;
+      rec.title = `${t.wins ?? 0} wins, ${t.losses ?? 0} losses`;
+      a.appendChild(rec);
+    }
     li.appendChild(a);
     ul.appendChild(li);
   }
@@ -646,7 +671,18 @@ function buildRecentGamesTable(
     tr.appendChild(tdMatch);
 
     const tdScore = document.createElement('td');
-    tdScore.textContent = g.postponed ? '—' : `${g.awayScore}–${g.homeScore}`;
+    if (g.postponed) {
+      tdScore.textContent = '—';
+    } else {
+      const margin = (g.awayScore ?? 0) - (g.homeScore ?? 0);
+      const abs = Math.abs(margin);
+      tdScore.textContent = `${g.awayScore}–${g.homeScore}`;
+      const marginSpan = document.createElement('span');
+      marginSpan.className = 'score-margin muted';
+      marginSpan.textContent = ` (${abs === 0 ? 'OT' : margin > 0 ? `+${abs}` : `-${abs}`})`;
+      marginSpan.title = abs === 0 ? 'Tied (likely overtime)' : `Margin of ${abs}`;
+      tdScore.appendChild(marginSpan);
+    }
     tr.appendChild(tdScore);
 
     tbody.appendChild(tr);

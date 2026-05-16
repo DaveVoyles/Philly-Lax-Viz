@@ -45,9 +45,12 @@ const NAV: NavLink[] = [
   { href: '#/', label: 'Dashboard', match: 'dashboard' },
   { href: '#/leaders', label: 'Leaders', match: 'leaders' },
   { href: '#/h2h', label: 'Compare', match: 'h2h' },
-  { href: '#/graph', label: 'Network', match: 'graph' },
+  { href: '#/graph', label: 'Team Connections', match: 'graph' },
   { href: '#/schedule', label: 'Schedule', match: 'schedule' },
-  { href: '#/constellation', label: 'Constellation', match: 'constellation' },
+  { href: '#/constellation', label: 'Player Map', match: 'constellation' },
+];
+
+const MORE_NAV: NavLink[] = [
   { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
   { href: '#/sources', label: 'Sources', match: 'sources' },
@@ -65,6 +68,14 @@ function mountShell(app: HTMLElement): {
         ${NAV.map(
           (n) => `<a data-nav="${n.match}" href="${n.href}">${n.label}</a>`,
         ).join('')}
+        <div class="more-menu">
+          <button class="more-menu__btn" aria-haspopup="true" aria-expanded="false">More ▾</button>
+          <div class="more-menu__dropdown" hidden>
+            ${MORE_NAV.map(
+              (n) => `<a data-nav="${n.match}" href="${n.href}">${n.label}</a>`,
+            ).join('')}
+          </div>
+        </div>
       </nav>
       <div id="search-host" class="search-host"></div>
       <div id="season-host" class="season-host"></div>
@@ -89,6 +100,24 @@ function mountShell(app: HTMLElement): {
   if (!main) throw new Error('shell mount missing');
   const searchHost = app.querySelector<HTMLElement>('#search-host');
   if (searchHost) mountSearchBox(searchHost);
+
+  // Wire up the More dropdown toggle.
+  const moreBtn = app.querySelector<HTMLButtonElement>('.more-menu__btn');
+  const moreDropdown = app.querySelector<HTMLElement>('.more-menu__dropdown');
+  if (moreBtn && moreDropdown) {
+    moreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = !moreDropdown.hidden;
+      moreDropdown.hidden = open;
+      moreBtn.setAttribute('aria-expanded', String(!open));
+    });
+    document.addEventListener('click', () => {
+      moreDropdown.hidden = true;
+      moreBtn.setAttribute('aria-expanded', 'false');
+    });
+    moreDropdown.addEventListener('click', (e) => e.stopPropagation());
+  }
+
   const links = Array.from(app.querySelectorAll<HTMLAnchorElement>('a[data-nav]'));
   return {
     main,

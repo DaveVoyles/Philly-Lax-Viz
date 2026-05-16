@@ -68,12 +68,52 @@ pre {
   z-index: 10;
 }
 .site-header .brand { font-weight: 700; }
-.site-header nav { display: flex; gap: 1rem; flex-wrap: wrap; }
+.site-header nav { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
 .site-header nav a {
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
 }
 .site-header nav a.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+/* "More ▾" dropdown for developer/admin nav links */
+.more-menu { position: relative; }
+.more-menu__btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.5rem;
+  white-space: nowrap;
+}
+.more-menu__btn:hover { background: var(--table-stripe); }
+.more-menu__dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  z-index: 100;
+  padding: 0.25rem 0;
+}
+.more-menu__dropdown a {
+  display: block;
+  padding: 0.4rem 0.9rem;
+  border-radius: 0;
+  white-space: nowrap;
+}
+.more-menu__dropdown a:hover { background: var(--table-stripe); }
+.more-menu__dropdown a.active {
   background: var(--accent);
   color: var(--accent-fg);
 }
@@ -357,6 +397,23 @@ table.stat th.sortable:focus { outline: 2px solid var(--accent); outline-offset:
   .team-row__gap--missing { color: #fbbf24; }
   .team-row__gap--extra { color: #22d3ee; }
 }
+
+/* W-L record chip on team grid rows */
+.team-row__record {
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  background: var(--table-stripe);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Score margin note in recent games table */
+.score-margin { font-size: 0.8rem; }
 
 .scoreboard {
   border: 1px solid var(--border);
