@@ -75,6 +75,7 @@ function mountShell(app: HTMLElement): {
             ${MORE_NAV.map(
               (n) => `<a data-nav="${n.match}" href="${n.href}">${n.label}</a>`,
             ).join('')}
+            <a href="https://github.com/DaveVoyles/Philly-Lax-Viz" target="_blank" rel="noopener noreferrer">GitHub repo &#8599;</a>
           </div>
         </div>
       </nav>
