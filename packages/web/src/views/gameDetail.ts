@@ -15,6 +15,7 @@ import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderAnomalyBanner } from '../components/anomalyBanner.js';
 import { renderGameFlowChart } from '../components/gameFlowChart.js';
 import { renderConfidenceBadge } from '../util/confidence.js';
+import { shareOrCopy, currentPageUrl } from '../util/share.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   root.replaceChildren();
@@ -65,6 +66,23 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   const teamLabelById = new Map<number, string>();
   teamLabelById.set(game.homeTeamId, homeName);
   teamLabelById.set(game.awayTeamId, awayName);
+
+  const headingWrap = document.createElement('div');
+  headingWrap.style.cssText = 'display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;';
+  const heading = document.createElement('h1');
+  heading.textContent = `${homeName} vs ${awayName}`;
+  headingWrap.appendChild(heading);
+  const shareBtn = document.createElement('button');
+  shareBtn.textContent = 'Share';
+  shareBtn.title = 'Copy link to this game';
+  shareBtn.style.cssText =
+    'font-size:0.8rem; padding:0.2rem 0.6rem; border:1px solid var(--border); ' +
+    'border-radius:4px; background:none; color:var(--accent); cursor:pointer;';
+  shareBtn.addEventListener('click', () => {
+    void shareOrCopy(`${homeName} vs ${awayName} - Philly Lacrosse`, currentPageUrl());
+  });
+  headingWrap.appendChild(shareBtn);
+  root.appendChild(headingWrap);
 
   root.appendChild(
     buildScoreboard(

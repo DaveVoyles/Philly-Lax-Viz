@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Database } from 'better-sqlite3';
 import { getStatements } from '../queries/statements.js';
+import { computeStreaks } from '../queries/teamStreak.js';
 import {
   mapGame,
   mapTeam,
@@ -13,7 +14,12 @@ export async function teamsRoutes(app: FastifyInstance, db: Database): Promise<v
 
   app.get('/api/teams', async () => {
     const rows = s.listTeams.all() as TeamRow[];
-    return rows.map(mapTeam);
+    const teams = rows.map(mapTeam);
+    const streaks = computeStreaks(db, teams.map((team) => team.id));
+    return teams.map((team) => ({
+      ...team,
+      streak: streaks.get(team.id) ?? null,
+    }));
   });
 
   app.get<{ Params: { id: string } }>('/api/teams/:id', async (req, reply) => {

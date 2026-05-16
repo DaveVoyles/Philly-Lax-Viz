@@ -23,7 +23,30 @@ interface ListQuery {
   offset?: string;
 }
 
+interface CalendarDayRow {
+  date: string;
+  game_count: number;
+}
+
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function getGameCalendar(db: Database, season: string | null): CalendarDayRow[] {
+  const sql = season
+    ? `SELECT date, COUNT(*) AS game_count
+       FROM games
+       WHERE postponed = 0 AND SUBSTR(date, 1, 4) = ?
+       GROUP BY date
+       ORDER BY date ASC`
+    : `SELECT date, COUNT(*) AS game_count
+       FROM games
+       WHERE postponed = 0
+       GROUP BY date
+       ORDER BY date ASC`;
+  const rows = season
+    ? db.prepare(sql).all(season)
+    : db.prepare(sql).all();
+  return rows as CalendarDayRow[];
+}
 
 export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<void> {
   const s = getStatements(db);
@@ -95,6 +118,14 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
     }
 
     return rows.map(mapGame);
+  });
+
+  app.get<{ Querystring: { season?: string } }>('/api/games/calendar', async (req) => {
+    const season = req.query.season?.trim() ?? null;
+    return getGameCalendar(db, season).map((row) => ({
+      date: row.date,
+      gameCount: row.game_count,
+    }));
   });
 
   app.get<{ Params: { id: string } }>('/api/games/:id', async (req, reply) => {

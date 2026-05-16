@@ -6,6 +6,7 @@ import { renderConfidenceBadge } from '../util/confidence.js';
 import { isOutlier } from '../util/zscore.js';
 import { renderPerGameTrend } from '../charts/index.js';
 import type { PerGameTrendDatum } from '../charts/index.js';
+import { shareOrCopy, currentPageUrl } from '../util/share.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   root.replaceChildren();
@@ -46,9 +47,22 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   }
   status.remove();
 
+  const headingWrap = document.createElement('div');
+  headingWrap.style.cssText = 'display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;';
   const heading = document.createElement('h1');
   heading.textContent = detail.player.name;
-  root.appendChild(heading);
+  headingWrap.appendChild(heading);
+  const shareBtn = document.createElement('button');
+  shareBtn.textContent = 'Share';
+  shareBtn.title = 'Copy link to this player';
+  shareBtn.style.cssText =
+    'font-size:0.8rem; padding:0.2rem 0.6rem; border:1px solid var(--border); ' +
+    'border-radius:4px; background:none; color:var(--accent); cursor:pointer;';
+  shareBtn.addEventListener('click', () => {
+    void shareOrCopy(`${detail.player.name} - Philly Lacrosse`, currentPageUrl());
+  });
+  headingWrap.appendChild(shareBtn);
+  root.appendChild(headingWrap);
 
   // Wave H8 L1 (Han) — quick-start the compare view from this player.
   const compareP = document.createElement('p');

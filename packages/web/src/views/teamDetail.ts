@@ -1,9 +1,11 @@
 import {
   ApiError,
+  getH2HTeams,
   getTeamDetail,
   getTeams,
   getTeamTopScorers,
   getTeamUpcoming,
+  type H2HTeamsResponse,
   type ScheduleGame,
   type TeamDetail,
   type TeamSeasonRecord,
@@ -22,6 +24,7 @@ import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderProvenanceBadge } from '../components/provenanceBadge.js';
 import { renderPiaaBadge, piaaBadgeTooltip } from '../components/piaaBadge.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
+import { shareOrCopy, currentPageUrl } from '../util/share.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   root.replaceChildren();
@@ -71,7 +74,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
 
   const heading = document.createElement('h1');
   heading.className = 'team-detail-hero';
-  heading.style.cssText = 'display:flex; align-items:center; gap:1rem;';
+  heading.style.cssText = 'display:flex; align-items:center; gap:1rem; flex-wrap:wrap;';
   heading.appendChild(
     renderTeamBadge({
       name: detail.team.name,
@@ -80,6 +83,16 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       size: 'xl',
     }),
   );
+  const shareBtn = document.createElement('button');
+  shareBtn.textContent = 'Share';
+  shareBtn.title = 'Copy link to this team';
+  shareBtn.style.cssText =
+    'font-size:0.8rem; padding:0.2rem 0.6rem; border:1px solid var(--border); ' +
+    'border-radius:4px; background:none; color:var(--accent); cursor:pointer; margin-left:0.75rem;';
+  shareBtn.addEventListener('click', () => {
+    void shareOrCopy(`${detail.team.name} - Philly Lacrosse`, currentPageUrl());
+  });
+  heading.appendChild(shareBtn);
   root.appendChild(heading);
 
   const callouts = document.createElement('div');
@@ -376,6 +389,58 @@ async function loadTopScorers(slot: HTMLElement, teamId: number): Promise<void> 
   );
 }
 
+function getUpcomingOpponentId(game: ScheduleGame, teamId: number): number | null {
+  const opponentId = game.homeTeamId === teamId ? game.awayTeamId : game.homeTeamId;
+  return typeof opponentId === 'number' && Number.isInteger(opponentId) && opponentId > 0
+    ? opponentId
+    : null;
+}
+
+async function fetchUpcomingH2HRecords(
+  focusTeamId: number,
+  games: ScheduleGame[],
+): Promise<Map<number, H2HTeamsResponse>> {
+  const opponentIds = games
+    .map((game) => getUpcomingOpponentId(game, focusTeamId))
+    .filter((opponentId): opponentId is number => opponentId !== null);
+  const uniqueOpponentIds = [...new Set(opponentIds)];
+  const results = await Promise.allSettled(
+    uniqueOpponentIds.map(async (opponentId) => ({
+      opponentId,
+      data: await getH2HTeams(focusTeamId, opponentId),
+    })),
+  );
+  const records = new Map<number, H2HTeamsResponse>();
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      records.set(result.value.opponentId, result.value.data);
+    }
+  }
+  return records;
+}
+
+function buildUpcomingH2HChip(
+  h2h: H2HTeamsResponse,
+  focusTeamId: number,
+  opponentId: number,
+): HTMLAnchorElement {
+  const focusSide =
+    h2h.a?.teamId === focusTeamId ? h2h.a : h2h.b?.teamId === focusTeamId ? h2h.b : null;
+  const label =
+    focusSide === null
+      ? 'H2H'
+      : focusSide.gamesPlayed > 0
+        ? `${focusSide.wins}W-${focusSide.losses}L${focusSide.ties > 0 ? `-${focusSide.ties}T` : ''} all time`
+        : 'No history';
+  const chip = document.createElement('a');
+  chip.href = `#/h2h?mode=teams&a=${encodeURIComponent(String(focusTeamId))}&b=${encodeURIComponent(String(opponentId))}`;
+  chip.textContent = label;
+  chip.className = 'muted';
+  chip.style.cssText =
+    'display:inline-flex; align-items:center; margin-left:0.5rem; font-size:0.8rem; white-space:nowrap;';
+  return chip;
+}
+
 async function loadUpcoming(slot: HTMLElement, teamId: number): Promise<void> {
   let games: ScheduleGame[];
   try {
@@ -386,6 +451,8 @@ async function loadUpcoming(slot: HTMLElement, teamId: number): Promise<void> {
     return;
   }
   if (games.length === 0) return;
+
+  const h2hByOpponent = await fetchUpcomingH2HRecords(teamId, games);
 
   const heading = document.createElement('h2');
   heading.textContent = 'Upcoming Games';
@@ -399,6 +466,7 @@ async function loadUpcoming(slot: HTMLElement, teamId: number): Promise<void> {
     li.style.cssText =
       'display:flex; align-items:center; justify-content:space-between; gap:0.75rem; padding:0.5rem 0.75rem; border:1px solid var(--border, #2a2a2a); border-radius:6px; background:var(--card-bg, #181818);';
     const isHome = g.homeTeamId === teamId;
+    const oppId = getUpcomingOpponentId(g, teamId);
     const oppName = isHome ? g.awayTeamName : g.homeTeamName;
     const oppKey = isHome ? (g.awayTeamSlug ?? g.awayTeamId) : (g.homeTeamSlug ?? g.homeTeamId);
     const left = document.createElement('span');
@@ -416,6 +484,10 @@ async function loadUpcoming(slot: HTMLElement, teamId: number): Promise<void> {
       const span = document.createElement('span');
       span.textContent = oppName;
       left.appendChild(span);
+    }
+    if (oppId !== null) {
+      const h2h = h2hByOpponent.get(oppId);
+      if (h2h) left.appendChild(buildUpcomingH2HChip(h2h, teamId, oppId));
     }
     const meta = document.createElement('span');
     meta.className = 'muted';

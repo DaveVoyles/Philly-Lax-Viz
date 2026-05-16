@@ -3,8 +3,10 @@
 
 import {
   ApiError,
+  currentSeason,
   getH2HPlayers,
   getH2HTeams,
+  getPlayerList,
   getTeams,
   type H2HPlayersResponse,
   type H2HTeamsResponse,
@@ -20,7 +22,7 @@ interface PlayerListItem {
 }
 
 let teamsCache: TeamSeasonRecord[] | null = null;
-let playersCache: PlayerListItem[] | null = null;
+let playersCache: { season: string | null; rows: PlayerListItem[] } | null = null;
 
 async function loadTeams(): Promise<TeamSeasonRecord[]> {
   if (teamsCache) return teamsCache;
@@ -28,34 +30,13 @@ async function loadTeams(): Promise<TeamSeasonRecord[]> {
   return teamsCache;
 }
 
-interface RawPlayer {
-  id: number;
-  name: string;
-  teamId: number;
-}
-
-async function loadPlayers(): Promise<PlayerListItem[]> {
-  if (playersCache) return playersCache;
-  // No bulk /api/players list endpoint exists; derive from team detail.
-  const teams = await loadTeams();
-  const all: PlayerListItem[] = [];
-  const detailFetches = teams.map(async (t) => {
-    try {
-      const res = await fetch(`/api/teams/${t.id}`);
-      if (!res.ok) return;
-      const data = (await res.json()) as { roster?: RawPlayer[] };
-      const roster = data.roster ?? [];
-      for (const p of roster) {
-        all.push({ id: p.id, name: p.name, teamName: t.name });
-      }
-    } catch {
-      // tolerate failures per team
-    }
-  });
-  await Promise.all(detailFetches);
-  all.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-  playersCache = all;
-  return all;
+async function loadPlayers(season?: string | null): Promise<PlayerListItem[]> {
+  const seasonKey = season ?? null;
+  if (playersCache && playersCache.season === seasonKey) return playersCache.rows;
+  const rows = await getPlayerList({ season: seasonKey });
+  const players = rows.map((r) => ({ id: r.id, name: r.name, teamName: r.teamName }));
+  playersCache = { season: seasonKey, rows: players };
+  return players;
 }
 
 function readQuery(): URLSearchParams {
@@ -222,7 +203,8 @@ async function mountPlayerSelectors(
 ): Promise<void> {
   let players: PlayerListItem[];
   try {
-    players = await loadPlayers();
+    const season = currentSeason();
+    players = await loadPlayers(season === null ? null : String(season));
   } catch (err) {
     aEl.appendChild(errorNode(err));
     return;

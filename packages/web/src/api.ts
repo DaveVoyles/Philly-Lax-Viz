@@ -26,11 +26,18 @@ export { currentSeason } from './components/seasonPicker.js';
 
 // Endpoints that must NOT be season-scoped (their response is the source of
 // truth for season metadata, or they're global health probes).
-const SEASON_EXEMPT = new Set<string>(['/seasons', '/health']);
+const SEASON_EXEMPT = new Set<string>(['/seasons', '/health', '/players']);
 
 function shouldAttachSeason(path: string): boolean {
+  const pathname = path.split('?', 1)[0] ?? path;
   for (const exempt of SEASON_EXEMPT) {
-    if (path === exempt || path === `/api${exempt}` || path.startsWith(`${exempt}/`) || path.startsWith(`/api${exempt}/`)) {
+    if (pathname === exempt || pathname === `/api${exempt}`) {
+      return false;
+    }
+    if (
+      exempt !== '/players' &&
+      (pathname.startsWith(`${exempt}/`) || pathname.startsWith(`/api${exempt}/`))
+    ) {
       return false;
     }
   }
@@ -178,12 +185,41 @@ export function getGames(params?: GamesQuery): Promise<Game[]> {
   return request<Game[]>(`/games${buildQuery(params)}`);
 }
 
+export interface CalendarDay {
+  date: string;
+  gameCount: number;
+}
+
+export function getGameCalendar(): Promise<CalendarDay[]> {
+  return request<CalendarDay[]>('/games/calendar');
+}
+
 export function getGame(id: string | number): Promise<GameDetailResponse> {
   return request<GameDetailResponse>(`/games/${encodeURIComponent(String(id))}`);
 }
 
 export function getPlayer(id: string | number): Promise<PlayerDetailResponse> {
   return request<PlayerDetailResponse>(`/players/${encodeURIComponent(String(id))}`);
+}
+
+export interface PlayerListEntry {
+  id: number;
+  name: string;
+  teamId: number;
+  teamName: string;
+  teamSlug: string;
+}
+
+export function getPlayerList(params?: {
+  season?: string | null;
+  search?: string | null;
+  limit?: number;
+}): Promise<PlayerListEntry[]> {
+  const q: Record<string, string | number> = {};
+  if (params?.season) q['season'] = params.season;
+  if (params?.search) q['search'] = params.search;
+  if (params?.limit !== undefined) q['limit'] = params.limit;
+  return request<PlayerListEntry[]>(`/players${buildQuery(q)}`);
 }
 
 export function getRankings(params?: RankingsQuery): Promise<Ranking[]> {

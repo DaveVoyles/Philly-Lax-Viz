@@ -81,6 +81,11 @@ export interface Team {
   coverage?: CoverageRecord;
   derivedRecord?: DerivedRecord;
   piaaValidation?: PiaaValidation;
+  /** Current consecutive win/loss streak computed from non-postponed games.
+   *  Positive = wins (e.g. 3 = 3-game win streak).
+   *  Negative = losses (e.g. -2 = 2-game losing streak).
+   *  0 = last game was a tie. null = no games played yet. */
+  streak?: number | null;
 }
 
 export interface Game {

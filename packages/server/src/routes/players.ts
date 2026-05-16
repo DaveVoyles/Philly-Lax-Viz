@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Database } from 'better-sqlite3';
 import { getStatements } from '../queries/statements.js';
+import { listPlayersBySeason } from '../queries/playerList.js';
 import {
   mapPlayer,
   mapPlayerStat,
@@ -78,6 +79,22 @@ export function buildPlayerDetail(db: Database, id: number): {
 }
 
 export async function playersRoutes(app: FastifyInstance, db: Database): Promise<void> {
+  app.get<{ Querystring: { season?: string; search?: string; limit?: string } }>(
+    '/api/players',
+    async (req) => {
+      const season = req.query.season?.trim() || null;
+      const search = req.query.search?.trim() || null;
+      const limit = Math.max(1, Math.min(Number(req.query.limit ?? 500), 1000));
+      return listPlayersBySeason(db, season, search, Number.isFinite(limit) ? limit : 500).map((row) => ({
+        id: row.id,
+        name: row.name,
+        teamId: row.team_id,
+        teamName: row.team_name,
+        teamSlug: row.team_slug,
+      }));
+    },
+  );
+
   app.get<{ Params: { id: string } }>('/api/players/:id', async (req, reply) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {

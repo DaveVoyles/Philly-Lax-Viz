@@ -20,6 +20,7 @@ import type { ChartHandle } from '../charts/types.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderEmptyState } from '../components/emptyState.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
+import { renderGlossaryIcon } from '../util/glossary.js';
 
 type Tab = 'players' | 'teams';
 
@@ -221,6 +222,8 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.textContent = m.label;
+      const icon = renderGlossaryIcon(m.label);
+      if (icon) chip.appendChild(icon);
       const isActive = m.key === currentMetric;
       chip.style.cssText =
         'padding:.3rem .75rem; border-radius:999px; border:1px solid var(--border); cursor:pointer; font-size:.9rem;' +
@@ -552,12 +555,14 @@ function buildSortableTable<T>(
   const trh = document.createElement('tr');
   for (const col of cols) {
     const th = document.createElement('th');
-    th.textContent = col.label;
+    const label = sort && sort.col === col.key
+      ? `${col.label} ${sort.dir === 'asc' ? '▲' : '▼'}`
+      : col.label;
+    th.textContent = label;
+    const icon = renderGlossaryIcon(col.label);
+    if (icon) th.appendChild(icon);
     th.style.cursor = 'pointer';
     th.style.userSelect = 'none';
-    if (sort && sort.col === col.key) {
-      th.textContent = `${col.label} ${sort.dir === 'asc' ? '▲' : '▼'}`;
-    }
     th.addEventListener('click', () => {
       const dir: 'asc' | 'desc' =
         sort && sort.col === col.key && sort.dir === 'desc' ? 'asc' : 'desc';
