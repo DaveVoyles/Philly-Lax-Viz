@@ -18,6 +18,7 @@ import {
   SEASON_QUERY_KEY,
 } from './components/seasonPicker.js';
 import { apiUrl } from './apiBase.js';
+import { IS_STATIC, staticFetch } from './staticLoader.js';
 
 export type { GamePeriod, PiaaRecord };
 
@@ -59,6 +60,7 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const baseUrl = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
+  if (IS_STATIC) return staticFetch<T>(baseUrl);
   const url = apiUrl(attachSeason(baseUrl));
   let res: Response;
   try {

@@ -1,0 +1,64 @@
+name: pages
+
+on:
+  workflow_dispatch: {}
+  workflow_run:
+    workflows: [ingest-nightly]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10.33.1'
+  VITE_BASE_PATH: /Philly-Lax-Viz/
+
+jobs:
+  build-and-deploy:
+    runs-on: [self-hosted, pll]
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Export static data
+        run: pnpm export:static
+
+      - name: Build web (static mode)
+        run: pnpm --filter @pll/web build
+        env:
+          VITE_STATIC_MODE: 'true'
+          VITE_BASE_PATH: ${{ env.VITE_BASE_PATH }}
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/web/dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -18,3 +18,7 @@ data/*.db.bak*
 packages/*/data/
 # Test fixture scratch dirs
 **/__tests__/.tmp/
+
+# Generated static Pages export artifacts
+packages/web/public/data/
+packages/web/public/logos/

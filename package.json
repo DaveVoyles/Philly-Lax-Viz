@@ -9,7 +9,8 @@
     "crawl": "pnpm --filter @pll/ingest crawl",
     "ingest": "pnpm --filter @pll/ingest ingest",
     "dev": "concurrently -n server,web -c blue,green \"pnpm --filter @pll/server dev\" \"pnpm --filter @pll/web dev\"",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "export:static": "pnpm --filter @pll/server export:static"
   },
   "devDependencies": {
     "concurrently": "^9.0.1",
