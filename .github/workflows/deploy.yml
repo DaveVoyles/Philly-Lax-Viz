@@ -110,21 +110,27 @@ jobs:
           az --version | head -1
 
       - name: Seed DB for Docker build
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
         run: |
           mkdir -p data
-          # The live DB lives in the persistent repo copy on this self-hosted runner.
-          # SEED_DB_PATH can be overridden via a repo secret; falls back to the
-          # well-known location of the live repo on the pll runner host.
-          SEED="${SEED_DB_PATH:-$HOME/Desktop/REPOS/Philly Lacrosse Vis/data/lacrosse.db}"
-          if [ -f "$SEED" ]; then
-            cp "$SEED" data/lacrosse.db
+          # Download the live DB from Azure File Share so the image ships with real data.
+          # Falls back to an empty seed if the share is unavailable (first-run safe).
+          if az storage file exists \
+               --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+               --share-name pll-data \
+               --path lacrosse.db \
+               --query exists -o tsv 2>/dev/null | grep -q true; then
+            az storage file download \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --share-name pll-data \
+              --path lacrosse.db \
+              --dest data/lacrosse.db
             echo "Seeded Docker build with $(du -h data/lacrosse.db | cut -f1) DB"
           else
-            echo "::warning::Seed DB not found at $SEED; image will start empty"
+            echo "::warning::Remote DB not found on Azure File Share; image will start empty"
             touch data/lacrosse.db
           fi
-        env:
-          SEED_DB_PATH: ${{ secrets.SEED_DB_PATH }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
