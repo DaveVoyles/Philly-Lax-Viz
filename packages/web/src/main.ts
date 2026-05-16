@@ -71,7 +71,7 @@ function mountShell(app: HTMLElement): {
         ).join('')}
         <div class="more-menu">
           <button class="more-menu__btn" aria-haspopup="true" aria-expanded="false">More ▾</button>
-          <div class="more-menu__dropdown" hidden>
+          <div class="more-menu__dropdown">
             ${MORE_NAV.map(
               (n) => `<a data-nav="${n.match}" href="${n.href}">${n.label}</a>`,
             ).join('')}
@@ -132,12 +132,11 @@ function mountShell(app: HTMLElement): {
   if (moreBtn && moreDropdown) {
     moreBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const open = !moreDropdown.hidden;
-      moreDropdown.hidden = open;
-      moreBtn.setAttribute('aria-expanded', String(!open));
+      const open = moreDropdown.classList.toggle('is-open');
+      moreBtn.setAttribute('aria-expanded', String(open));
     });
     document.addEventListener('click', () => {
-      moreDropdown.hidden = true;
+      moreDropdown.classList.remove('is-open');
       moreBtn.setAttribute('aria-expanded', 'false');
     });
     moreDropdown.addEventListener('click', (e) => e.stopPropagation());

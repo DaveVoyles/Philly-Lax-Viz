@@ -22,8 +22,8 @@ const AXIS_COLOR = 0x4a5366;
 const AXIS_LABEL_COLOR = 0xb8bcc4;
 const TICK_LABEL_COLOR = 0x8a909a;
 
-const STAGE_W = 900;
-const STAGE_H = 600;
+const STAGE_W = 1200;
+const STAGE_H = 700;
 const PAD_LEFT = 64;
 const PAD_RIGHT = 24;
 const PAD_TOP = 24;

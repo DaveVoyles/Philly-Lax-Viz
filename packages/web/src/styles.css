@@ -123,6 +123,7 @@ pre {
     padding: 0;
     min-width: unset;
   }
+  .more-menu__dropdown.is-open { display: flex; flex-direction: column; }
   .more-menu__dropdown a { padding: 0.6rem 1.5rem; border-bottom: 1px solid var(--border); }
   /* Hide search/season on very narrow so header stays tidy */
   .search-host, .season-host { display: none; }
@@ -143,6 +144,7 @@ pre {
 }
 .more-menu__btn:hover { background: var(--table-stripe); }
 .more-menu__dropdown {
+  display: none; /* shown via .is-open */
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
@@ -150,12 +152,12 @@ pre {
   border: 1px solid var(--border);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  display: flex;
   flex-direction: column;
   min-width: 160px;
   z-index: 100;
   padding: 0.25rem 0;
 }
+.more-menu__dropdown.is-open { display: flex; }
 .more-menu__dropdown a {
   display: block;
   padding: 0.4rem 0.9rem;
