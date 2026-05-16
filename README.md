@@ -1,5 +1,31 @@
 # Philly Lacrosse Vis 🥍
 
+**[View the live site](https://davevoyles.github.io/Philly-Lax-Viz/)**
+
+A stats hub for Philadelphia-area high school boys lacrosse. It tracks scores,
+standings, player stats, and rankings for the current season — all in one place,
+updated nightly.
+
+## What you can explore
+
+- **Teams** — season record (wins/losses), top scorers, and every game played
+- **Players** — season totals and a per-game trend chart for goals, assists, and points
+- **Games** — full scoreboard with quarter-by-quarter breakdown and player stat tables
+- **League Leaders** — ranked leaderboards for goals, assists, saves, faceoff %, and more
+- **Rankings** — PIAA District 1 official standings
+- **Rivalries** — a force-directed graph showing head-to-head matchup history
+- **Schedule** — upcoming games
+- **Player Constellation** — a visual bubble chart plotting every player's goals vs. assists
+
+> **Data is updated every night** by pulling the latest scores and summaries from
+> [phillylacrosse.com](https://phillylacrosse.com) and
+> [piaad1.org](https://piaad1.org). Team logos courtesy of
+> [MaxPreps.com](https://www.maxpreps.com).
+
+---
+
+## For developers
+
 Philadelphia boys high school lacrosse stats visualizer. Scrapes
 [phillylacrosse.com](https://phillylacrosse.com) archives, parses scoreboard /
 summaries / rankings posts into SQLite, serves a small Fastify API, and
