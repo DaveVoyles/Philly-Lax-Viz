@@ -1,5 +1,5 @@
 {
-  "_comment": "Manual overrides for syncLogos: { phillylax-team-name: maxpreps-slug }. Verified 2026-04-22 (Wave 3 Lane 1). DB teams not in MaxPreps PA directory (AIM Academy, Upper Merion, Cheltenham, Delco Christian, Jack Barrack, Bethlehem Catholic, Roman Catholic, Phoenixville, Pottsgrove, Archbishop Ryan, Shipley, Springfield Township) are intentionally absent.",
+  "_comment": "Manual overrides for syncLogos: { phillylax-team-name: maxpreps-slug }. Verified 2026-05-17. Some DB teams remain intentionally absent because they are outside the PA MaxPreps boys lacrosse directory, are non-team artifact rows, or have no MaxPreps logo asset (for example Westtown).",
   "Penn Charter": "philadelphia/william-penn-charter-quakers",
   "PC": "philadelphia/william-penn-charter-quakers",
   "Shanahan": "downingtown/bishop-shanahan-eagles",
@@ -18,8 +18,10 @@
   "DT East": "exton/downingtown-east-whippets",
   "CB East": "doylestown/central-bucks-east-patriots",
   "Kiski Prep": "saltsburg/kiski-school-cougars",
+  "Academy New Church": "bryn-athyn/academy-of-the-new-church-lions",
   "LM": "ardmore/lower-merion-aces",
   "QHS": "quakertown/quakertown-panthers",
   "NHS": "langhorne/neshaminy-skins",
-  "MHS": "norristown/methacton-warriors"
+  "MHS": "norristown/methacton-warriors",
+  "St. Joe's Prep": "philadelphia/st-josephs-prep-hawks"
 }

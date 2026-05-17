@@ -1,0 +1,142 @@
+name: sync-logos
+
+# Pull current SQLite DB + cached logos from Azure Files, run logo sync, push back.
+# Sunday 03:00 America/New_York ~= 07:00 UTC for most of the season.
+on:
+  schedule:
+    - cron: '0 7 * * 0'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '10.33.1'
+  DB_LOCAL_PATH: ${{ github.workspace }}/data/lacrosse.db
+  DB_REMOTE_NAME: lacrosse.db
+  LOGOS_LOCAL_DIR: ${{ github.workspace }}/data/logos
+  LOGOS_REMOTE_DIR: logos
+  AZ_FILE_SHARE: pll-data
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+concurrency:
+  group: sync-logos
+  cancel-in-progress: false
+
+jobs:
+  sync-logos:
+    # Self-hosted runner on Mac Mini (myoung34/github-runner Ubuntu Jammy container).
+    # See ~/docker-stack/github-runner/docker-compose.yml on the host.
+    runs-on: [self-hosted, pll]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install Azure CLI (self-hosted runner - not pre-installed)
+        run: |
+          if ! command -v az >/dev/null 2>&1; then
+            curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+          fi
+          az --version | head -1
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Download current DB from Azure Files
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          mkdir -p data
+          # Tolerate first-run case where the share is empty.
+          if az storage file exists \
+                --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+                --share-name   "${{ env.AZ_FILE_SHARE }}" \
+                --path "${{ env.DB_REMOTE_NAME }}" \
+                --query exists -o tsv | grep -q true; then
+            az storage file download \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --share-name   "${{ env.AZ_FILE_SHARE }}" \
+              --path "${{ env.DB_REMOTE_NAME }}" \
+              --dest "${{ env.DB_LOCAL_PATH }}"
+            echo "Downloaded DB: $(du -h ${{ env.DB_LOCAL_PATH }})"
+          else
+            echo "::warning::Remote DB not found; logo sync will create a fresh one."
+          fi
+
+      - name: Download current logos from Azure Files
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          mkdir -p "${{ env.LOGOS_LOCAL_DIR }}"
+          FILES=$(az storage file list \
+            --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+            --share-name   "${{ env.AZ_FILE_SHARE }}" \
+            --path "${{ env.LOGOS_REMOTE_DIR }}" \
+            --query "[].name" -o tsv 2>/dev/null || true)
+          if [ -n "$FILES" ]; then
+            while IFS= read -r file_name; do
+              [ -n "$file_name" ] || continue
+              az storage file download \
+                --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+                --share-name   "${{ env.AZ_FILE_SHARE }}" \
+                --path "${{ env.LOGOS_REMOTE_DIR }}/$file_name" \
+                --dest "${{ env.LOGOS_LOCAL_DIR }}/$file_name"
+            done <<< "$FILES"
+            echo "Downloaded $(find \"${{ env.LOGOS_LOCAL_DIR }}\" -type f | wc -l | tr -d ' ') logos"
+          else
+            echo "::warning::Remote logos directory not found or empty; sync will rebuild cache as needed."
+          fi
+
+      - name: Backup DB before logo sync
+        run: |
+          if [ -f "${{ env.DB_LOCAL_PATH }}" ]; then
+            cp "${{ env.DB_LOCAL_PATH }}" "${{ env.DB_LOCAL_PATH }}.bak-sync-logos"
+            echo "Backup created: ${{ env.DB_LOCAL_PATH }}.bak-sync-logos"
+          else
+            echo "No DB present yet; skipping backup."
+          fi
+
+      - name: Run logo sync
+        env:
+          DB_PATH: ${{ env.DB_LOCAL_PATH }}
+        run: |
+          pnpm --filter @pll/ingest sync:logos
+
+      - name: Upload updated DB to Azure Files
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          az storage file upload \
+            --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+            --share-name   "${{ env.AZ_FILE_SHARE }}" \
+            --source "${{ env.DB_LOCAL_PATH }}" \
+            --path "${{ env.DB_REMOTE_NAME }}"
+
+      - name: Upload updated logos to Azure Files
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          az storage directory create \
+            --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+            --share-name "${{ env.AZ_FILE_SHARE }}" \
+            --name "${{ env.LOGOS_REMOTE_DIR }}"
+          find "${{ env.LOGOS_LOCAL_DIR }}" -type f | while IFS= read -r file_path; do
+            file_name=$(basename "$file_path")
+            az storage file upload \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --share-name   "${{ env.AZ_FILE_SHARE }}" \
+              --source "$file_path" \
+              --path "${{ env.LOGOS_REMOTE_DIR }}/$file_name" \
+              --overwrite true
+          done
