@@ -153,7 +153,7 @@ export function renderHorizontalLeaderboard(
             .attr('y', yPos)
             .attr('dominant-baseline', 'middle')
             .attr('fill', theme.fg)
-            .style('font-size', '16px')
+            .style('font-size', '13px')
             .text(label);
         }
       },
