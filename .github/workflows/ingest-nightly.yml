@@ -23,7 +23,7 @@ permissions:
 env:
   NODE_VERSION: '20'
   PNPM_VERSION: '10.33.1'
-  DB_LOCAL_PATH: data/lacrosse.db
+  DB_LOCAL_PATH: ${{ github.workspace }}/data/lacrosse.db
   DB_REMOTE_NAME: lacrosse.db
   AZ_FILE_SHARE: pll-data         # adjust if you named the share differently
 
@@ -110,7 +110,7 @@ jobs:
           IFS=',' read -ra CATS <<< "$CATEGORIES"
           for c in "${CATS[@]}"; do
             echo "::group::Ingest category=$c"
-            pnpm --filter @pll/ingest ingest -- --category="$c" $REPARSE_FLAG --dbPath="${{ env.DB_LOCAL_PATH }}"
+            pnpm --filter @pll/ingest ingest -- --category="$c" $REPARSE_FLAG --db="${{ env.DB_LOCAL_PATH }}"
             echo "::endgroup::"
           done
 
