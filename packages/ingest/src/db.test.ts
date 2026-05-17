@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { openDb } from './db.js';
+import { openDb, CURRENT_SCHEMA_VERSION } from './db.js';
 
 const EXPECTED_TABLES = [
   'teams',
@@ -17,6 +17,7 @@ const EXPECTED_TABLES = [
   'player_aliases',
   'schedule_games',
   'post_images',
+  'dedup_candidates',
 ];
 
 function tableNames(db: ReturnType<typeof openDb>): string[] {
@@ -33,19 +34,19 @@ describe('openDb', () => {
     for (const t of EXPECTED_TABLES) {
       expect(names, `missing table: ${t}`).toContain(t);
     }
-    // user_version tracks the highest applied migration. Wave H9 added 013 (score_sources).
-    expect(db.pragma('user_version', { simple: true })).toBe(14);
+    // user_version tracks the highest applied migration.
+    expect(db.pragma('user_version', { simple: true })).toBe(CURRENT_SCHEMA_VERSION);
     db.close();
   });
 
   it('is idempotent — re-opening does not re-apply migrations', () => {
     const db1 = openDb(':memory:');
-    expect(db1.pragma('user_version', { simple: true })).toBe(14);
+    expect(db1.pragma('user_version', { simple: true })).toBe(CURRENT_SCHEMA_VERSION);
     db1.close();
 
     // Run migrations a second time on a brand-new DB and confirm same end state.
     const db2 = openDb(':memory:');
-    expect(db2.pragma('user_version', { simple: true })).toBe(14);
+    expect(db2.pragma('user_version', { simple: true })).toBe(CURRENT_SCHEMA_VERSION);
     db2.close();
   });
 
