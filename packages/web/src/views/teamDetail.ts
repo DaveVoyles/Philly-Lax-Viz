@@ -12,6 +12,7 @@ import {
   type TopScorerEntry,
 } from '../api.js';
 import type { Game } from '@pll/shared';
+import { IS_STATIC } from '../staticLoader.js';
 import { formatDate, formatRecord } from '../util/format.js';
 import { renderSeasonRecord, renderTopScorers } from '../charts/index.js';
 import { extractScoreTrend, renderTeamScoreTrend } from '../charts/teamScoreTrend.js';
@@ -430,49 +431,85 @@ function getUpcomingOpponentId(game: ScheduleGame, teamId: number): number | nul
     : null;
 }
 
-async function fetchUpcomingH2HRecords(
-  focusTeamId: number,
-  games: ScheduleGame[],
-): Promise<Map<number, H2HTeamsResponse>> {
-  const opponentIds = games
-    .map((game) => getUpcomingOpponentId(game, focusTeamId))
-    .filter((opponentId): opponentId is number => opponentId !== null);
-  const uniqueOpponentIds = [...new Set(opponentIds)];
-  const results = await Promise.allSettled(
-    uniqueOpponentIds.map(async (opponentId) => ({
-      opponentId,
-      data: await getH2HTeams(focusTeamId, opponentId),
-    })),
-  );
-  const records = new Map<number, H2HTeamsResponse>();
-  for (const result of results) {
-    if (result.status === 'fulfilled') {
-      records.set(result.value.opponentId, result.value.data);
-    }
-  }
-  return records;
+const UPCOMING_H2H_STYLE_ID = 'team-upcoming-h2h-chip-styles';
+
+interface UpcomingH2HRecord {
+  wins: number;
+  losses: number;
+  ties: number;
 }
 
-function buildUpcomingH2HChip(
-  h2h: H2HTeamsResponse,
-  focusTeamId: number,
-  opponentId: number,
-): HTMLAnchorElement {
+function ensureUpcomingH2HChipStyles(): void {
+  if (document.getElementById(UPCOMING_H2H_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = UPCOMING_H2H_STYLE_ID;
+  style.textContent = `.h2h-chip { font-size: 0.65rem; font-weight: 700; padding: 1px 5px; border-radius: 3px; display: inline-block; margin-left: 6px; text-decoration: none; vertical-align: middle; }
+.h2h-lead { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.h2h-trail { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.h2h-even { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }`;
+  document.head.appendChild(style);
+}
+
+function readUpcomingH2HRecord(h2h: H2HTeamsResponse, focusTeamId: number): UpcomingH2HRecord | null {
   const focusSide =
     h2h.a?.teamId === focusTeamId ? h2h.a : h2h.b?.teamId === focusTeamId ? h2h.b : null;
-  const label =
-    focusSide === null
-      ? 'H2H'
-      : focusSide.gamesPlayed > 0
-        ? `${focusSide.wins}W-${focusSide.losses}L${focusSide.ties > 0 ? `-${focusSide.ties}T` : ''} all time`
-        : 'No history';
-  const chip = document.createElement('a');
-  chip.href = `#/h2h?mode=teams&a=${encodeURIComponent(String(focusTeamId))}&b=${encodeURIComponent(String(opponentId))}`;
-  chip.textContent = label;
-  chip.className = 'muted';
-  chip.style.cssText =
-    'display:inline-flex; align-items:center; margin-left:0.5rem; font-size:0.8rem; white-space:nowrap;';
-  return chip;
+  if (focusSide === null) return null;
+  return {
+    wins: focusSide.wins,
+    losses: focusSide.losses,
+    ties: focusSide.ties,
+  };
+}
+
+export function h2hChipHtml(
+  teamId: number,
+  opponentId: number,
+  wins: number,
+  losses: number,
+  ties: number,
+): string {
+  const record = ties > 0 ? `${wins}-${losses}-${ties}` : `${wins}-${losses}`;
+  const cssClass = wins > losses ? 'h2h-lead' : wins < losses ? 'h2h-trail' : 'h2h-even';
+  return `<a href="#/h2h?team1=${teamId}&team2=${opponentId}" class="h2h-chip ${cssClass}" title="All-time H2H record">${record} H2H</a>`;
+}
+
+async function hydrateUpcomingH2HChips(container: HTMLElement, focusTeamId: number): Promise<void> {
+  const slots = Array.from(container.querySelectorAll<HTMLElement>('[data-h2h-slot][data-opponent-id]'));
+  const opponentIds = [
+    ...new Set(
+      slots
+        .map((slot) => Number(slot.dataset['opponentId']))
+        .filter((opponentId) => Number.isInteger(opponentId) && opponentId > 0),
+    ),
+  ];
+  if (opponentIds.length === 0) return;
+
+  const results = await Promise.allSettled(
+    opponentIds.map(async (opponentId) => ({
+      opponentId,
+      h2h: await getH2HTeams(focusTeamId, opponentId),
+    })),
+  );
+
+  const records = new Map<number, UpcomingH2HRecord>();
+  for (const result of results) {
+    if (result.status !== 'fulfilled') continue;
+    const record = readUpcomingH2HRecord(result.value.h2h, focusTeamId);
+    if (record) records.set(result.value.opponentId, record);
+  }
+
+  for (const slot of slots) {
+    const opponentId = Number(slot.dataset['opponentId']);
+    const record = records.get(opponentId);
+    if (!record) continue;
+    slot.innerHTML = h2hChipHtml(
+      focusTeamId,
+      opponentId,
+      record.wins,
+      record.losses,
+      record.ties,
+    );
+  }
 }
 
 async function loadUpcoming(slot: HTMLElement, teamId: number): Promise<void> {
@@ -485,8 +522,6 @@ async function loadUpcoming(slot: HTMLElement, teamId: number): Promise<void> {
     return;
   }
   if (games.length === 0) return;
-
-  const h2hByOpponent = await fetchUpcomingH2HRecords(teamId, games);
 
   const heading = document.createElement('h2');
   heading.textContent = 'Upcoming Games';
@@ -519,9 +554,11 @@ async function loadUpcoming(slot: HTMLElement, teamId: number): Promise<void> {
       span.textContent = oppName;
       left.appendChild(span);
     }
-    if (oppId !== null) {
-      const h2h = h2hByOpponent.get(oppId);
-      if (h2h) left.appendChild(buildUpcomingH2HChip(h2h, teamId, oppId));
+    if (!IS_STATIC && oppId !== null) {
+      const h2hSlot = document.createElement('span');
+      h2hSlot.setAttribute('data-h2h-slot', '');
+      h2hSlot.dataset['opponentId'] = String(oppId);
+      left.appendChild(h2hSlot);
     }
     const meta = document.createElement('span');
     meta.className = 'muted';
@@ -532,6 +569,11 @@ async function loadUpcoming(slot: HTMLElement, teamId: number): Promise<void> {
     ul.appendChild(li);
   }
   slot.appendChild(ul);
+
+  if (!IS_STATIC) {
+    ensureUpcomingH2HChipStyles();
+    void Promise.allSettled([hydrateUpcomingH2HChips(ul, teamId)]);
+  }
 }
 
 function buildGamesTable(games: Game[], teamId: number, teamsById: Map<number, string>): HTMLTableElement {

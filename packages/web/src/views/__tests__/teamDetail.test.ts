@@ -10,7 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Game } from '@pll/shared';
 
-import { resultBadge } from '../teamDetail.js';
+import { h2hChipHtml, resultBadge } from '../teamDetail.js';
 import { extractScoreTrend } from '../../charts/teamScoreTrend.js';
 
 function makeGame(partial: Partial<Game> & { id: number; date: string }): Game {
@@ -61,6 +61,23 @@ describe('resultBadge', () => {
     expect(resultBadge(null, 4, false).className).toBe('result-pending');
     expect(resultBadge(4, undefined, false).className).toBe('result-pending');
     expect(resultBadge(Number.NaN, 4, false).className).toBe('result-pending');
+  });
+});
+
+describe('h2hChipHtml', () => {
+  it('builds a lead chip without ties', () => {
+    expect(h2hChipHtml(12, 34, 7, 3, 0)).toContain('class="h2h-chip h2h-lead"');
+    expect(h2hChipHtml(12, 34, 7, 3, 0)).toContain('>7-3 H2H<');
+    expect(h2hChipHtml(12, 34, 7, 3, 0)).toContain('#/h2h?team1=12&team2=34');
+  });
+
+  it('builds an even chip with ties', () => {
+    expect(h2hChipHtml(4, 5, 2, 2, 1)).toContain('class="h2h-chip h2h-even"');
+    expect(h2hChipHtml(4, 5, 2, 2, 1)).toContain('>2-2-1 H2H<');
+  });
+
+  it('builds a trailing chip when losses exceed wins', () => {
+    expect(h2hChipHtml(1, 9, 1, 4, 0)).toContain('class="h2h-chip h2h-trail"');
   });
 });
 

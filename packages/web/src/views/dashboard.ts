@@ -13,17 +13,19 @@ import {
   type TeamSeasonRecord,
 } from '../api.js';
 import type { Game, Team } from '@pll/shared';
-import { formatDate } from '../util/format.js';
-import { renderTeamBadge } from '../components/teamBadge.js';
-import { renderPiaaBadge } from '../components/piaaBadge.js';
-import { renderGameThumb } from '../components/postImage.js';
+import { renderCalendarHeatmap } from '../charts/calendarHeatmap.js';
 import { renderHorizontalLeaderboard } from '../charts/index.js';
 import { renderMarginHistogram } from '../charts/marginHistogram.js';
-import { renderCalendarHeatmap } from '../charts/calendarHeatmap.js';
 import type { ChartHandle } from '../charts/types.js';
 import { renderEmptyState } from '../components/emptyState.js';
+import { renderGameThumb } from '../components/postImage.js';
+import { renderPiaaBadge } from '../components/piaaBadge.js';
+import { IS_STATIC } from '../staticLoader.js';
+import { formatDate } from '../util/format.js';
+import { createPoller, isActiveSeason } from '../util/livePoller.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
 import { buildStreakChip, ensureStreakChipStyles } from '../util/streakChip.js';
+import { renderTeamBadge } from '../components/teamBadge.js';
 
 type SortKey = 'name' | 'gap' | 'wins';
 type SortDir = 'asc' | 'desc';
@@ -33,77 +35,74 @@ interface TeamFilter { hideLowGames: boolean; minGames: number; }
 const RECENT_GAME_LIMIT = 25;
 const LEADER_PANEL_LIMIT = 10;
 const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
-const REFRESH_STATUS_INTERVAL_MS = 30 * 1000;
+const DASHBOARD_LIVE_STYLE_ID = 'dashboard-live-poller-styles';
 
 // Dashboard chart handles, tracked so route teardown can clean up SVGs.
 let dashboardCharts: ChartHandle[] = [];
-let refreshInterval: ReturnType<typeof setInterval> | null = null;
-let refreshStatusInterval: ReturnType<typeof setInterval> | null = null;
-let lastRefreshed: Date | null = null;
-let isRefreshEnabled = false;
-let refreshFailed = false;
+let recentGamesPoller: { stop: () => void } | null = null;
+let recentGamesLastUpdated: Date | null = null;
 let recentGamesSignature = '';
 
-function stopRefresh(): void {
-  if (refreshInterval !== null) {
-    clearInterval(refreshInterval);
-    refreshInterval = null;
-  }
-  if (refreshStatusInterval !== null) {
-    clearInterval(refreshStatusInterval);
-    refreshStatusInterval = null;
-  }
+function ensureDashboardLiveStyles(): void {
+  if (document.getElementById(DASHBOARD_LIVE_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = DASHBOARD_LIVE_STYLE_ID;
+  style.textContent = `
+    .recent-games-header { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
+    .recent-games-header h2 { margin:0; }
+    .live-dot { color:#ef4444; font-size:0.7rem; font-weight:700; animation:livePulse 1.5s ease-in-out infinite; }
+    .last-updated { font-size:0.65rem; color:#9ca3af; }
+    @keyframes livePulse { 0%, 100% { opacity:1; } 50% { opacity:0.4; } }
+  `;
+  document.head.appendChild(style);
 }
 
-function updateRefreshStatus(statusEl: HTMLElement): void {
-  if (!isRefreshEnabled) {
-    statusEl.textContent = '';
-    return;
-  }
-  if (refreshFailed) {
-    statusEl.textContent = 'Refresh failed - will retry';
-    return;
-  }
-  if (lastRefreshed === null) {
-    statusEl.textContent = 'Live - waiting for initial load';
-    return;
-  }
+function shouldAutoRefreshRecentGames(): boolean {
+  return !IS_STATIC && isActiveSeason();
+}
 
-  const minutes = Math.floor((Date.now() - lastRefreshed.getTime()) / 60_000);
-  statusEl.textContent =
-    minutes <= 0
-      ? 'Live - last updated just now'
-      : `Live - last updated ${minutes} min ago`;
+function stopRefresh(): void {
+  recentGamesPoller?.stop();
+  recentGamesPoller = null;
+}
+
+function updateLastUpdated(timestampEl: HTMLElement): void {
+  if (!shouldAutoRefreshRecentGames() || recentGamesLastUpdated === null) {
+    timestampEl.textContent = '';
+    return;
+  }
+  timestampEl.textContent = `Updated ${recentGamesLastUpdated.toLocaleTimeString()}`;
 }
 
 function startRefresh(
   gamesTarget: HTMLElement,
   teamById: Map<number, Team>,
-  statusEl: HTMLElement,
+  timestampEl: HTMLElement,
 ): void {
   stopRefresh();
-  refreshStatusInterval = setInterval(() => {
-    updateRefreshStatus(statusEl);
-  }, REFRESH_STATUS_INTERVAL_MS);
-  refreshInterval = setInterval(() => {
-    void refreshGames(gamesTarget, teamById, statusEl);
-  }, REFRESH_INTERVAL_MS);
-  void refreshGames(gamesTarget, teamById, statusEl);
+  if (!shouldAutoRefreshRecentGames()) {
+    updateLastUpdated(timestampEl);
+    return;
+  }
+  recentGamesPoller = createPoller(() => refreshGames(gamesTarget, teamById, timestampEl), REFRESH_INTERVAL_MS);
 }
 
 function destroyDashboardCharts(): void {
   stopRefresh();
   for (const c of dashboardCharts) c.destroy();
   dashboardCharts = [];
-  lastRefreshed = null;
-  isRefreshEnabled = false;
-  refreshFailed = false;
+  recentGamesLastUpdated = null;
   recentGamesSignature = '';
+}
+
+export function destroy(): void {
+  destroyDashboardCharts();
 }
 
 export function render(root: HTMLElement, _params: Record<string, string>): void {
   destroyDashboardCharts();
   ensureStreakChipStyles();
+  ensureDashboardLiveStyles();
   root.replaceChildren();
 
   const h1 = document.createElement('h1');
@@ -134,28 +133,24 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   root.appendChild(teamsSection);
 
   const gamesSection = document.createElement('section');
-  const gamesHeader = document.createElement('h2');
-  gamesHeader.textContent = 'Recent Games';
+  const gamesHeader = document.createElement('div');
+  gamesHeader.className = 'recent-games-header';
+  const gamesTitle = document.createElement('h2');
+  gamesTitle.textContent = 'Recent Games';
+  const liveIndicator = document.createElement('span');
+  liveIndicator.id = 'live-indicator';
+  liveIndicator.className = 'live-dot';
+  liveIndicator.style.display = 'none';
+  liveIndicator.title = 'Auto-refreshing every 2 minutes';
+  liveIndicator.textContent = '● LIVE';
+  const lastUpdated = document.createElement('span');
+  lastUpdated.id = 'last-updated';
+  lastUpdated.className = 'last-updated';
+  gamesHeader.append(gamesTitle, liveIndicator, lastUpdated);
   gamesSection.appendChild(gamesHeader);
 
-  const refreshBar = document.createElement('div');
-  refreshBar.style.cssText = 'display:flex; align-items:center; gap:0.75rem; margin:0.25rem 0 0.75rem; font-size:0.85rem;';
-
-  const toggleBtn = document.createElement('button');
-  toggleBtn.textContent = 'Enable auto-refresh';
-  toggleBtn.style.cssText =
-    'font-size:0.8rem; padding:0.2rem 0.6rem; border:1px solid var(--border); ' +
-    'border-radius:4px; background:none; color:var(--accent); cursor:pointer;';
-
-  const refreshStatus = document.createElement('span');
-  refreshStatus.className = 'muted';
-
-  refreshBar.appendChild(toggleBtn);
-  refreshBar.appendChild(refreshStatus);
-  gamesSection.appendChild(refreshBar);
-
   const gamesBody = document.createElement('div');
-  gamesBody.id = 'games-body';
+  gamesBody.id = 'recent-games-list';
   gamesBody.textContent = 'Loading…';
   gamesSection.appendChild(gamesBody);
   root.appendChild(gamesSection);
@@ -219,26 +214,14 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   panelsGrid.appendChild(gbPanel.wrap);
   root.appendChild(leadersSection);
 
-  let currentTeamById: Map<number, Team> | null = null;
-  toggleBtn.addEventListener('click', () => {
-    isRefreshEnabled = !isRefreshEnabled;
-    refreshFailed = false;
-    toggleBtn.textContent = isRefreshEnabled ? 'Disable auto-refresh' : 'Enable auto-refresh';
-    if (!isRefreshEnabled) {
-      stopRefresh();
-      refreshStatus.textContent = '';
+  void loadTeamsAndGames(teamsBody, gamesBody, marginChartDiv, lastUpdated, (teamById) => {
+    if (!shouldAutoRefreshRecentGames()) {
+      liveIndicator.style.display = 'none';
+      lastUpdated.textContent = '';
       return;
     }
-    if (currentTeamById) {
-      startRefresh(gamesBody, currentTeamById, refreshStatus);
-    } else {
-      updateRefreshStatus(refreshStatus);
-    }
-  });
-
-  void loadTeamsAndGames(teamsBody, gamesBody, marginChartDiv, refreshStatus, (teamById) => {
-    currentTeamById = teamById;
-    if (isRefreshEnabled) startRefresh(gamesBody, currentTeamById, refreshStatus);
+    liveIndicator.style.display = 'inline';
+    startRefresh(gamesBody, teamById, lastUpdated);
   });
 
   void getGameCalendar()
@@ -457,7 +440,7 @@ async function loadTeamsAndGames(
   teamsTarget: HTMLElement,
   gamesTarget: HTMLElement,
   marginTarget: HTMLElement,
-  refreshStatus: HTMLElement,
+  lastUpdated: HTMLElement,
   onTeamsReady: (teamById: Map<number, Team>) => void,
 ): Promise<void> {
   let teams: TeamSeasonRecord[];
@@ -492,7 +475,6 @@ async function loadTeamsAndGames(
   renderGrid();
 
   const teamById = new Map<number, Team>(teams.map((t) => [t.id, t]));
-  onTeamsReady(teamById);
 
   const [recentGamesResult, allGamesResult] = await Promise.allSettled([
     getRecentGames(RECENT_GAME_LIMIT),
@@ -503,12 +485,13 @@ async function loadTeamsAndGames(
     const games = recentGamesResult.value;
     await renderGamesList(gamesTarget, games, teamById);
     recentGamesSignature = buildGameSignature(games);
-    lastRefreshed = new Date();
-    refreshFailed = false;
-    if (isRefreshEnabled) updateRefreshStatus(refreshStatus);
+    recentGamesLastUpdated = new Date();
+    updateLastUpdated(lastUpdated);
   } else {
     gamesTarget.replaceChildren(errorBlock(recentGamesResult.reason));
   }
+
+  onTeamsReady(teamById);
 
   if (allGamesResult.status === 'fulfilled') {
     const marginData = allGamesResult.value
@@ -763,7 +746,7 @@ async function renderGamesList(
 async function refreshGames(
   container: HTMLElement,
   teamById: Map<number, Team>,
-  statusEl: HTMLElement,
+  timestampEl: HTMLElement,
 ): Promise<void> {
   try {
     const games = await getRecentGames(RECENT_GAME_LIMIT);
@@ -772,12 +755,10 @@ async function refreshGames(
       await renderGamesList(container, games, teamById);
       recentGamesSignature = nextSignature;
     }
-    lastRefreshed = new Date();
-    refreshFailed = false;
-    updateRefreshStatus(statusEl);
+    recentGamesLastUpdated = new Date();
+    updateLastUpdated(timestampEl);
   } catch {
-    refreshFailed = true;
-    updateRefreshStatus(statusEl);
+    // Silent by design so a polling miss never breaks the dashboard.
   }
 }
 

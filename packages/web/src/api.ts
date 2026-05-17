@@ -212,11 +212,21 @@ export function getGames(params?: GamesQuery): Promise<Game[]> {
 
 export interface CalendarDay {
   date: string;
+  count: number;
+  gameIds?: number[];
+}
+
+interface CalendarDayResponse {
+  date: string;
   gameCount: number;
 }
 
-export function getGameCalendar(): Promise<CalendarDay[]> {
-  return request<CalendarDay[]>('/games/calendar');
+export async function getGameCalendar(): Promise<CalendarDay[]> {
+  const days = await request<CalendarDayResponse[]>('/games/calendar');
+  return days.map((day) => ({
+    date: day.date,
+    count: day.gameCount,
+  }));
 }
 
 export function getGame(id: string | number): Promise<GameDetailResponse> {

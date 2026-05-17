@@ -62,9 +62,11 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
 
   const q = readQuery();
   const modeRaw = q.get('mode');
+  const hasLegacyTeamParams = q.has('team1') || q.has('team2');
   let mode: Mode = modeRaw === 'players' ? 'players' : 'teams';
-  let a: number | null = parseIdParam(q.get('a'));
-  let b: number | null = parseIdParam(q.get('b'));
+  let a: number | null = parseIdParam(q.get('a') ?? q.get('team1'));
+  let b: number | null = parseIdParam(q.get('b') ?? q.get('team2'));
+  if (hasLegacyTeamParams && modeRaw !== 'players') mode = 'teams';
 
   const h1 = document.createElement('h1');
   h1.textContent = 'Head-to-Head';

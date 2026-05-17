@@ -4,10 +4,13 @@
 // 1000 rows; we additionally show only the next 14 days unless the user
 // expands).
 
-import { ApiError, getSchedule, type ScheduleByDate } from '../api.js';
+import { ApiError, getGameCalendar, getSchedule, type ScheduleByDate } from '../api.js';
+import { renderCalendarHeatmap } from '../charts/calendarHeatmap.js';
+import type { ChartHandle } from '../charts/types.js';
 import { formatDate } from '../util/format.js';
 
 let abort: AbortController | null = null;
+let heatmapChart: ChartHandle | null = null;
 
 function todayPlusDays(days: number): string {
   const d = new Date();
@@ -23,6 +26,10 @@ export function destroy(): void {
   if (abort) {
     abort.abort();
     abort = null;
+  }
+  if (heatmapChart) {
+    heatmapChart.destroy();
+    heatmapChart = null;
   }
 }
 
@@ -40,6 +47,28 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   sub.textContent =
     'Upcoming Boys Lacrosse games from PIAA District 1 schedule export. Refreshed by the schedule ingest.';
   root.appendChild(sub);
+
+  const calendarSection = document.createElement('section');
+  calendarSection.className = 'calendar-section';
+  calendarSection.style.cssText = 'margin:1rem 0 1.5rem;';
+
+  const calendarHeading = document.createElement('h3');
+  calendarHeading.textContent = 'Season Activity';
+  calendarHeading.style.cssText = 'margin:0;';
+  calendarSection.appendChild(calendarHeading);
+
+  const calendarSubtitle = document.createElement('p');
+  calendarSubtitle.className = 'section-subtitle muted';
+  calendarSubtitle.textContent = 'Games played each day this season';
+  calendarSubtitle.style.cssText = 'margin:0.25rem 0 0.75rem;';
+  calendarSection.appendChild(calendarSubtitle);
+
+  const calendarHeatmap = document.createElement('div');
+  calendarHeatmap.id = 'calendar-heatmap';
+  calendarHeatmap.className = 'calendar-heatmap';
+  calendarHeatmap.textContent = 'Loading…';
+  calendarSection.appendChild(calendarHeatmap);
+  root.appendChild(calendarSection);
 
   const controls = document.createElement('div');
   controls.style.cssText = 'display:flex; gap:0.75rem; margin:0.75rem 0 1rem; align-items:center;';
@@ -69,26 +98,45 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   list.className = 'schedule-list';
   root.appendChild(list);
 
+  void loadCalendar(calendarHeatmap, abort);
+
   const reload = (): void => {
     const days = Number(select.value);
     const params: { from: string; to?: string } = { from: todayIso() };
     if (days > 0) params.to = todayPlusDays(days);
-    void load(list, status, params);
+    void load(list, status, params, abort);
   };
   select.addEventListener('change', reload);
   reload();
+}
+
+async function loadCalendar(target: HTMLElement, controller: AbortController | null): Promise<void> {
+  target.className = 'calendar-heatmap';
+  target.textContent = 'Loading…';
+  try {
+    const days = await getGameCalendar();
+    if (controller?.signal.aborted || abort !== controller) return;
+    if (heatmapChart) heatmapChart.destroy();
+    heatmapChart = renderCalendarHeatmap(target, days);
+  } catch (err) {
+    if (controller?.signal.aborted || abort !== controller) return;
+    target.className = 'calendar-heatmap error';
+    target.textContent = err instanceof ApiError ? `${err.message} (${err.url})` : 'Unable to load season activity.';
+  }
 }
 
 async function load(
   list: HTMLElement,
   status: HTMLElement,
   params: { from: string; to?: string },
+  controller: AbortController | null,
 ): Promise<void> {
   list.replaceChildren();
   status.textContent = 'Loading…';
   status.className = 'muted';
   try {
     const res = await getSchedule(params);
+    if (controller?.signal.aborted || abort !== controller) return;
     if (res.total === 0) {
       status.textContent =
         'No upcoming games scheduled in this window. Run `pnpm --filter @pll/ingest exec tsx src/cli/ingest.ts --schedule` to refresh.';
@@ -101,6 +149,7 @@ async function load(
       list.appendChild(renderDay(day));
     }
   } catch (err) {
+    if (controller?.signal.aborted || abort !== controller) return;
     status.className = 'error';
     status.textContent = err instanceof ApiError ? `${err.message} (${err.url})` : String(err);
   }
