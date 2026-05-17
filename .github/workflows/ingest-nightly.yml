@@ -109,6 +109,12 @@ jobs:
           pnpm --filter @pll/ingest crawl --category=scoreboard
           echo "::endgroup::"
 
+      - name: Sync PIAA schedule
+        env:
+          DB_PATH: ${{ env.DB_LOCAL_PATH }}
+        run: |
+          pnpm --filter @pll/ingest exec tsx src/scripts/syncPiaa.ts
+
       - name: Run ingest
         env:
           DB_PATH: ${{ env.DB_LOCAL_PATH }}

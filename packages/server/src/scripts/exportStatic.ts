@@ -509,19 +509,12 @@ function main(): void {
   const today = todayIsoDate();
   for (const team of teams) {
     const upcomingGames = listUpcomingForTeam(db, team.id, today, 5);
-    const fallbackGames =
-      upcomingGames.length > 0
-        ? upcomingGames
-        : listScheduleGames(db, {
-            season: DEFAULT_SEASON,
-            from: SCHEDULE_FROM,
-            teamId: team.id,
-            limit: 500,
-          });
+    // No fallback to past games — if there are no future schedule entries,
+    // return an empty list rather than confusingly showing already-played games.
     addFile(`${DEFAULT_SEASON}/schedule/team/${team.id}.json`, {
       teamId: team.id,
       from: today,
-      games: fallbackGames,
+      games: upcomingGames,
     });
   }
 
