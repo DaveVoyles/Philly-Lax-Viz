@@ -10,7 +10,7 @@ on:
       categories:
         description: 'Comma-separated ingest categories'
         required: false
-        default: 'hs-summaries,hs-scoreboards'
+        default: 'hs-summaries,scoreboard'
       reparse:
         description: 'Force reparse of all posts'
         required: false
@@ -102,7 +102,7 @@ jobs:
         env:
           DB_PATH: ${{ env.DB_LOCAL_PATH }}
         run: |
-          CATEGORIES="${{ github.event.inputs.categories || 'hs-summaries,hs-scoreboards' }}"
+          CATEGORIES="${{ github.event.inputs.categories || 'hs-summaries,scoreboard' }}"
           REPARSE_FLAG=""
           if [ "${{ github.event.inputs.reparse }}" = "true" ]; then
             REPARSE_FLAG="--reparse"
