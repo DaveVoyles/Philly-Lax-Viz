@@ -108,6 +108,9 @@ jobs:
           echo "::group::Crawl scoreboard"
           pnpm --filter @pll/ingest crawl --category=scoreboard
           echo "::endgroup::"
+          echo "::group::Crawl rankings"
+          pnpm --filter @pll/ingest crawl --category=rankings
+          echo "::endgroup::"
 
       - name: Sync PIAA schedule
         env:
@@ -145,12 +148,32 @@ jobs:
             --apply
           echo "::endgroup::"
 
+      - name: Detect dedup candidates
+        env:
+          DB_PATH: ${{ env.DB_LOCAL_PATH }}
+        run: |
+          echo "::group::Dedup team detection"
+          pnpm --filter @pll/ingest exec tsx src/scripts/dedupTeams.ts || echo "::warning::dedupTeams exited non-zero (non-fatal)"
+          echo "::endgroup::"
+
       - name: Snapshot post-ingest anomaly count
         id: post
         run: |
           COUNT=$(sqlite3 "${{ env.DB_LOCAL_PATH }}" "SELECT COUNT(*) FROM anomalies;" 2>/dev/null || echo 0)
           echo "count=$COUNT" >> "$GITHUB_OUTPUT"
           echo "Post-ingest anomalies: $COUNT"
+
+      - name: Check anomaly spike
+        env:
+          PRE: ${{ steps.pre.outputs.count }}
+          POST: ${{ steps.post.outputs.count }}
+        run: |
+          DELTA=$((POST - PRE))
+          echo "Anomaly delta: $DELTA (pre=${PRE}, post=${POST})"
+          if [ "$DELTA" -gt 50 ]; then
+            echo "::error::Anomaly spike detected: +${DELTA} new anomalies exceeds threshold of 50"
+            exit 1
+          fi
 
       - name: Upload updated DB to Azure Files
         env:

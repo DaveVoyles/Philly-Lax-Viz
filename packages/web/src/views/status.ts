@@ -7,6 +7,7 @@
 // the route never throws past render(); see status.test.ts.
 
 import { apiUrl } from '../apiBase.js';
+import { getFreshness } from '../api.js';
 
 interface FreshnessResponse {
   scoreboardLast: string | null;
@@ -85,9 +86,7 @@ async function loadStatus(card: HTMLElement, doc: Document): Promise<void> {
   let error: string | null = null;
 
   try {
-    const fRes = await fetch(apiUrl('/api/freshness'));
-    if (fRes.ok) freshness = (await fRes.json()) as FreshnessResponse;
-    else error = `freshness ${fRes.status}`;
+    freshness = await getFreshness() as FreshnessResponse;
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
   }

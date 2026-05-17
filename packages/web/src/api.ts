@@ -105,6 +105,27 @@ function buildQuery(params?: Record<string, QueryValue> | object): string {
 
 // ---- Domain shapes augmenting bare DB rows ----
 
+export interface FreshnessResponse {
+  scoreboardLast: string | null;
+  recapsLast: string | null;
+  rankingsLast: string | null;
+  scheduleLast: string | null;
+  piaaLast: string | null;
+  aliasesLast: string | null;
+  laxnumbersLast: string | null;
+  lastIngestAt: string | null;
+  counts: {
+    teams: number;
+    games: number;
+    players: number;
+    scheduleGames: number;
+    playerAliases: number;
+    piaaTeams: number;
+    laxnumbersGames: number;
+  };
+  generatedAt: string;
+}
+
 export interface HealthResponse {
   ok: boolean;
   uptimeMs: number;
@@ -171,6 +192,10 @@ export interface RankingsQuery {
 
 export function getHealth(): Promise<HealthResponse> {
   return request<HealthResponse>('/health');
+}
+
+export function getFreshness(): Promise<FreshnessResponse> {
+  return request<FreshnessResponse>('/freshness');
 }
 
 export function getTeams(): Promise<TeamSeasonRecord[]> {

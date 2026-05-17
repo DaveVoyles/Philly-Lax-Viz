@@ -1,5 +1,5 @@
 import { onRoute, startRouter, type RouteMatch } from './router.js';
-import { apiUrl } from './apiBase.js';
+import { getFreshness } from './api.js';
 import { mountSearchBox } from './components/searchBox.js';
 import { IS_STATIC } from './staticLoader.js';
 
@@ -250,12 +250,11 @@ function boot(): void {
   // W17 L3 (R2): populate the global "Last scoreboard update" footer slot
   // from /api/freshness. Failure is silent so a server outage does not
   // break the rest of the UI.
-  void fetch(apiUrl('/api/freshness'))
-    .then((r) => (r.ok ? r.json() : null))
-    .then((f: { scoreboardLast: string | null } | null) => {
+  void getFreshness()
+    .then((f) => {
       const slot = document.querySelector<HTMLElement>('[data-freshness="scoreboard"]');
       if (!slot) return;
-      if (!f || !f.scoreboardLast) {
+      if (!f.scoreboardLast) {
         slot.textContent = 'unknown';
         return;
       }

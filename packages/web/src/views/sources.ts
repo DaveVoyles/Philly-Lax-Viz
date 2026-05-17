@@ -4,8 +4,7 @@
 // nothing here can be HTML-injected even if a future ingest field leaks
 // through. Lazy-imported from main.ts to keep the entry chunk lean.
 
-import { ApiError } from '../api.js';
-import { apiUrl } from '../apiBase.js';
+import { getFreshness } from '../api.js';
 
 interface FreshnessResponse {
   scoreboardLast: string | null;
@@ -149,9 +148,7 @@ function relative(iso: string | null): string {
 
 async function fetchFreshness(): Promise<FreshnessResponse | null> {
   try {
-    const res = await fetch(apiUrl('/api/freshness'));
-    if (!res.ok) throw new ApiError('freshness fetch failed', res.status, '/api/freshness');
-    return (await res.json()) as FreshnessResponse;
+    return await getFreshness();
   } catch {
     return null;
   }

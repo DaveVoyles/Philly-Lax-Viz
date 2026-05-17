@@ -69,6 +69,9 @@ export function toStaticUrl(apiPath: string): string {
   if (pathname === '/health') return joinUrl(root, 'health.json');
   if (pathname === '/seasons') return joinUrl(root, 'seasons.json');
   if (pathname === '/search') return joinUrl(root, String(season), 'search-index.json');
+  if (pathname === '/data-quality/piaa-mismatches') {
+    return joinUrl(root, String(season), 'data-quality', 'piaa-mismatches.json');
+  }
   if (pathname.startsWith('/h2h/') || pathname.startsWith('/compare/') || pathname.startsWith('/posts/') || pathname.startsWith('/data-quality/')) {
     return joinUrl(root, 'empty.json');
   }
@@ -110,6 +113,7 @@ export function toStaticUrl(apiPath: string): string {
     return joinUrl(root, String(season), 'schedule', 'team', `${segments[2]}.json`);
   }
   if (pathname === '/schedule') return joinUrl(root, String(season), 'schedule.json');
+  if (pathname === '/freshness') return joinUrl(root, 'freshness.json');
   return joinUrl(root, 'empty.json');
 }
 

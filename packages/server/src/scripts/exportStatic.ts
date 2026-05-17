@@ -95,6 +95,205 @@ interface WritableFile {
   data: unknown;
 }
 
+interface CountRow {
+  c: number;
+}
+
+interface PiaaRow {
+  name_official: string;
+  name_normalized: string;
+  classification: string;
+  seed: number | null;
+  wins: number;
+  losses: number;
+  ties: number;
+  ranking: number;
+  fetched_at: string;
+}
+
+interface OurTeamAgg {
+  id: number;
+  name: string;
+  games: number;
+  wins: number;
+  losses: number;
+}
+
+function normalizePiaaName(raw: string): string {
+  let value = raw.toLowerCase().replace(/\s+/g, ' ').trim();
+  const stateMatch = value.match(/\((nj|ny)\)/);
+  const stateTag = stateMatch ? ` (${stateMatch[1]})` : '';
+  value = value.replace(/\s*\([^)]*\)/g, '');
+  value = value.replace(/[^a-z0-9 ]+/g, '');
+  value = value.replace(/\s+/g, ' ').trim();
+  return value + stateTag;
+}
+
+function safeScalar<T = string | null>(db: Database.Database, sql: string): T | null {
+  try {
+    const row = db.prepare(sql).get() as Record<string, unknown> | undefined;
+    if (!row) return null;
+    const first = Object.values(row)[0];
+    return first === undefined ? null : (first as T);
+  } catch {
+    return null;
+  }
+}
+
+function safeCount(db: Database.Database, sql: string): number {
+  try {
+    const row = db.prepare(sql).get() as CountRow | undefined;
+    return row?.c ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+function getFreshnessExport(db: Database.Database) {
+  return {
+    scoreboardLast: safeScalar<string>(
+      db,
+      "SELECT MAX(processed_at) AS t FROM ingest_post_log WHERE category = 'scoreboard'",
+    ),
+    recapsLast: safeScalar<string>(
+      db,
+      "SELECT MAX(processed_at) AS t FROM ingest_post_log WHERE category = 'hs-summaries'",
+    ),
+    rankingsLast: safeScalar<string>(
+      db,
+      "SELECT MAX(processed_at) AS t FROM ingest_post_log WHERE category = 'rankings'",
+    ),
+    scheduleLast: safeScalar<string>(db, 'SELECT MAX(scraped_at) AS t FROM schedule_games'),
+    piaaLast: safeScalar<string>(db, 'SELECT MAX(fetched_at) AS t FROM piaa_official_teams'),
+    aliasesLast: safeScalar<string>(db, 'SELECT MAX(created_at) AS t FROM player_aliases'),
+    laxnumbersLast: safeScalar<string>(db, "SELECT MAX(parsed_at) AS t FROM games WHERE source='laxnumbers'"),
+    lastIngestAt: safeScalar<string>(db, 'SELECT MAX(processed_at) AS t FROM ingest_post_log'),
+    counts: {
+      teams: safeCount(db, 'SELECT COUNT(*) AS c FROM teams'),
+      games: safeCount(db, 'SELECT COUNT(*) AS c FROM games'),
+      players: safeCount(db, 'SELECT COUNT(*) AS c FROM players'),
+      scheduleGames: safeCount(db, 'SELECT COUNT(*) AS c FROM schedule_games'),
+      playerAliases: safeCount(db, 'SELECT COUNT(*) AS c FROM player_aliases'),
+      piaaTeams: safeCount(db, 'SELECT COUNT(*) AS c FROM piaa_official_teams'),
+      laxnumbersGames: safeCount(db, "SELECT COUNT(*) AS c FROM games WHERE source='laxnumbers'"),
+    },
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+function getPiaaMismatchExport(db: Database.Database) {
+  const piaaRows = db
+    .prepare(
+      `SELECT name_official, name_normalized, classification, seed, wins, losses, ties, ranking, fetched_at
+       FROM piaa_official_teams
+       ORDER BY classification, ranking`,
+    )
+    .all() as PiaaRow[];
+
+  const fetchedAt = piaaRows.length > 0 ? (piaaRows[0]?.fetched_at ?? '') : '';
+
+  const ourRows = db
+    .prepare(
+      `SELECT
+          t.id   AS id,
+          t.name AS name,
+          COALESCE(SUM(CASE WHEN g.id IS NOT NULL AND g.postponed = 0 THEN 1 ELSE 0 END), 0) AS games,
+          COALESCE(SUM(CASE
+            WHEN g.postponed = 0 AND (
+              (g.home_team_id = t.id AND g.home_score > g.away_score) OR
+              (g.away_team_id = t.id AND g.away_score > g.home_score)
+            ) THEN 1 ELSE 0 END), 0) AS wins,
+          COALESCE(SUM(CASE
+            WHEN g.postponed = 0 AND (
+              (g.home_team_id = t.id AND g.home_score < g.away_score) OR
+              (g.away_team_id = t.id AND g.away_score < g.home_score)
+            ) THEN 1 ELSE 0 END), 0) AS losses
+       FROM teams t
+       LEFT JOIN games g
+         ON g.home_team_id = t.id OR g.away_team_id = t.id
+       GROUP BY t.id, t.name`,
+    )
+    .all() as OurTeamAgg[];
+
+  const ourByNorm = new Map<string, OurTeamAgg & { normalized: string }>();
+  for (const row of ourRows) {
+    const normalized = normalizePiaaName(row.name);
+    const existing = ourByNorm.get(normalized);
+    if (!existing || row.games > existing.games) {
+      ourByNorm.set(normalized, { ...row, normalized });
+    }
+  }
+
+  const piaaByNorm = new Map<string, PiaaRow>();
+  for (const row of piaaRows) {
+    if (!piaaByNorm.has(row.name_normalized)) piaaByNorm.set(row.name_normalized, row);
+  }
+
+  const missingInOurDb: { classification: string; nameOfficial: string; ranking: number }[] = [];
+  for (const [normalized, row] of piaaByNorm) {
+    if (!ourByNorm.has(normalized)) {
+      missingInOurDb.push({
+        classification: row.classification,
+        nameOfficial: row.name_official,
+        ranking: row.ranking,
+      });
+    }
+  }
+  missingInOurDb.sort(
+    (a, b) => a.classification.localeCompare(b.classification) || b.ranking - a.ranking,
+  );
+
+  const extraInOurDb: { teamId: number; teamName: string; gamesInDb: number }[] = [];
+  for (const [normalized, row] of ourByNorm) {
+    if (!piaaByNorm.has(normalized)) {
+      extraInOurDb.push({ teamId: row.id, teamName: row.name, gamesInDb: row.games });
+    }
+  }
+  extraInOurDb.sort((a, b) => b.gamesInDb - a.gamesInDb || a.teamName.localeCompare(b.teamName));
+
+  const recordMismatches: Array<{
+    teamId: number;
+    teamName: string;
+    ours: { wins: number; losses: number };
+    piaa: { wins: number; losses: number; classification: string };
+  }> = [];
+  let matched = 0;
+  for (const [normalized, piaaRow] of piaaByNorm) {
+    const ourRow = ourByNorm.get(normalized);
+    if (!ourRow) continue;
+    matched += 1;
+    if (ourRow.wins !== piaaRow.wins || ourRow.losses !== piaaRow.losses) {
+      recordMismatches.push({
+        teamId: ourRow.id,
+        teamName: ourRow.name,
+        ours: { wins: ourRow.wins, losses: ourRow.losses },
+        piaa: { wins: piaaRow.wins, losses: piaaRow.losses, classification: piaaRow.classification },
+      });
+    }
+  }
+  recordMismatches.sort(
+    (a, b) =>
+      Math.abs(b.ours.wins + b.ours.losses - (b.piaa.wins + b.piaa.losses)) -
+        Math.abs(a.ours.wins + a.ours.losses - (a.piaa.wins + a.piaa.losses)) ||
+      a.teamName.localeCompare(b.teamName),
+  );
+
+  return {
+    fetchedAt,
+    summary: {
+      ourTeamCount: ourByNorm.size,
+      piaaTeamCount: piaaByNorm.size,
+      matched,
+      missingInOurDb: missingInOurDb.length,
+      extraInOurDb: extraInOurDb.length,
+      recordMismatches: recordMismatches.length,
+    },
+    missingInOurDb,
+    extraInOurDb,
+    recordMismatches,
+  };
+}
+
 function round2(value: number | null): number | null {
   if (value === null) return null;
   return Math.round(value * 100) / 100;
@@ -532,6 +731,8 @@ function main(): void {
     })),
   ];
   addFile(`${DEFAULT_SEASON}/search-index.json`, searchIndex);
+  addFile('freshness.json', getFreshnessExport(db));
+  addFile(`${DEFAULT_SEASON}/data-quality/piaa-mismatches.json`, getPiaaMismatchExport(db));
 
   if (existsSync(path.join(REPO_ROOT, 'data', 'logos'))) {
     mkdirSync(logosDir, { recursive: true });

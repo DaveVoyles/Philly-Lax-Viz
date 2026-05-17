@@ -26,6 +26,10 @@ import { renderPiaaBadge, piaaBadgeTooltip } from '../components/piaaBadge.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
 import { shareOrCopy, currentPageUrl } from '../util/share.js';
 
+function isValidHexColor(color: string | null | undefined): color is string {
+  return !!color && /^#[0-9a-fA-F]{3,6}$/.test(color);
+}
+
 export function render(root: HTMLElement, params: Record<string, string>): void {
   root.replaceChildren();
 
@@ -72,9 +76,15 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
 
   const teamId = detail.team.id;
 
+  const hero = document.createElement('div');
+  hero.className = 'team-detail-hero';
+  hero.style.cssText = 'display:flex; align-items:flex-start; gap:1rem; flex-wrap:wrap;';
+
+  const titleBlock = document.createElement('div');
+  titleBlock.style.cssText = 'display:flex; flex-direction:column; gap:0.25rem;';
+
   const heading = document.createElement('h1');
-  heading.className = 'team-detail-hero';
-  heading.style.cssText = 'display:flex; align-items:center; gap:1rem; flex-wrap:wrap;';
+  heading.style.cssText = 'display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin:0;';
   heading.appendChild(
     renderTeamBadge({
       name: detail.team.name,
@@ -83,17 +93,32 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       size: 'xl',
     }),
   );
+  titleBlock.appendChild(heading);
+
+  if (detail.team.nickname) {
+    const nickname = document.createElement('span');
+    nickname.textContent = `"${detail.team.nickname}"`;
+    nickname.style.fontSize = '0.95rem';
+    if (isValidHexColor(detail.team.secondaryColor)) {
+      nickname.style.color = detail.team.secondaryColor;
+    } else {
+      nickname.className = 'muted';
+    }
+    titleBlock.appendChild(nickname);
+  }
+
   const shareBtn = document.createElement('button');
   shareBtn.textContent = 'Share';
   shareBtn.title = 'Copy link to this team';
   shareBtn.style.cssText =
     'font-size:0.8rem; padding:0.2rem 0.6rem; border:1px solid var(--border); ' +
-    'border-radius:4px; background:none; color:var(--accent); cursor:pointer; margin-left:0.75rem;';
+    'border-radius:4px; background:none; color:var(--accent); cursor:pointer;';
   shareBtn.addEventListener('click', () => {
     void shareOrCopy(`${detail.team.name} - Philly Lacrosse`, currentPageUrl());
   });
-  heading.appendChild(shareBtn);
-  root.appendChild(heading);
+
+  hero.append(titleBlock, shareBtn);
+  root.appendChild(hero);
 
   const callouts = document.createElement('div');
   callouts.className = 'callout-row';

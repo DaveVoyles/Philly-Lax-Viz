@@ -1,5 +1,6 @@
 import {
   ApiError,
+  getFreshness,
   getGameCalendar,
   getGames,
   getTeams,
@@ -22,7 +23,6 @@ import { renderCalendarHeatmap } from '../charts/calendarHeatmap.js';
 import type { ChartHandle } from '../charts/types.js';
 import { renderEmptyState } from '../components/emptyState.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
-import { apiUrl } from '../apiBase.js';
 
 type SortKey = 'name' | 'gap' | 'wins';
 type SortDir = 'asc' | 'desc';
@@ -267,12 +267,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
 
 async function loadDashboardFreshness(target: HTMLElement): Promise<void> {
   try {
-    const res = await fetch(apiUrl('/api/freshness'));
-    if (!res.ok) {
-      target.textContent = '';
-      return;
-    }
-    const data = (await res.json()) as { lastIngestAt: string | null };
+    const data = await getFreshness();
     if (!data.lastIngestAt) {
       target.textContent = 'Data freshness: unknown';
       return;
@@ -660,6 +655,9 @@ function buildTeamsGrid(
     const li = document.createElement('li');
     const a = document.createElement('a');
     a.href = `#/teams/${t.id}`;
+    if (isValidHexColor(t.primaryColor)) {
+      a.style.borderLeft = `4px solid ${t.primaryColor}`;
+    }
     a.appendChild(renderTeamBadge({ name: t.name, logoUrl: t.logoUrl, primaryColor: t.primaryColor, size: 'sm' }));
     if (t.piaaValidation) {
       const badge = renderPiaaBadge({
@@ -689,6 +687,10 @@ function buildTeamsGrid(
   }
   wrap.appendChild(ul);
   return wrap;
+}
+
+function isValidHexColor(color: string | null | undefined): color is string {
+  return !!color && /^#[0-9a-fA-F]{3,6}$/.test(color);
 }
 
 // Total games we have for a team this season. Prefer the explicit coverage
