@@ -98,12 +98,15 @@ Before planning or executing any non-trivial task, ask the user focused clarifyi
 > - Add a new `/v2/search` endpoint alongside the existing one
 > - Refactor the existing `/search` endpoint in place
 
-**After asking:**
+**After asking or delegating an action to the user:**
 
 - Classify the affected lane or task as `awaiting-user-input`
-- Pause execution immediately once the question is sent
+- Pause execution immediately once the question or action request is sent
 - Do **not** continue after a timeout or with a guessed answer
+- Do **not** self-generate the output the user was asked to supply (e.g., assumed terminal output)
 - Resume only after the user replies
+
+**User-delegated actions** — asking the user to run a command and report back, copy text into a terminal, or retrieve output from their environment — are subject to the same hard stop as questions. Stop after sending the request; do not proceed until the user provides the result.
 
 **After clarification:** Immediately document the answers in the plan file, then proceed to wave planning.
 
@@ -1069,7 +1072,7 @@ A fleet task is not complete until **all** of the following are true. Check each
 
 ---
 
-**Version:** 5.19
-**Last Updated:** May 15, 2026
+**Version:** 5.20
+**Last Updated:** May 16, 2026
 **Best For:** Fleet-first execution, multi-agent orchestration, wave-based delivery.
 Load `.github/copilot-instructions.md` first; this file extends those rules for fleet work.

@@ -120,6 +120,8 @@ describe('GET /api/teams', () => {
       'Malvern Prep',
     ]);
     expect(body[0]).toMatchObject({ id: expect.any(Number), slug: 'episcopal', division: 'high-school' });
+    expect(body.find((t: { name: string }) => t.name === 'Haverford')).toMatchObject({ streak: 2 });
+    expect(body.find((t: { name: string }) => t.name === 'Episcopal')).toMatchObject({ streak: -1 });
   });
 });
 

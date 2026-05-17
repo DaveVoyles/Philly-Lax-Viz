@@ -23,14 +23,19 @@ import {
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderProvenanceBadge } from '../components/provenanceBadge.js';
 import { renderPiaaBadge, piaaBadgeTooltip } from '../components/piaaBadge.js';
+import { ensureGlossaryCss, glossaryIcon } from '../util/glossary.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
-import { shareOrCopy, currentPageUrl } from '../util/share.js';
+import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
+import { buildStreakChip, ensureStreakChipStyles } from '../util/streakChip.js';
 
 function isValidHexColor(color: string | null | undefined): color is string {
   return !!color && /^#[0-9a-fA-F]{3,6}$/.test(color);
 }
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
+  ensureShareCss();
+  ensureGlossaryCss();
+  ensureStreakChipStyles();
   root.replaceChildren();
 
   const back = document.createElement('p');
@@ -75,6 +80,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   status.remove();
 
   const teamId = detail.team.id;
+  const seasonRecord = teams.find((team) => team.id === teamId);
 
   const hero = document.createElement('div');
   hero.className = 'team-detail-hero';
@@ -93,6 +99,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       size: 'xl',
     }),
   );
+  heading.insertAdjacentHTML('beforeend', getShareButtonHtml(detail.team.name));
   titleBlock.appendChild(heading);
 
   if (detail.team.nickname) {
@@ -107,18 +114,9 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     titleBlock.appendChild(nickname);
   }
 
-  const shareBtn = document.createElement('button');
-  shareBtn.textContent = 'Share';
-  shareBtn.title = 'Copy link to this team';
-  shareBtn.style.cssText =
-    'font-size:0.8rem; padding:0.2rem 0.6rem; border:1px solid var(--border); ' +
-    'border-radius:4px; background:none; color:var(--accent); cursor:pointer;';
-  shareBtn.addEventListener('click', () => {
-    void shareOrCopy(`${detail.team.name} - Philly Lacrosse`, currentPageUrl());
-  });
-
-  hero.append(titleBlock, shareBtn);
+  hero.appendChild(titleBlock);
   root.appendChild(hero);
+  initShareButtons();
 
   const callouts = document.createElement('div');
   callouts.className = 'callout-row';
@@ -155,7 +153,10 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   }
   const recordValue = document.createElement('span');
   recordValue.className = 'callout-value';
+  recordValue.style.cssText = 'display:inline-flex; align-items:center; flex-wrap:wrap;';
   recordValue.textContent = formatRecord(detail.record);
+  const streakChip = buildStreakChip(seasonRecord?.streak);
+  if (streakChip) recordValue.appendChild(streakChip);
   recordCallout.append(recordLabel, recordValue);
   if (piaa && (piaa.seed !== null || piaa.classification)) {
     const sub = document.createElement('span');
@@ -310,6 +311,12 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   const topScorersHeader = document.createElement('h2');
   topScorersHeader.textContent = 'Top Scorers';
   root.appendChild(topScorersHeader);
+
+  const topScorersGlossary = document.createElement('p');
+  topScorersGlossary.className = 'muted';
+  topScorersGlossary.style.cssText = 'margin-top:-0.5rem; margin-bottom:0.75rem;';
+  topScorersGlossary.innerHTML = `Points${glossaryIcon('Points')} = Goals${glossaryIcon('Goals')} + Assists${glossaryIcon('Assists')}`;
+  root.appendChild(topScorersGlossary);
 
   const topScorersSlot = document.createElement('div');
   topScorersSlot.dataset['chart'] = 'topScorers';

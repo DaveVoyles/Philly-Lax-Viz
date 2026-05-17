@@ -1,136 +1,140 @@
-import type { Game } from '@pll/shared';
+import { max } from 'd3-array';
+import { axisBottom, axisLeft } from 'd3-axis';
+import { scaleBand, scaleLinear } from 'd3-scale';
+import { select } from 'd3-selection';
+import { createResponsiveSvg, readTheme } from './internal/svg.js';
 import type { ChartHandle } from './types.js';
 
-export interface MarginBucket {
+export interface MarginDatum {
+  margin: number;
+}
+
+interface MarginBucket {
   label: string;
+  min: number;
+  max: number;
   count: number;
 }
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
+const BUCKETS: ReadonlyArray<Omit<MarginBucket, 'count'>> = [
+  { label: '1-3', min: 1, max: 3 },
+  { label: '4-6', min: 4, max: 6 },
+  { label: '7-10', min: 7, max: 10 },
+  { label: '11-15', min: 11, max: 15 },
+  { label: '16+', min: 16, max: Number.POSITIVE_INFINITY },
+];
 
-export function buildMarginBuckets(games: Game[]): MarginBucket[] {
-  const buckets: MarginBucket[] = [
-    { label: '1-3', count: 0 },
-    { label: '4-6', count: 0 },
-    { label: '7-10', count: 0 },
-    { label: '11-15', count: 0 },
-    { label: '16+', count: 0 },
-  ];
+const BAR_COLOR = '#3b82f6';
+const BAR_HOVER_COLOR = '#60a5fa';
 
-  for (const g of games) {
-    if (g.postponed) continue;
-    const margin = Math.abs(g.homeScore - g.awayScore);
-    if (margin <= 3) buckets[0]!.count += 1;
-    else if (margin <= 6) buckets[1]!.count += 1;
-    else if (margin <= 10) buckets[2]!.count += 1;
-    else if (margin <= 15) buckets[3]!.count += 1;
-    else buckets[4]!.count += 1;
-  }
-
-  return buckets;
-}
-
-function appendSvgText(
-  svg: SVGSVGElement,
-  attrs: Record<string, string>,
-  text: string,
-): SVGTextElement {
-  const node = document.createElementNS(SVG_NS, 'text');
-  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
-  node.textContent = text;
-  svg.appendChild(node);
-  return node;
+export function buildMarginBuckets(games: ReadonlyArray<MarginDatum>): MarginBucket[] {
+  return BUCKETS.map((bucket) => ({
+    ...bucket,
+    count: games.filter((game) => game.margin >= bucket.min && game.margin <= bucket.max).length,
+  }));
 }
 
 export function renderMarginHistogram(
   container: HTMLElement,
-  games: Game[],
+  games: ReadonlyArray<MarginDatum>,
 ): ChartHandle {
-  container.replaceChildren();
-
-  const buckets = buildMarginBuckets(games);
-  const total = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
   const width = Math.max(container.clientWidth || 400, 300);
-  const height = 160;
-  const pad = { top: 28, right: 8, bottom: 30, left: 24 };
-  const plotWidth = width - pad.left - pad.right;
-  const plotHeight = height - pad.top - pad.bottom;
-  const gap = 6;
-  const barWidth = Math.max(20, Math.floor((plotWidth - gap * (buckets.length - 1)) / buckets.length));
-  const maxCount = Math.max(...buckets.map((bucket) => bucket.count), 1);
-  const topCount = Math.max(...buckets.map((bucket) => bucket.count));
+  const height = 180;
+  const chartMargin = { top: 36, right: 16, bottom: 40, left: 36 };
+  const theme = readTheme();
+  const buckets = buildMarginBuckets(games);
+  const yMax = Math.max(max(buckets, (bucket) => bucket.count) ?? 0, 1);
 
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-  svg.setAttribute('width', '100%');
-  svg.setAttribute('height', String(height));
-  svg.setAttribute('role', 'img');
-  svg.setAttribute('aria-label', 'Score margin distribution');
-
-  const baseline = document.createElementNS(SVG_NS, 'line');
-  baseline.setAttribute('x1', String(pad.left));
-  baseline.setAttribute('x2', String(width - pad.right));
-  baseline.setAttribute('y1', String(height - pad.bottom));
-  baseline.setAttribute('y2', String(height - pad.bottom));
-  baseline.setAttribute('stroke', 'var(--border)');
-  svg.appendChild(baseline);
-
-  appendSvgText(
-    svg,
-    {
-      x: String(pad.left),
-      y: '16',
-      'font-size': '14',
-      fill: 'var(--muted)',
-    },
-    total > 0 ? `Score margins (${total} games)` : 'No completed games yet',
+  const { svg, inner, innerWidth, innerHeight } = createResponsiveSvg(
+    container,
+    width,
+    height,
+    chartMargin,
   );
 
-  buckets.forEach((bucket, index) => {
-    const barHeight = Math.round((bucket.count / maxCount) * plotHeight);
-    const x = pad.left + index * (barWidth + gap);
-    const y = pad.top + plotHeight - barHeight;
+  svg.attr('aria-label', 'Score margin distribution histogram');
+  svg
+    .append('text')
+    .attr('x', chartMargin.left)
+    .attr('y', 18)
+    .attr('fill', theme.fg)
+    .style('font-size', '14px')
+    .style('font-weight', '600')
+    .text('Score Margins');
 
-    const rect = document.createElementNS(SVG_NS, 'rect');
-    rect.setAttribute('x', String(x));
-    rect.setAttribute('y', String(y));
-    rect.setAttribute('width', String(barWidth));
-    rect.setAttribute('height', String(Math.max(barHeight, 0)));
-    rect.setAttribute('rx', '3');
-    rect.setAttribute('fill', bucket.count === topCount && topCount > 0 ? 'var(--accent)' : 'var(--muted)');
-    rect.setAttribute('opacity', bucket.count === topCount && topCount > 0 ? '1' : '0.7');
-    svg.appendChild(rect);
+  const x = scaleBand<string>()
+    .domain(buckets.map((bucket) => bucket.label))
+    .range([0, innerWidth])
+    .padding(0.24);
 
-    appendSvgText(
-      svg,
-      {
-        x: String(x + barWidth / 2),
-        y: String(Math.max(y - 4, pad.top - 2)),
-        'text-anchor': 'middle',
-        'font-size': '13',
-        fill: 'var(--fg)',
-      },
-      String(bucket.count),
-    );
+  const y = scaleLinear()
+    .domain([0, yMax])
+    .nice()
+    .range([innerHeight, 0]);
 
-    appendSvgText(
-      svg,
-      {
-        x: String(x + barWidth / 2),
-        y: String(height - 8),
-        'text-anchor': 'middle',
-        'font-size': '13',
-        fill: 'var(--muted)',
-      },
-      bucket.label,
-    );
-  });
+  inner
+    .append('g')
+    .attr('transform', `translate(0,${innerHeight})`)
+    .call(axisBottom(x).tickSizeOuter(0))
+    .call((axis) => axis.selectAll('text').attr('fill', theme.muted))
+    .call((axis) => axis.selectAll('path,line').attr('stroke', theme.border));
 
-  container.appendChild(svg);
+  inner
+    .append('g')
+    .call(axisLeft(y).ticks(Math.min(4, yMax)).tickFormat((value) => String(Math.round(Number(value)))))
+    .call((axis) => axis.selectAll('text').attr('fill', theme.muted))
+    .call((axis) => axis.selectAll('path,line').attr('stroke', theme.border));
+
+  inner
+    .append('text')
+    .attr('x', 0)
+    .attr('y', -10)
+    .attr('fill', theme.muted)
+    .style('font-size', '12px')
+    .text(`${games.length} game${games.length === 1 ? '' : 's'}`);
+
+  const bars = inner
+    .selectAll<SVGRectElement, MarginBucket>('rect.margin-bar')
+    .data(buckets)
+    .enter()
+    .append('rect')
+    .attr('class', 'margin-bar')
+    .attr('x', (bucket) => x(bucket.label) ?? 0)
+    .attr('y', (bucket) => y(bucket.count))
+    .attr('width', x.bandwidth())
+    .attr('height', (bucket) => innerHeight - y(bucket.count))
+    .attr('rx', 4)
+    .attr('fill', BAR_COLOR);
+
+  bars
+    .append('title')
+    .text((bucket) => `${bucket.label} goals: ${bucket.count} game${bucket.count === 1 ? '' : 's'}`);
+
+  bars
+    .on('mouseenter', function mouseenter() {
+      select(this).attr('fill', BAR_HOVER_COLOR);
+    })
+    .on('mouseleave', function mouseleave() {
+      select(this).attr('fill', BAR_COLOR);
+    });
+
+  inner
+    .selectAll<SVGTextElement, MarginBucket>('text.margin-count')
+    .data(buckets)
+    .enter()
+    .append('text')
+    .attr('class', 'margin-count')
+    .attr('x', (bucket) => (x(bucket.label) ?? 0) + x.bandwidth() / 2)
+    .attr('y', (bucket) => Math.max(y(bucket.count) - 6, 10))
+    .attr('text-anchor', 'middle')
+    .attr('fill', theme.fg)
+    .style('font-size', '12px')
+    .style('font-weight', '600')
+    .text((bucket) => String(bucket.count));
 
   return {
     destroy() {
-      svg.remove();
+      while (container.firstChild) container.removeChild(container.firstChild);
     },
   };
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { TeamSeasonRecord } from '../../api.js';
 import { teamGameCount } from '../dashboard.js';
+import { buildStreakChip } from '../../util/streakChip.js';
 
 function team(partial: Partial<TeamSeasonRecord>): TeamSeasonRecord {
   return {
@@ -19,6 +20,26 @@ function team(partial: Partial<TeamSeasonRecord>): TeamSeasonRecord {
     ...partial,
   } as TeamSeasonRecord;
 }
+
+function fakeDoc(): Pick<Document, 'createElement'> {
+  return {
+    createElement: () => ({ className: '', textContent: '', title: '' } as HTMLSpanElement),
+  };
+}
+
+describe('buildStreakChip', () => {
+  it('renders notable win streaks only', () => {
+    expect(buildStreakChip(3, fakeDoc())?.textContent).toBe('W3');
+    expect(buildStreakChip(1, fakeDoc())).toBeNull();
+  });
+
+  it('renders notable loss streaks only', () => {
+    expect(buildStreakChip(-2, fakeDoc())?.textContent).toBe('L2');
+    expect(buildStreakChip(-1, fakeDoc())).toBeNull();
+    expect(buildStreakChip(0, fakeDoc())).toBeNull();
+    expect(buildStreakChip(null, fakeDoc())).toBeNull();
+  });
+});
 
 describe('teamGameCount', () => {
   it('prefers coverage.ourGames when present', () => {

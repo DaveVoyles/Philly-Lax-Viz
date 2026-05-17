@@ -20,7 +20,7 @@ import type { ChartHandle } from '../charts/types.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderEmptyState } from '../components/emptyState.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
-import { renderGlossaryIcon } from '../util/glossary.js';
+import { ensureGlossaryCss, renderGlossaryIcon } from '../util/glossary.js';
 
 type Tab = 'players' | 'teams';
 
@@ -118,6 +118,8 @@ function isTeamMetric(s: string): s is TeamLeaderMetric {
 }
 
 export function render(root: HTMLElement, _params: Record<string, string>): void {
+  ensureGlossaryCss();
+
   if (activeChart) {
     activeChart.destroy();
     activeChart = null;

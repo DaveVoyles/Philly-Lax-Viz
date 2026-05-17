@@ -23,6 +23,7 @@ import { renderCalendarHeatmap } from '../charts/calendarHeatmap.js';
 import type { ChartHandle } from '../charts/types.js';
 import { renderEmptyState } from '../components/emptyState.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
+import { buildStreakChip, ensureStreakChipStyles } from '../util/streakChip.js';
 
 type SortKey = 'name' | 'gap' | 'wins';
 type SortDir = 'asc' | 'desc';
@@ -102,6 +103,7 @@ function destroyDashboardCharts(): void {
 
 export function render(root: HTMLElement, _params: Record<string, string>): void {
   destroyDashboardCharts();
+  ensureStreakChipStyles();
   root.replaceChildren();
 
   const h1 = document.createElement('h1');
@@ -159,13 +161,14 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   root.appendChild(gamesSection);
 
   const marginSection = document.createElement('section');
-  const marginHeader = document.createElement('h2');
-  marginHeader.textContent = 'Score Margins';
+  marginSection.className = 'dashboard-section margin-hist-section';
+  const marginHeader = document.createElement('h3');
+  marginHeader.textContent = 'Game Competitiveness';
   marginSection.appendChild(marginHeader);
   const marginSub = document.createElement('p');
-  marginSub.className = 'muted';
+  marginSub.className = 'section-subtitle muted';
   marginSub.style.fontSize = '0.875rem';
-  marginSub.textContent = 'Distribution of final score margins for the season.';
+  marginSub.textContent = 'Score margin distribution - all games this season';
   marginSection.appendChild(marginSub);
   const marginChartDiv = document.createElement('div');
   marginChartDiv.id = 'margin-histogram';
@@ -508,7 +511,11 @@ async function loadTeamsAndGames(
   }
 
   if (allGamesResult.status === 'fulfilled') {
-    const handle = renderMarginHistogram(marginTarget, allGamesResult.value);
+    const marginData = allGamesResult.value
+      .filter((game) => !game.postponed)
+      .map((game) => ({ margin: Math.abs(game.homeScore - game.awayScore) }))
+      .filter((game) => game.margin > 0);
+    const handle = renderMarginHistogram(marginTarget, marginData);
     dashboardCharts.push(handle);
   } else {
     const msg = document.createElement('p');
@@ -680,7 +687,7 @@ function buildTeamsGrid(
       rec.title = `${t.wins ?? 0} wins, ${t.losses ?? 0} losses`;
       a.appendChild(rec);
     }
-    const streakChip = buildStreakChip(t);
+    const streakChip = buildStreakChip(t.streak);
     if (streakChip) a.appendChild(streakChip);
     li.appendChild(a);
     ul.appendChild(li);
@@ -727,37 +734,6 @@ function buildGapBadge(t: TeamSeasonRecord): HTMLSpanElement {
     span.classList.add('team-row__gap--extra');
     span.title = `${ours} games tracked vs ${piaa} on PIAA (extra: scrimmages or non-varsity)`;
   }
-  return span;
-}
-
-function buildStreakChip(t: TeamSeasonRecord): HTMLSpanElement | null {
-  if (t.streak === null || t.streak === undefined) return null;
-
-  const span = document.createElement('span');
-  span.className = 'team-row__streak';
-  span.style.cssText =
-    'display:inline-flex; align-items:center; justify-content:center; min-width:2rem; padding:0.15rem 0.45rem; border-radius:999px; font-size:0.75rem; font-weight:700; line-height:1;';
-
-  if (t.streak > 0) {
-    span.textContent = `W${t.streak}`;
-    span.title = `${t.streak}-game win streak`;
-    span.style.background = 'rgba(34, 197, 94, 0.15)';
-    span.style.color = '#166534';
-    return span;
-  }
-
-  if (t.streak < 0) {
-    span.textContent = `L${Math.abs(t.streak)}`;
-    span.title = `${Math.abs(t.streak)}-game losing streak`;
-    span.style.background = 'rgba(239, 68, 68, 0.15)';
-    span.style.color = '#991b1b';
-    return span;
-  }
-
-  span.textContent = 'T';
-  span.title = 'Last game was a tie';
-  span.style.background = 'rgba(107, 114, 128, 0.18)';
-  span.style.color = '#374151';
   return span;
 }
 

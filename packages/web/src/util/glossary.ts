@@ -1,93 +1,111 @@
-/**
- * Short definitions for lacrosse stat abbreviations shown in the leaders view
- * and team/player detail tables. Sourced from standard lacrosse stats vocabulary.
- */
-export const STAT_GLOSSARY: Record<string, string> = {
-  Points: 'Goals + Assists. Primary offensive production metric.',
-  Goals: 'Shots that enter the goal. Each counts as 1 point.',
-  Assists: 'Passes directly leading to a goal. Each counts as 1 point.',
-  'Ground balls': 'Loose balls picked up off the ground. Key possession stat.',
-  'Caused TOs': 'Caused turnovers - forcing the opponent to lose possession (checks, intercepts, etc.).',
-  Saves: 'Shots stopped by the goalkeeper. Higher is better for goalies.',
-  'FO %': 'Faceoff percentage - wins / total faceoffs taken. Controls possession starts.',
-  'Points/game': 'Season points (goals + assists) divided by games played.',
-  Wins: 'Total wins this season.',
-  Losses: 'Total losses this season.',
-  'Win %': 'Win percentage - wins divided by total games played.',
-  'Goals for': 'Total goals scored by the team this season.',
-  'Goals against': 'Total goals allowed by the team this season.',
-  'Goal diff': 'Goals for minus goals against. Positive = net scorer, negative = net conceder.',
-  'Goals/game': 'Average goals scored per game (offensive output).',
-  'Goals against/game': 'Average goals allowed per game (defensive performance).',
+const RAW_STAT_GLOSSARY: Record<string, string> = {
+  goals: 'Points scored by shooting the ball into the opponent\'s goal.',
+  assists: 'Passes that directly lead to a goal being scored.',
+  points: 'Total of goals + assists.',
+  shots: 'Any attempt to score a goal, on or off cage.',
+  'shots on goal': 'Shots that would have scored if not saved by the goalie.',
+  'shot %': 'Percentage of shots that result in goals (goals ÷ shots).',
+  'ground balls': 'Loose balls picked up off the ground.',
+  turnovers: 'Times a player loses possession to the opposing team.',
+  'caused tos': 'Turnovers forced by a defender on the opposing ball carrier.',
+  'caused turnovers': 'Turnovers forced by a defender on the opposing ball carrier.',
+  'fo wins': 'Face-off wins — gaining possession at the start of a play.',
+  'fo %': 'Face-off win percentage (FO wins ÷ total face-offs attempted).',
+  'faceoff %': 'Face-off win percentage (FO wins ÷ total face-offs attempted).',
+  saves: 'Shots stopped by the goalie before entering the goal.',
+  'save %': 'Percentage of shots on goal that the goalie saves.',
+  'goals against': 'Goals scored against a team or goalie.',
+  gaa: 'Goals Against Average — average goals allowed per game.',
+  w: 'Wins this season.',
+  l: 'Losses this season.',
+  'goal diff': 'Average goal margin per game (goals scored minus goals allowed).',
+  'goal margin': 'Total goal differential (goals scored minus goals allowed).',
+  'goals for': 'Goals scored by a team this season.',
+  'goals/game': 'Average goals scored per game.',
+  'goals against/game': 'Average goals allowed per game.',
+  'points/game': 'Average points recorded per game.',
+  'win %': 'Win percentage (wins ÷ total games played).',
+  'fo att': 'Total face-offs attempted.',
 };
+
+export const STAT_GLOSSARY: Record<string, string> = Object.fromEntries(
+  Object.entries(RAW_STAT_GLOSSARY).map(([label, definition]) => [label.toLowerCase(), definition]),
+);
 
 const GLOSSARY_ALIASES: Record<string, string> = {
-  P: 'Points',
-  G: 'Goals',
-  A: 'Assists',
-  GB: 'Ground balls',
-  CT: 'Caused TOs',
-  SV: 'Saves',
-  W: 'Wins',
-  L: 'Losses',
-  GF: 'Goals for',
-  GA: 'Goals against',
-  '+/-': 'Goal diff',
-  GPG: 'Goals/game',
-  GAPG: 'Goals against/game',
+  g: 'goals',
+  a: 'assists',
+  p: 'points',
+  gb: 'ground balls',
+  ct: 'caused tos',
+  sv: 'saves',
+  'fo w': 'fo wins',
+  wins: 'w',
+  losses: 'l',
+  gf: 'goals for',
+  ga: 'goals against',
+  '+/-': 'goal diff',
+  gpg: 'goals/game',
+  gapg: 'goals against/game',
 };
 
-// Singleton tooltip div appended to <body> so it escapes table overflow clipping.
-let _tipEl: HTMLDivElement | null = null;
-function getTipEl(): HTMLDivElement {
-  if (!_tipEl) {
-    _tipEl = document.createElement('div');
-    _tipEl.id = 'glossary-tooltip';
-    document.body.appendChild(_tipEl);
-  }
-  return _tipEl;
+const GLOSSARY_ICON_CSS = `.glossary-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #6b7280;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: help;
+  margin-left: 3px;
+  vertical-align: middle;
+  text-decoration: none;
+  line-height: 1;
+}`;
+
+let glossaryCssInjected = false;
+
+/** Returns the glossary definition for a stat label, case-insensitively. */
+export function getGlossary(label: string): string | undefined {
+  const key = label.toLowerCase().trim();
+  return STAT_GLOSSARY[key] ?? STAT_GLOSSARY[GLOSSARY_ALIASES[key] ?? ''];
 }
 
-function showTip(anchor: HTMLElement, text: string): void {
-  const tip = getTipEl();
-  tip.textContent = text;
-  tip.classList.add('visible');
-  const r = anchor.getBoundingClientRect();
-  // Position above the anchor; shift left so it's centred
-  const left = r.left + r.width / 2;
-  const top = r.top - 8; // 8px gap above anchor
-  tip.style.left = `${left}px`;
-  tip.style.top = `${top}px`;
-  // After paint, nudge so it doesn't overflow viewport edges
-  requestAnimationFrame(() => {
-    const tw = tip.offsetWidth;
-    const clampedLeft = Math.max(8, Math.min(left - tw / 2, window.innerWidth - tw - 8));
-    tip.style.left = `${clampedLeft}px`;
-    tip.style.transform = 'translateY(-100%)';
-  });
-}
-
-function hideTip(): void {
-  _tipEl?.classList.remove('visible');
+function escapeHtmlAttr(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
 }
 
 /**
- * Renders a small "?" help icon that shows a tooltip on hover/focus.
- * Uses a body-level fixed-position div so the tooltip escapes table overflow.
+ * Returns an HTML string for a help icon with tooltip if the label has a glossary entry.
+ * Uses the native title attribute for zero-JS tooltips.
  */
-export function renderGlossaryIcon(metric: string): HTMLSpanElement | null {
-  const key = STAT_GLOSSARY[metric] ? metric : GLOSSARY_ALIASES[metric];
-  const def = key ? STAT_GLOSSARY[key] : undefined;
-  if (!def) return null;
-  const span = document.createElement('span');
-  span.textContent = ' ?';
-  span.className = 'glossary-tip';
-  span.setAttribute('aria-label', `Help: ${def}`);
-  span.setAttribute('role', 'img');
-  span.setAttribute('tabindex', '0');
-  span.addEventListener('mouseenter', () => showTip(span, def));
-  span.addEventListener('mouseleave', hideTip);
-  span.addEventListener('focus', () => showTip(span, def));
-  span.addEventListener('blur', hideTip);
-  return span;
+export function glossaryIcon(label: string): string {
+  const def = getGlossary(label);
+  if (!def) return '';
+  const escaped = escapeHtmlAttr(def);
+  return `<span class="glossary-icon" title="${escaped}" aria-label="Definition: ${escaped}">?</span>`;
+}
+
+export function ensureGlossaryCss(): void {
+  if (glossaryCssInjected) return;
+  glossaryCssInjected = true;
+  const style = document.createElement('style');
+  style.textContent = GLOSSARY_ICON_CSS;
+  document.head.appendChild(style);
+}
+
+export function renderGlossaryIcon(label: string): HTMLSpanElement | null {
+  const html = glossaryIcon(label);
+  if (!html) return null;
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  return template.content.firstElementChild as HTMLSpanElement | null;
 }

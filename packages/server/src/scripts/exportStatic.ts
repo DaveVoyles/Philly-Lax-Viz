@@ -33,6 +33,7 @@ import { getImageForSlug } from '../queries/postImages.js';
 import { getRivalryGraph } from '../queries/rivalries.js';
 import { groupByDate, listScheduleGames, listUpcomingForTeam } from '../queries/schedule.js';
 import { getStatements } from '../queries/statements.js';
+import { computeStreaks } from '../queries/teamStreak.js';
 import { buildPlayerDetail } from '../routes/players.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../');
@@ -527,7 +528,15 @@ function main(): void {
   addFile('empty.json', []);
 
   const teamRows = s.listTeams.all() as TeamRow[];
-  const teams = teamRows.map(mapTeam);
+  const streaks = computeStreaks(db, teamRows.map((row) => row.id));
+  const teams = teamRows.map((row) => {
+    const team = mapTeam(row);
+    return {
+      ...team,
+      streak: streaks.get(team.id) ?? null,
+    };
+  });
+  const teamById = new Map(teams.map((team) => [team.id, team]));
   addFile(`${DEFAULT_SEASON}/teams.json`, teams);
 
   const seasonGameRows = db
@@ -536,8 +545,7 @@ function main(): void {
   const seasonGames = seasonGameRows.map(mapGame);
   addFile(`${DEFAULT_SEASON}/games.json`, seasonGames);
 
-  for (const teamRow of teamRows) {
-    const team = mapTeam(teamRow);
+  for (const team of teams) {
     const gameRows = db
       .prepare(
         'SELECT * FROM games WHERE season = ? AND (home_team_id = ? OR away_team_id = ?) ORDER BY date DESC, id DESC',
@@ -612,8 +620,8 @@ function main(): void {
 
     addFile(`${DEFAULT_SEASON}/games/${game.id}.json`, {
       game,
-      homeTeam: homeTeamRow ? mapTeam(homeTeamRow) : null,
-      awayTeam: awayTeamRow ? mapTeam(awayTeamRow) : null,
+      homeTeam: homeTeamRow ? (teamById.get(gameRow.home_team_id) ?? mapTeam(homeTeamRow)) : null,
+      awayTeam: awayTeamRow ? (teamById.get(gameRow.away_team_id) ?? mapTeam(awayTeamRow)) : null,
       periods,
       playerStats,
       scoringEvents,
@@ -634,7 +642,7 @@ function main(): void {
         const teamRow = s.getTeamById.get(row.team_id) as TeamRow | undefined;
         return {
           ...mapRanking(row),
-          team: teamRow ? mapTeam(teamRow) : null,
+          team: teamRow ? (teamById.get(row.team_id) ?? mapTeam(teamRow)) : null,
         };
       })
     : [];
