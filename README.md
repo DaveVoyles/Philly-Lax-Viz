@@ -1,26 +1,18 @@
 # Philly Lacrosse Vis 🥍
 
-## Live Sites
+**[👉 View the live site](https://davevoyles.github.io/Philly-Lax-Viz/)**
 
-| Deployment | URL | Features |
-|---|---|---|
-| **Azure Static Web Apps** *(full)* | [victorious-pond-0c5ff000f.7.azurestaticapps.net](https://victorious-pond-0c5ff000f.7.azurestaticapps.net) | All features — live API, real-time data, admin tools, PWA-installable |
-| **GitHub Pages** *(static mirror)* | [davevoyles.github.io/Philly-Lax-Viz](https://davevoyles.github.io/Philly-Lax-Viz/) | Read-only snapshot — charts and standings with data baked in at last nightly build |
+> Data refreshes every night. All charts, leaderboards, and stats are available. PWA-installable on desktop and mobile.
 
-### Feature comparison
+<details>
+<summary>Developer / admin deployment</summary>
 
-| Feature | Azure SWA | GitHub Pages |
-|---|---|---|
-| Teams, Players, Games, Leaders, Rankings | ✅ | ✅ |
-| Rivalries graph, Player Constellation | ✅ | ✅ |
-| Data updated nightly (live API) | ✅ | ✅ baked-in at build time |
-| Glossary tooltips | ✅ | ✅ |
-| PWA — installable on desktop / mobile | ✅ | ✅ |
-| Admin: player dedup review UI | ✅ | ❌ requires live server |
-| Data quality anomaly feed (live) | ✅ | ❌ requires live server |
+An Azure Static Web Apps instance also exists at
+[victorious-pond-0c5ff000f.7.azurestaticapps.net](https://victorious-pond-0c5ff000f.7.azurestaticapps.net)
+with a live Fastify API backend. It exposes the player dedup admin UI (`#/admin/dedup`)
+and the data-quality anomaly feed — both require a running server and are not intended for end users.
 
-> **Recommendation:** Use Azure SWA for the most up-to-date data and full feature access.
-> GitHub Pages is a convenient public mirror but data is only as fresh as the last nightly CI run.
+</details>
 
 ---
 
