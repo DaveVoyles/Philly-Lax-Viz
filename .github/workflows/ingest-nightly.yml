@@ -15,6 +15,14 @@ on:
         description: 'Force reparse of all posts'
         required: false
         default: 'false'
+      laxnumbers_since:
+        description: 'LaxNumbers backfill start date (YYYY-MM-DD). Leave blank for yesterday.'
+        required: false
+        default: ''
+      laxnumbers_until:
+        description: 'LaxNumbers backfill end date (YYYY-MM-DD). Leave blank for today.'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -140,11 +148,15 @@ jobs:
         run: |
           YESTERDAY=$(date -u -d '1 day ago' +%Y-%m-%d)
           TODAY=$(date -u +%Y-%m-%d)
-          echo "::group::LaxNumbers PA ingest since=${YESTERDAY} until=${TODAY}"
+          LAX_SINCE="${{ inputs.laxnumbers_since || '' }}"
+          LAX_UNTIL="${{ inputs.laxnumbers_until || '' }}"
+          SINCE="${LAX_SINCE:-$YESTERDAY}"
+          UNTIL="${LAX_UNTIL:-$TODAY}"
+          echo "::group::LaxNumbers PA ingest since=${SINCE} until=${UNTIL}"
           pnpm --filter @pll/ingest ingest -- \
             --source=laxnumbers \
-            --since="${YESTERDAY}" \
-            --until="${TODAY}" \
+            --since="${SINCE}" \
+            --until="${UNTIL}" \
             --apply
           echo "::endgroup::"
 
