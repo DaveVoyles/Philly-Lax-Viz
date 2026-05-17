@@ -1,6 +1,7 @@
 import { onRoute, startRouter, type RouteMatch } from './router.js';
 import { apiUrl } from './apiBase.js';
 import { mountSearchBox } from './components/searchBox.js';
+import { IS_STATIC } from './staticLoader.js';
 
 // W18 Lane A (Han) — proposal 04: every view module is now lazy-loaded so the
 // entry chunk only carries the router, shell, and search box. Each route's
@@ -33,6 +34,7 @@ const loaders: Record<Exclude<RouteName, 'notFound'>, () => Promise<ViewModule>>
   schedule: () => import('./views/schedule.js'),
   sources: () => import('./views/sources.js'),
   status: () => import('./views/status.js'),
+  adminDedup: () => import('./views/adminDedup.js'),
 };
 
 interface NavLink {
@@ -55,6 +57,7 @@ const MORE_NAV: NavLink[] = [
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
   { href: '#/sources', label: 'Sources', match: 'sources' },
   { href: '#/status', label: 'Status', match: 'status' },
+  ...(IS_STATIC ? [] : [{ href: '#/admin/dedup', label: 'Admin', match: 'adminDedup' as const }]),
 ];
 
 function mountShell(app: HTMLElement): {

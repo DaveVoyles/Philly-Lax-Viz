@@ -29,6 +29,7 @@
     "split:composite-players": "tsx src/scripts/splitCompositePlayers.ts",
     "dedup:cross-team": "tsx src/scripts/dedupCrossTeam.ts",
     "detect:cross-team-dups": "tsx src/scripts/detectCrossTeamDups.ts",
+    "dedup:detect": "tsx src/scripts/detectFuzzyDups.ts",
     "reconcile:scores": "tsx src/scripts/reconcileWithSources.ts",
     "piaa:check-totals": "tsx src/scripts/piaaCheckTotals.ts"
   },

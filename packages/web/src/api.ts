@@ -768,6 +768,73 @@ export function getConstellation(): Promise<ConstellationResponse> {
   return request<ConstellationResponse>('/players/constellation');
 }
 
+// ---- Admin player dedup review (LS-1-C, Chewy) ----
+
+export interface DedupCandidateRow {
+  id: number;
+  player_a_id: number;
+  player_a_name: string;
+  player_a_team: string;
+  player_a_stats: number;
+  player_b_id: number;
+  player_b_name: string;
+  player_b_team: string;
+  player_b_stats: number;
+  similarity: number;
+  algo: string;
+  status: 'pending' | 'approved' | 'rejected' | 'skipped';
+  reviewer_notes: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+}
+
+export async function getDedupCandidates(
+  status?: string,
+  limit = 50,
+  offset = 0,
+): Promise<{ candidates: DedupCandidateRow[]; total: number }> {
+  const url = apiUrl(`/api/admin/dedup-candidates${buildQuery({ status, limit, offset })}`);
+  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`${res.status} ${res.statusText}${text ? `: ${text.slice(0, 200)}` : ''}`);
+  }
+  return (await res.json()) as { candidates: DedupCandidateRow[]; total: number };
+}
+
+export async function patchDedupCandidate(
+  id: number,
+  body: { status: string; reviewer_notes?: string },
+): Promise<void> {
+  const url = apiUrl(`/api/admin/dedup-candidates/${encodeURIComponent(String(id))}`);
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`${res.status} ${res.statusText}${text ? `: ${text.slice(0, 200)}` : ''}`);
+  }
+}
+
+export async function mergeDedupCandidate(
+  id: number,
+): Promise<{ statsRedirected: number; statsDropped: number }> {
+  const url = apiUrl(`/api/admin/dedup-candidates/${encodeURIComponent(String(id))}/merge`);
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`${res.status} ${res.statusText}${text ? `: ${text.slice(0, 200)}` : ''}`);
+  }
+  const json = (await res.json()) as { ok: true; statsRedirected: number; statsDropped: number };
+  return { statsRedirected: json.statsRedirected, statsDropped: json.statsDropped };
+}
+
 // ---- Header search (W H4 L2, Yoda) ----
 
 export interface SearchHit {

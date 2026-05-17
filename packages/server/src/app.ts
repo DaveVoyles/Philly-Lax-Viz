@@ -26,6 +26,7 @@ import { freshnessRoutes } from './routes/freshness.js';
 import { postImagesRoutes } from './routes/postImages.js';
 import { searchRoutes } from './routes/search.js';
 import { comparePlayersRoutes } from './routes/comparePlayers.js';
+import adminDedupRoutes from './routes/adminDedup.js';
 import { responseCachePlugin, type ResponseCacheOptions } from './plugins/responseCache.js';
 
 export interface BuildOptions {
@@ -73,7 +74,7 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
 
   await app.register(cors, {
     origin: corsOrigins,
-    methods: ['GET', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
   });
 
   if (opts.responseCache !== false) {
@@ -120,6 +121,7 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   await postImagesRoutes(app, db);
   await searchRoutes(app, db);
   await comparePlayersRoutes(app, db);
+  await app.register(adminDedupRoutes, { db });
 
   return app;
 }

@@ -798,3 +798,36 @@ a.piaa-badge-link:hover { text-decoration: none; }
 #glossary-tooltip.visible {
   opacity: 1;
 }
+
+/* - Admin Dedup ------------------------------------------------ */
+.filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+.badge-pending  { background: var(--accent); color: var(--accent-fg); }
+.badge-approved { background: #2d6a2d; color: #fff; }
+.badge-rejected { background: #6a2d2d; color: #fff; }
+.badge-skipped  { background: var(--muted); color: var(--bg); }
+.tab {
+  padding: 0.35rem 0.75rem;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  background: var(--bg);
+  color: var(--fg);
+}
+.tab.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border-color: var(--accent);
+}
+.btn-sm { padding: 0.2rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; background: var(--card-bg, var(--bg)); color: var(--fg); margin-right: 0.25rem; }
+.btn-success { background: #2d6a2d; color: #fff; border-color: #2d6a2d; }
+.btn-danger  { background: #6a2d2d; color: #fff; border-color: #6a2d2d; }
+.btn-warning { background: #6a4a00; color: #fff; border-color: #6a4a00; }
+.btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
+.action-cell { white-space: nowrap; }

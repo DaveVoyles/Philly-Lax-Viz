@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, 'migrations');
+export const CURRENT_SCHEMA_VERSION = 15;
 
 export interface Migration {
   version: number;
@@ -21,7 +22,7 @@ export function loadMigrations(dir: string = MIGRATIONS_DIR): Migration[] {
   const files = readdirSync(dir)
     .filter((f) => f.endsWith('.sql'))
     .sort();
-  return files.map((file) => {
+  const migrations = files.map((file) => {
     const match = /^(\d+)_/.exec(file);
     if (!match) {
       throw new Error(`Migration filename must start with NNN_: ${file}`);
@@ -32,6 +33,13 @@ export function loadMigrations(dir: string = MIGRATIONS_DIR): Migration[] {
       sql: readFileSync(join(dir, file), 'utf8'),
     };
   });
+  const latestVersion = migrations.at(-1)?.version ?? 0;
+  if (dir === MIGRATIONS_DIR && latestVersion !== CURRENT_SCHEMA_VERSION) {
+    throw new Error(
+      `Latest migration version ${latestVersion} does not match CURRENT_SCHEMA_VERSION ${CURRENT_SCHEMA_VERSION}`,
+    );
+  }
+  return migrations;
 }
 
 /** Apply any migrations whose version > current PRAGMA user_version. Idempotent. */

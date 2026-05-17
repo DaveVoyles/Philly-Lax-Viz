@@ -1,7 +1,10 @@
 import { defineConfig } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
+
+const base = process.env.VITE_BASE_PATH ?? '/';
 
 export default defineConfig({
-  base: process.env.VITE_BASE_PATH ?? '/',
+  base,
   server: {
     port: 5173,
     strictPort: false,
@@ -31,4 +34,49 @@ export default defineConfig({
       },
     },
   },
+  plugins: [
+    VitePWA({
+      registerType: 'autoUpdate',
+      base,
+      scope: base,
+      includeAssets: ['favicon.svg', 'icon-192.svg', 'icon-512.svg'],
+      manifest: {
+        name: 'Philly Lacrosse Viz',
+        short_name: 'PLL Viz',
+        description: 'Philadelphia high-school boys lacrosse stats, standings, and game data.',
+        theme_color: '#1a3a5c',
+        background_color: '#0d1117',
+        display: 'standalone',
+        start_url: base,
+        scope: base,
+        icons: [
+          { src: 'icon-192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+          { src: 'icon-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
+        ],
+      },
+      workbox: {
+        navigateFallback: null,
+        runtimeCaching: [
+          {
+            urlPattern: /\/api\//,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pll-api-cache',
+              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+          {
+            urlPattern: /\.(js|css|svg|woff2?)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'pll-static-cache',
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+        ],
+      },
+      devOptions: { enabled: false },
+    }),
+  ],
 });
