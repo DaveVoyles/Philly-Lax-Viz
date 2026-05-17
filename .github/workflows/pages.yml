@@ -21,6 +21,7 @@ env:
   DB_LOCAL_PATH: data/lacrosse.db
   DB_REMOTE_NAME: lacrosse.db
   AZ_FILE_SHARE: pll-data
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   build-and-deploy:
