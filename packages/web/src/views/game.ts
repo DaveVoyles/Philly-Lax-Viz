@@ -185,7 +185,7 @@ export async function render(root: HTMLElement, params: Record<string, string>):
     if (q < maxQuarter) {
       const label = new Text({
         text: q < 4 ? `Q${q + 1}` : `OT${q - 3}`,
-        style: { fill: 0x9aa3b2, fontSize: 12, fontFamily: 'system-ui, sans-serif' },
+        style: { fill: 0x9aa3b2, fontSize: 14, fontFamily: 'system-ui, sans-serif' },
       });
       label.x = x + segW / 2 - label.width / 2;
       label.y = CANVAS_H - PAD_BOTTOM + 6;
@@ -194,11 +194,11 @@ export async function render(root: HTMLElement, params: Record<string, string>):
   }
 
   // Side legends.
-  const homeLabel = new Text({ text: homeName + ' (home)', style: { fill: HOME_COLOR, fontSize: 12, fontFamily: 'system-ui, sans-serif', fontWeight: '600' } });
+  const homeLabel = new Text({ text: homeName + ' (home)', style: { fill: HOME_COLOR, fontSize: 14, fontFamily: 'system-ui, sans-serif', fontWeight: '600' } });
   homeLabel.x = PAD_X;
   homeLabel.y = CANVAS_H / 2 + 8;
   axis.addChild(homeLabel);
-  const awayLabel = new Text({ text: awayName + ' (away)', style: { fill: AWAY_COLOR, fontSize: 12, fontFamily: 'system-ui, sans-serif', fontWeight: '600' } });
+  const awayLabel = new Text({ text: awayName + ' (away)', style: { fill: AWAY_COLOR, fontSize: 14, fontFamily: 'system-ui, sans-serif', fontWeight: '600' } });
   awayLabel.x = PAD_X;
   awayLabel.y = CANVAS_H / 2 - 24;
   axis.addChild(awayLabel);

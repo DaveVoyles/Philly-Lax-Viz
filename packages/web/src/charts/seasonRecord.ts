@@ -96,7 +96,7 @@ export function renderSeasonRecord(
       .attr('dominant-baseline', 'middle')
       .attr('dy', '-0.3em')
       .attr('fill', theme.fg)
-      .style('font-size', '20px')
+      .style('font-size', '24px')
       .style('font-weight', '600')
       .text(String(total));
     donutG

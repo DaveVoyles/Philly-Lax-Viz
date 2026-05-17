@@ -91,7 +91,7 @@ export function renderTopScorers(
       .attr('y', yPos + bandH / 2)
       .attr('dominant-baseline', 'middle')
       .attr('fill', theme.fg)
-      .style('font-size', '11px')
+      .style('font-size', '13px')
       .text(String(d.goals + d.assists));
   }
 

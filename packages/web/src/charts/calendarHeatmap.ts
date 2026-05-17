@@ -79,7 +79,7 @@ export function renderCalendarHeatmap(
       x: String(PAD_LEFT - 4),
       y: String(PAD_TOP + row * STEP + CELL - 2),
       'text-anchor': 'end',
-      'font-size': '10',
+      'font-size': '12',
       fill: 'var(--muted)',
     }, label));
   }
@@ -96,7 +96,7 @@ export function renderCalendarHeatmap(
         svg.appendChild(makeSvgText({
           x: String(PAD_LEFT + weekIdx * STEP),
           y: String(PAD_TOP - 4),
-          'font-size': '10',
+          'font-size': '12',
           fill: 'var(--muted)',
         }, date.toLocaleString('en-US', { month: 'short' })));
       }
@@ -143,7 +143,7 @@ export function renderCalendarHeatmap(
     svg.appendChild(makeSvgText({
       x: String(legendX + 13),
       y: String(legendY + 9),
-      'font-size': '10',
+      'font-size': '12',
       fill: 'var(--muted)',
     }, label));
     legendX += 13 + label.length * 6 + 8;

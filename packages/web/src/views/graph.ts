@@ -245,7 +245,7 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
     const lbl = new Text({
       text: n.name,
       style: {
-        fontSize: 10,
+        fontSize: 12,
         fill: '#c8cdd5',
         fontFamily: 'system-ui, sans-serif',
       },

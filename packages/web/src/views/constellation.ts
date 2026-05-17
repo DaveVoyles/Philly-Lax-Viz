@@ -226,7 +226,7 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
     axisLayer.addChild(tg);
     const t = new Text({
       text: v.toFixed(tickStep < 1 ? 1 : 0),
-      style: { fill: TICK_LABEL_COLOR, fontSize: 11, fontFamily: 'system-ui' },
+      style: { fill: TICK_LABEL_COLOR, fontSize: 13, fontFamily: 'system-ui' },
     });
     t.x = x - t.width / 2;
     t.y = PAD_TOP + PLOT_H + 6;
@@ -241,7 +241,7 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
     axisLayer.addChild(tg);
     const t = new Text({
       text: v.toFixed(yStep < 1 ? 1 : 0),
-      style: { fill: TICK_LABEL_COLOR, fontSize: 11, fontFamily: 'system-ui' },
+      style: { fill: TICK_LABEL_COLOR, fontSize: 13, fontFamily: 'system-ui' },
     });
     t.x = PAD_LEFT - 8 - t.width;
     t.y = y - t.height / 2;
@@ -251,7 +251,7 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
   // Axis titles.
   const xLabel = new Text({
     text: 'Goals per game',
-    style: { fill: AXIS_LABEL_COLOR, fontSize: 13, fontFamily: 'system-ui' },
+    style: { fill: AXIS_LABEL_COLOR, fontSize: 16, fontFamily: 'system-ui' },
   });
   xLabel.x = PAD_LEFT + PLOT_W / 2 - xLabel.width / 2;
   xLabel.y = PAD_TOP + PLOT_H + 28;
@@ -259,7 +259,7 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
 
   const yLabel = new Text({
     text: 'Assists per game',
-    style: { fill: AXIS_LABEL_COLOR, fontSize: 13, fontFamily: 'system-ui' },
+    style: { fill: AXIS_LABEL_COLOR, fontSize: 16, fontFamily: 'system-ui' },
   });
   yLabel.rotation = -Math.PI / 2;
   yLabel.x = 16;

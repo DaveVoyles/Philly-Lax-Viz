@@ -376,7 +376,7 @@ export function renderTeamRadarChart(
       .attr('dy', '0.32em')
       .attr('text-anchor', anchor)
       .attr('fill', theme.fg)
-      .attr('font-size', 11)
+      .attr('font-size', 13)
       .attr('font-weight', '600')
       .text(axes[i]!.label);
   }

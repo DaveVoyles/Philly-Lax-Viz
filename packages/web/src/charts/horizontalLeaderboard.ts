@@ -123,7 +123,7 @@ export function renderHorizontalLeaderboard(
       .attr('text-anchor', 'end')
       .attr('dominant-baseline', 'middle')
       .attr('fill', theme.muted)
-      .style('font-size', '11px')
+      .style('font-size', '13px')
       .text(`${i + 1}.`);
 
     // Value label at end of bar — bold, slightly larger
@@ -133,7 +133,7 @@ export function renderHorizontalLeaderboard(
       .attr('y', yPos + bandH / 2)
       .attr('dominant-baseline', 'middle')
       .attr('fill', theme.fg)
-      .style('font-size', '13px')
+      .style('font-size', '16px')
       .style('font-weight', '600')
       .text(opts.valueFormat(d.value));
   }
@@ -153,7 +153,7 @@ export function renderHorizontalLeaderboard(
             .attr('y', yPos)
             .attr('dominant-baseline', 'middle')
             .attr('fill', theme.fg)
-            .style('font-size', '13px')
+            .style('font-size', '16px')
             .text(label);
         }
       },
