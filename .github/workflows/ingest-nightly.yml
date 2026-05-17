@@ -91,10 +91,7 @@ jobs:
         id: pre
         run: |
           if [ -f "${{ env.DB_LOCAL_PATH }}" ]; then
-            COUNT=$(node -e "const D=require('better-sqlite3'); \
-              const d=new D('${{ env.DB_LOCAL_PATH }}',{readonly:true}); \
-              try{console.log(d.prepare('SELECT COUNT(*) c FROM anomalies').get().c)} \
-              catch{console.log(0)}")
+            COUNT=$(sqlite3 "${{ env.DB_LOCAL_PATH }}" "SELECT COUNT(*) FROM anomalies;" 2>/dev/null || echo 0)
           else
             COUNT=0
           fi
@@ -134,9 +131,7 @@ jobs:
       - name: Snapshot post-ingest anomaly count
         id: post
         run: |
-          COUNT=$(node -e "const D=require('better-sqlite3'); \
-            const d=new D('${{ env.DB_LOCAL_PATH }}',{readonly:true}); \
-            console.log(d.prepare('SELECT COUNT(*) c FROM anomalies').get().c)")
+          COUNT=$(sqlite3 "${{ env.DB_LOCAL_PATH }}" "SELECT COUNT(*) FROM anomalies;" 2>/dev/null || echo 0)
           echo "count=$COUNT" >> "$GITHUB_OUTPUT"
           echo "Post-ingest anomalies: $COUNT"
 
