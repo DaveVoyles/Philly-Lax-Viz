@@ -146,11 +146,14 @@ jobs:
         env:
           DB_PATH: ${{ env.DB_LOCAL_PATH }}
         run: |
-          YESTERDAY=$(date -u -d '1 day ago' +%Y-%m-%d)
           TODAY=$(date -u +%Y-%m-%d)
+          # Default: sweep from season start (Feb 1 of current year) so every
+          # nightly run self-heals any gaps and backfills historical data.
+          # The ingest is idempotent — already-complete games are skipped in ms.
+          SEASON_START="$(date -u +%Y)-02-01"
           LAX_SINCE="${{ inputs.laxnumbers_since || '' }}"
           LAX_UNTIL="${{ inputs.laxnumbers_until || '' }}"
-          SINCE="${LAX_SINCE:-$YESTERDAY}"
+          SINCE="${LAX_SINCE:-$SEASON_START}"
           UNTIL="${LAX_UNTIL:-$TODAY}"
           echo "::group::LaxNumbers PA ingest since=${SINCE} until=${UNTIL}"
           pnpm --filter @pll/ingest ingest -- \
