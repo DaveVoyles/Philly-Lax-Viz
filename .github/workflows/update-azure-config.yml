@@ -1,0 +1,31 @@
+name: Update Azure Container App Config
+
+on:
+  workflow_dispatch:
+    inputs:
+      cors_origins:
+        description: 'Comma-separated list of allowed CORS origins'
+        required: false
+        default: 'https://davevoyles.github.io,http://localhost:5173'
+
+jobs:
+  update-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Update CORS_ORIGINS on Container App
+        run: |
+          ORIGINS="${{ github.event.inputs.cors_origins || secrets.CORS_ORIGINS || 'https://davevoyles.github.io,http://localhost:5173' }}"
+          echo "Setting CORS_ORIGINS to: $ORIGINS"
+          az containerapp update \
+            --name ${{ secrets.ACA_NAME }} \
+            --resource-group ${{ secrets.ACA_RESOURCE_GROUP }} \
+            --set-env-vars "CORS_ORIGINS=$ORIGINS"
+
+      - name: Azure logout
+        if: always()
+        run: az logout
