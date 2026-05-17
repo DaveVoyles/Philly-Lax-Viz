@@ -1,6 +1,28 @@
 # Philly Lacrosse Vis 🥍
 
-**[View the live site](https://davevoyles.github.io/Philly-Lax-Viz/)**
+## Live Sites
+
+| Deployment | URL | Features |
+|---|---|---|
+| **Azure Static Web Apps** *(full)* | [victorious-pond-0c5ff000f.7.azurestaticapps.net](https://victorious-pond-0c5ff000f.7.azurestaticapps.net) | All features — live API, real-time data, admin tools, PWA-installable |
+| **GitHub Pages** *(static mirror)* | [davevoyles.github.io/Philly-Lax-Viz](https://davevoyles.github.io/Philly-Lax-Viz/) | Read-only snapshot — charts and standings with data baked in at last nightly build |
+
+### Feature comparison
+
+| Feature | Azure SWA | GitHub Pages |
+|---|---|---|
+| Teams, Players, Games, Leaders, Rankings | ✅ | ✅ |
+| Rivalries graph, Player Constellation | ✅ | ✅ |
+| Data updated nightly (live API) | ✅ | ✅ baked-in at build time |
+| Glossary tooltips | ✅ | ✅ |
+| PWA — installable on desktop / mobile | ✅ | ✅ |
+| Admin: player dedup review UI | ✅ | ❌ requires live server |
+| Data quality anomaly feed (live) | ✅ | ❌ requires live server |
+
+> **Recommendation:** Use Azure SWA for the most up-to-date data and full feature access.
+> GitHub Pages is a convenient public mirror but data is only as fresh as the last nightly CI run.
+
+---
 
 A stats hub for Philadelphia-area high school boys lacrosse. It tracks scores,
 standings, player stats, and rankings for the current season — all in one place,
