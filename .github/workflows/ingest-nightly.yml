@@ -60,26 +60,25 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Azure login
+        id: azure_login
+        continue-on-error: true
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Download current DB from Azure Files
         env:
-          AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
-          AZURE_STORAGE_KEY:     ${{ secrets.AZURE_STORAGE_KEY }}
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
         run: |
           mkdir -p data
           # Tolerate first-run case where the share is empty.
           if az storage file exists \
-                --account-name "$AZURE_STORAGE_ACCOUNT" \
-                --account-key  "$AZURE_STORAGE_KEY" \
+                --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
                 --share-name   "${{ env.AZ_FILE_SHARE }}" \
                 --path "${{ env.DB_REMOTE_NAME }}" \
                 --query exists -o tsv | grep -q true; then
             az storage file download \
-              --account-name "$AZURE_STORAGE_ACCOUNT" \
-              --account-key  "$AZURE_STORAGE_KEY" \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
               --share-name   "${{ env.AZ_FILE_SHARE }}" \
               --path "${{ env.DB_REMOTE_NAME }}" \
               --dest "${{ env.DB_LOCAL_PATH }}"
@@ -143,17 +142,17 @@ jobs:
 
       - name: Upload updated DB to Azure Files
         env:
-          AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
-          AZURE_STORAGE_KEY:     ${{ secrets.AZURE_STORAGE_KEY }}
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
         run: |
           az storage file upload \
-            --account-name "$AZURE_STORAGE_ACCOUNT" \
-            --account-key  "$AZURE_STORAGE_KEY" \
+            --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
             --share-name   "${{ env.AZ_FILE_SHARE }}" \
             --source "${{ env.DB_LOCAL_PATH }}" \
             --path "${{ env.DB_REMOTE_NAME }}"
 
       - name: Restart Container App revision
+        if: steps.azure_login.outcome == 'success'
+        continue-on-error: true
         run: |
           REV=$(az containerapp revision list \
             --name "${{ secrets.ACA_NAME }}" \
