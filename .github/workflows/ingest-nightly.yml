@@ -175,6 +175,9 @@ jobs:
             exit 1
           fi
 
+      - name: Seed team aliases from anomalies
+        run: pnpm --filter @pll/ingest seed:aliases ${{ github.workspace }}/data/lacrosse.db
+
       - name: Upload updated DB to Azure Files
         env:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}

@@ -148,6 +148,8 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       derived,
       piaa,
       linkToSource: true,
+      variant: 'label',
+      hideUnmapped: true,
     });
     if (badge) recordLabel.appendChild(badge);
   }

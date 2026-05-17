@@ -666,18 +666,6 @@ function buildTeamsGrid(
       a.style.borderLeft = `4px solid ${t.primaryColor}`;
     }
     a.appendChild(renderTeamBadge({ name: t.name, logoUrl: t.logoUrl, primaryColor: t.primaryColor, size: 'sm' }));
-    if (t.piaaValidation) {
-      const badge = renderPiaaBadge({
-        validation: t.piaaValidation,
-        derived: t.derivedRecord ?? null,
-        piaa: t.piaa ?? null,
-        hideUnmapped: false,
-      });
-      if (badge) {
-        badge.style.marginLeft = '.35rem';
-        a.appendChild(badge);
-      }
-    }
     a.appendChild(buildGapBadge(t));
     // W-L record chip
     if ((t.wins ?? 0) + (t.losses ?? 0) > 0) {
@@ -686,6 +674,16 @@ function buildTeamsGrid(
       rec.textContent = `${t.wins ?? 0}–${t.losses ?? 0}`;
       rec.title = `${t.wins ?? 0} wins, ${t.losses ?? 0} losses`;
       a.appendChild(rec);
+    }
+    if (t.piaaValidation) {
+      const badge = renderPiaaBadge({
+        validation: t.piaaValidation,
+        derived: t.derivedRecord ?? null,
+        piaa: t.piaa ?? null,
+        hideUnmapped: true,
+        variant: 'label',
+      });
+      if (badge) a.appendChild(badge);
     }
     const streakChip = buildStreakChip(t.streak);
     if (streakChip) a.appendChild(streakChip);

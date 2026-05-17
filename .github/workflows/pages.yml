@@ -72,6 +72,11 @@ jobs:
       - name: Export static data
         run: pnpm export:static
 
+      - name: Validate static export
+        run: pnpm --filter @pll/server validate:export
+        env:
+          SEASON: '2026'
+
       - name: Build web (static mode)
         run: pnpm --filter @pll/web build
         env:

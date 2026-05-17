@@ -66,6 +66,8 @@ export interface PiaaValidation {
   sourceUrl: string;        // public PIAA D1 scores+rankings page
 }
 
+export type PiaaMatchState = 'match' | 'mismatch' | 'unknown';
+
 export interface Team {
   id: number;
   name: string;
@@ -78,6 +80,9 @@ export interface Team {
   secondaryColor: string | null;
   nickname: string | null;
   piaa?: PiaaRecord | null;
+  piaaWins?: number | null;
+  piaaLosses?: number | null;
+  piaaMatch?: PiaaMatchState;
   coverage?: CoverageRecord;
   derivedRecord?: DerivedRecord;
   piaaValidation?: PiaaValidation;

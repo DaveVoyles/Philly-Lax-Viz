@@ -8,9 +8,9 @@
 // Default mode is dry-run; pass --apply to actually write.
 //
 // Usage:
-//   pnpm --filter @pll/ingest seed:aliases                   # dry-run from data/aliases-candidates.tsv
-//   pnpm --filter @pll/ingest seed:aliases -- --apply
-//   pnpm --filter @pll/ingest seed:aliases -- --tsv path.tsv --min-confidence 0.80
+//   pnpm --filter @pll/ingest seed:aliases:mined                   # dry-run from data/aliases-candidates.tsv
+//   pnpm --filter @pll/ingest seed:aliases:mined -- --apply
+//   pnpm --filter @pll/ingest seed:aliases:mined -- --tsv path.tsv --min-confidence 0.80
 
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';

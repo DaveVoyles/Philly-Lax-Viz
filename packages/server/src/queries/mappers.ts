@@ -5,6 +5,7 @@ import type {
   Game,
   GamePeriod,
   IngestAnomaly,
+  PiaaMatchState,
   Player,
   PlayerStat,
   PiaaValidation,
@@ -158,6 +159,11 @@ export function mapTeam(r: TeamRow): Team {
     hasPiaa ? (r.piaa_wins as number) : null,
     hasPiaa ? (r.piaa_losses as number) : null,
   );
+  const piaaMatch: PiaaMatchState = !hasPiaa
+    ? 'unknown'
+    : piaaValidation.status === 'match'
+      ? 'match'
+      : 'mismatch';
   return {
     id: r.id,
     name: r.name,
@@ -179,6 +185,9 @@ export function mapTeam(r: TeamRow): Team {
           nameOfficial: r.piaa_name_official as string,
         }
       : null,
+    piaaWins: hasPiaa ? (r.piaa_wins as number) : null,
+    piaaLosses: hasPiaa ? (r.piaa_losses as number) : null,
+    piaaMatch,
     coverage: {
       ourGames,
       piaaGames,

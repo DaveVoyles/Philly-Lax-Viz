@@ -118,23 +118,38 @@ describe('PIAA validation badge on team endpoints', () => {
       id: number;
       name: string;
       derivedRecord: { wins: number; losses: number; ties: number };
+      piaaWins: number | null;
+      piaaLosses: number | null;
+      piaaMatch: 'match' | 'mismatch' | 'unknown';
       piaaValidation: { status: string; winDiff: number | null; lossDiff: number | null; totalDiff: number | null; sourceUrl: string };
     }>;
     const byName = Object.fromEntries(body.map((t) => [t.name, t]));
 
     expect(byName['Alpha']?.derivedRecord).toEqual({ wins: 2, losses: 1, ties: 0 });
+    expect(byName['Alpha']?.piaaWins).toBe(2);
+    expect(byName['Alpha']?.piaaLosses).toBe(1);
+    expect(byName['Alpha']?.piaaMatch).toBe('match');
     expect(byName['Alpha']?.piaaValidation.status).toBe('match');
     expect(byName['Alpha']?.piaaValidation.totalDiff).toBe(0);
 
     expect(byName['Beta']?.derivedRecord).toEqual({ wins: 1, losses: 1, ties: 0 });
+    expect(byName['Beta']?.piaaWins).toBe(2);
+    expect(byName['Beta']?.piaaLosses).toBe(2);
+    expect(byName['Beta']?.piaaMatch).toBe('mismatch');
     expect(byName['Beta']?.piaaValidation.status).toBe('close');
     expect(byName['Beta']?.piaaValidation.totalDiff).toBe(2);
 
     expect(byName['Gamma']?.derivedRecord).toEqual({ wins: 1, losses: 0, ties: 0 });
+    expect(byName['Gamma']?.piaaWins).toBe(5);
+    expect(byName['Gamma']?.piaaLosses).toBe(0);
+    expect(byName['Gamma']?.piaaMatch).toBe('mismatch');
     expect(byName['Gamma']?.piaaValidation.status).toBe('divergent');
     expect(byName['Gamma']?.piaaValidation.totalDiff).toBe(4);
 
     expect(byName['Delta']?.derivedRecord).toEqual({ wins: 0, losses: 0, ties: 0 });
+    expect(byName['Delta']?.piaaWins).toBeNull();
+    expect(byName['Delta']?.piaaLosses).toBeNull();
+    expect(byName['Delta']?.piaaMatch).toBe('unknown');
     expect(byName['Delta']?.piaaValidation.status).toBe('unmapped');
     expect(byName['Delta']?.piaaValidation.totalDiff).toBeNull();
     expect(byName['Delta']?.piaaValidation.sourceUrl).toContain('piaad1.org');
@@ -145,6 +160,9 @@ describe('PIAA validation badge on team endpoints', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.team.derivedRecord).toEqual({ wins: 1, losses: 1, ties: 0 });
+    expect(body.team.piaaWins).toBe(2);
+    expect(body.team.piaaLosses).toBe(2);
+    expect(body.team.piaaMatch).toBe('mismatch');
     expect(body.team.piaaValidation).toMatchObject({
       status: 'close',
       winDiff: 1,

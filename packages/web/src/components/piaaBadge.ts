@@ -12,6 +12,8 @@ export interface PiaaBadgeOptions {
   hideUnmapped?: boolean;
   /** When true, badge is wrapped in an anchor to the PIAA source page. */
   linkToSource?: boolean;
+  /** Icon preserves the old compact dot/emoji; label renders text like "✓ PIAA". */
+  variant?: 'icon' | 'label';
 }
 
 const ICON: Record<PiaaValidation['status'], string> = {
@@ -24,6 +26,19 @@ const ICON: Record<PiaaValidation['status'], string> = {
 function fmtRecord(r: { wins: number; losses: number } | null | undefined): string {
   if (!r) return '?-?';
   return `${r.wins}-${r.losses}`;
+}
+
+function labelForStatus(status: PiaaValidation['status']): string {
+  switch (status) {
+    case 'match':
+      return '✓ PIAA';
+    case 'close':
+    case 'divergent':
+      return '⚠ PIAA';
+    case 'unmapped':
+    default:
+      return 'PIAA';
+  }
 }
 
 export function piaaBadgeTooltip(
@@ -45,16 +60,17 @@ export function piaaBadgeTooltip(
 }
 
 export function renderPiaaBadge(opts: PiaaBadgeOptions): HTMLElement | null {
-  const { validation, derived, piaa, hideUnmapped, linkToSource } = opts;
+  const { validation, derived, piaa, hideUnmapped, linkToSource, variant = 'icon' } = opts;
   if (validation.status === 'unmapped' && hideUnmapped) return null;
 
   const icon = document.createElement('span');
   icon.className = `piaa-badge piaa-badge--${validation.status}`;
+  if (variant === 'label') icon.classList.add('piaa-badge--label');
   icon.setAttribute('role', 'img');
   const tip = piaaBadgeTooltip(validation, derived, piaa);
   icon.title = tip;
   icon.setAttribute('aria-label', tip);
-  icon.textContent = ICON[validation.status];
+  icon.textContent = variant === 'label' ? labelForStatus(validation.status) : ICON[validation.status];
 
   if (linkToSource && validation.status !== 'unmapped' && validation.sourceUrl) {
     const a = document.createElement('a');
