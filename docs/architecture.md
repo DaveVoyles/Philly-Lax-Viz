@@ -1,6 +1,6 @@
 # Philly Lacrosse Viz — Architecture Reference
 
-> **Last updated:** 2026-05-16  
+> **Last updated:** 2026-05-17  
 > **Audience:** agents and contributors joining this repo cold  
 > **Purpose:** single-source-of-truth for how data flows from external sources to the deployed site
 
@@ -20,6 +20,7 @@
 10. [Static Export Coverage Map](#10-static-export-coverage-map)
 11. [Key Architectural Decisions](#11-key-architectural-decisions)
 12. [Known Limitations & Tech Debt](#12-known-limitations--tech-debt)
+13. [Community Corrections Operations](#13-community-corrections-operations)
 
 ---
 
@@ -272,10 +273,12 @@ This is additive — it supplements phillylacrosse.com data, not replaces it.
 10. **Ingest** — `pnpm --filter @pll/ingest ingest --db=<abs-path> --category=hs-summaries,scoreboard`
 11. **LaxNumbers additive ingest** — `--source=laxnumbers --since=... --until=...`
 12. Snapshot post-ingest anomaly count
-13. **Upload updated `lacrosse.db` to Azure File Share**
-14. Restart Azure Container App revision (conditional on Azure login success)
-15. Post anomaly delta to Discord (if webhook configured)
-16. Azure logout
+13. Seed team aliases from anomalies
+14. Apply community corrections (`applyCorrections.ts`) with `continue-on-error: true`
+15. **Upload updated `lacrosse.db` to Azure File Share**
+16. Restart Azure Container App revision (conditional on Azure login success)
+17. Post anomaly delta to Discord (if webhook configured)
+18. Azure logout
 
 ### What triggers the Pages deploy
 
@@ -323,7 +326,7 @@ This is additive — it supplements phillylacrosse.com data, not replaces it.
 
 - `VITE_STATIC_MODE=true` at build time → client uses `staticLoader.ts`
 - `staticLoader.ts` maps `/api/*` paths to pre-built JSON under `/data/...`
-- GitHub Pages build sets `VITE_STATIC_MODE=true` and `VITE_BASE_PATH=/Philly-Lax-Viz/`
+- GitHub Pages build sets `VITE_STATIC_MODE=true`, `VITE_BASE_PATH=/Philly-Lax-Viz/`, and `VITE_API_URL` from GitHub Actions secrets
 
 ---
 
@@ -487,3 +490,32 @@ When the 2027 season begins, update:
 1. `exportStatic.ts` — `DEFAULT_SEASON` constant
 2. `packages/server/src/routes/seasons.ts` — hardcoded season list
 3. `packages/web/src/staticLoader.ts` — default season for static path resolution
+
+---
+
+## 13. Community Corrections Operations
+
+### Required manual step after first deploy
+
+The Azure Container App (`pll-server`) must have `https://davevoyles.github.io` added to its
+`CORS_ORIGINS` environment variable. Without this, correction POSTs from GitHub Pages will be
+blocked by CORS.
+
+Steps:
+1. Go to Azure Portal -> Container Apps -> pll-server -> Settings -> Environment variables
+2. Edit `CORS_ORIGINS` to include `https://davevoyles.github.io` (comma-separated)
+3. Save and wait for the container to redeploy
+
+### Required GitHub Actions secret
+
+Add `VITE_API_URL` as a GitHub Actions secret (Settings -> Secrets -> Actions):
+- Value: the Azure Container Apps URL for the server (for example, `https://pll-server.<hash>.azurecontainerapps.io`)
+- This is used by the GitHub Pages build to POST corrections to the live API
+
+### Correction lifecycle
+
+1. User submits via the edit button -> `POST /api/corrections` -> stored as `pending`
+2. Nightly ingest runs (`ingest-nightly.yml`)
+3. `applyCorrections.ts` runs after ingest, applies all `pending` non-outlier corrections
+4. Outlier corrections (for example, goals: 2 -> 200) are marked `outlier` and skipped
+5. Applied corrections survive re-ingest because `applyCorrections.ts` runs after ingest each night

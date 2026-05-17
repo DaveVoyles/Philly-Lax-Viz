@@ -19,6 +19,7 @@
     "aliases:seed": "tsx src/scripts/seedTeamAliases.ts",
     "mine:aliases": "tsx src/scripts/mineAliases.ts",
     "seed:aliases": "tsx src/scripts/seedAliasesFromAnomalies.ts",
+    "apply:corrections": "tsx src/scripts/applyCorrections.ts",
     "seed:aliases:mined": "tsx src/scripts/seedAliasesFromMine.ts",
     "branding:seed": "tsx src/scripts/seedTeamBranding.ts",
     "reattribute:junk": "tsx src/scripts/reattributeJunkStats.ts",

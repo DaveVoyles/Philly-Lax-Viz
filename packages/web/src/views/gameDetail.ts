@@ -16,6 +16,7 @@ import { renderAnomalyBanner } from '../components/anomalyBanner.js';
 import { renderGameFlowChart } from '../components/gameFlowChart.js';
 import { renderConfidenceBadge } from '../util/confidence.js';
 import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
+import { openCorrectionModal, type CorrectionTarget } from '../components/correctionModal.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   ensureShareCss();
@@ -221,7 +222,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       );
     }
 
-    root.appendChild(buildPlayerStatsTable(stats));
+    root.appendChild(buildPlayerStatsTable(stats, game, homeName, awayName));
   }
 }
 
@@ -237,7 +238,14 @@ function teamScoreFor(
 }
 
 function buildScoreboard(
-  game: { date: string; awayScore: number; homeScore: number; otPeriods: number; postponed: boolean },
+  game: {
+    id?: number;
+    date: string;
+    awayScore: number;
+    homeScore: number;
+    otPeriods: number;
+    postponed: boolean;
+  },
   home: { id: number; name: string; logoUrl: string | null },
   away: { id: number; name: string; logoUrl: string | null },
 ): HTMLElement {
@@ -262,6 +270,15 @@ function buildScoreboard(
   const awayScore = document.createElement('div');
   awayScore.className = 'scoreboard-score';
   awayScore.textContent = game.postponed ? '-' : String(game.awayScore);
+  const awayScoreButton = createGameScoreCorrectionButton(
+    game,
+    away,
+    home,
+    'away_score',
+    'Away Score',
+    game.awayScore,
+  );
+  if (awayScoreButton) awayScore.appendChild(awayScoreButton);
   awaySide.append(awayLabel, awayScore);
 
   const sep = document.createElement('div');
@@ -283,6 +300,15 @@ function buildScoreboard(
   const homeScore = document.createElement('div');
   homeScore.className = 'scoreboard-score';
   homeScore.textContent = game.postponed ? '-' : String(game.homeScore);
+  const homeScoreButton = createGameScoreCorrectionButton(
+    game,
+    away,
+    home,
+    'home_score',
+    'Home Score',
+    game.homeScore,
+  );
+  if (homeScoreButton) homeScore.appendChild(homeScoreButton);
   homeSide.append(homeLabel, homeScore);
 
   sides.append(awaySide, sep, homeSide);
@@ -371,7 +397,21 @@ function buildQuarterTable(
   return table;
 }
 
-function buildPlayerStatsTable(stats: GamePlayerStat[]): HTMLElement {
+type CorrectableGameField =
+  | 'goals'
+  | 'assists'
+  | 'ground_balls'
+  | 'caused_turnovers'
+  | 'saves'
+  | 'fo_won'
+  | 'fo_taken';
+
+function buildPlayerStatsTable(
+  stats: GamePlayerStat[],
+  game: { date: string },
+  homeName: string,
+  awayName: string,
+): HTMLElement {
   const table = document.createElement('table');
   table.className = 'stat player-stats';
 
@@ -388,35 +428,187 @@ function buildPlayerStatsTable(stats: GamePlayerStat[]): HTMLElement {
   const tbody = document.createElement('tbody');
   for (const ps of stats) {
     const tr = document.createElement('tr');
-    const cells: Array<{ value: string; href?: string }> = [
-      { value: ps.playerName, href: `#/players/${ps.playerId}` },
-      { value: String(ps.goals) },
-      { value: String(ps.assists) },
-      { value: String(ps.goals + ps.assists) },
-      { value: String(ps.groundBalls) },
-      { value: String(ps.causedTurnovers) },
-      { value: String(ps.saves) },
-      { value: ps.foTaken > 0 ? `${ps.foWon}/${ps.foTaken}` : '–' },
-    ];
-    cells.forEach((cell, i) => {
-      const td = document.createElement('td');
-      if (cell.href) {
-        const a = document.createElement('a');
-        a.href = cell.href;
-        a.textContent = cell.value;
-        td.appendChild(a);
-      } else {
-        td.textContent = cell.value;
-      }
-      if (i === 0) {
-        const badge = renderConfidenceBadge(ps.confidence);
-        if (badge) td.appendChild(badge);
-      }
-      if (i > 0) td.className = 'num';
-      tr.appendChild(td);
-    });
+
+    const playerTd = document.createElement('td');
+    const playerLink = document.createElement('a');
+    playerLink.href = `#/players/${ps.playerId}`;
+    playerLink.textContent = ps.playerName;
+    playerTd.appendChild(playerLink);
+    const badge = renderConfidenceBadge(ps.confidence);
+    if (badge) playerTd.appendChild(badge);
+    tr.appendChild(playerTd);
+
+    tr.appendChild(createGameStatCell(ps, game, homeName, awayName, 'goals', 'Goals', ps.goals));
+    tr.appendChild(createGameStatCell(ps, game, homeName, awayName, 'assists', 'Assists', ps.assists));
+
+    const pointsTd = document.createElement('td');
+    pointsTd.className = 'num';
+    pointsTd.textContent = String(ps.goals + ps.assists);
+    tr.appendChild(pointsTd);
+
+    tr.appendChild(
+      createGameStatCell(ps, game, homeName, awayName, 'ground_balls', 'Ground Balls', ps.groundBalls),
+    );
+    tr.appendChild(
+      createGameStatCell(
+        ps,
+        game,
+        homeName,
+        awayName,
+        'caused_turnovers',
+        'Caused Turnovers',
+        ps.causedTurnovers,
+      ),
+    );
+    tr.appendChild(createGameStatCell(ps, game, homeName, awayName, 'saves', 'Saves', ps.saves));
+    tr.appendChild(createGameFaceoffCell(ps, game, homeName, awayName));
+
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
   return table;
+}
+
+function createGameStatCell(
+  stat: GamePlayerStat,
+  game: { date: string },
+  homeName: string,
+  awayName: string,
+  fieldName: CorrectableGameField,
+  fieldLabel: string,
+  currentValue: number,
+): HTMLTableCellElement {
+  const td = document.createElement('td');
+  td.className = 'num';
+  td.appendChild(document.createTextNode(String(currentValue)));
+
+  const button = createGamePlayerCorrectionButton(
+    stat,
+    game,
+    homeName,
+    awayName,
+    fieldName,
+    fieldLabel,
+    currentValue,
+  );
+  if (button) td.appendChild(button);
+
+  return td;
+}
+
+function createGameFaceoffCell(
+  stat: GamePlayerStat,
+  game: { date: string },
+  homeName: string,
+  awayName: string,
+): HTMLTableCellElement {
+  const td = document.createElement('td');
+  td.className = 'num';
+
+  if (stat.foTaken <= 0) {
+    td.textContent = '–';
+    return td;
+  }
+
+  td.appendChild(document.createTextNode(String(stat.foWon)));
+  const wonButton = createGamePlayerCorrectionButton(
+    stat,
+    game,
+    homeName,
+    awayName,
+    'fo_won',
+    'FO Won',
+    stat.foWon,
+  );
+  if (wonButton) td.appendChild(wonButton);
+
+  td.appendChild(document.createTextNode('/'));
+  td.appendChild(document.createTextNode(String(stat.foTaken)));
+  const takenButton = createGamePlayerCorrectionButton(
+    stat,
+    game,
+    homeName,
+    awayName,
+    'fo_taken',
+    'FO Taken',
+    stat.foTaken,
+  );
+  if (takenButton) td.appendChild(takenButton);
+
+  return td;
+}
+
+function createGamePlayerCorrectionButton(
+  stat: GamePlayerStat,
+  game: { date: string },
+  homeName: string,
+  awayName: string,
+  fieldName: CorrectableGameField,
+  fieldLabel: string,
+  currentValue: number,
+): HTMLButtonElement | null {
+  if (typeof stat.id !== 'number') return null;
+
+  const button = createCorrectionButtonElement();
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const target: CorrectionTarget = {
+      entityType: 'player_stat',
+      entityId: stat.id,
+      fieldName,
+      fieldLabel,
+      currentValue,
+      contextLabel: `${stat.playerName} - ${homeName} vs ${awayName} (${formatDate(game.date)})`,
+    };
+    openCorrectionModal(target);
+  });
+  return button;
+}
+
+function createGameScoreCorrectionButton(
+  game: { id?: number; date: string; postponed: boolean },
+  away: { name: string },
+  home: { name: string },
+  fieldName: 'home_score' | 'away_score',
+  fieldLabel: 'Home Score' | 'Away Score',
+  currentValue: number,
+): HTMLButtonElement | null {
+  if (typeof game.id !== 'number' || game.postponed) return null;
+  const entityId = game.id;
+
+  const button = createCorrectionButtonElement();
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const target: CorrectionTarget = {
+      entityType: 'game',
+      entityId,
+      fieldName,
+      fieldLabel,
+      currentValue,
+      contextLabel: `${home.name} vs ${away.name} (${formatDate(game.date)})`,
+    };
+    openCorrectionModal(target);
+  });
+  return button;
+}
+
+function createCorrectionButtonElement(): HTMLButtonElement {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.title = 'Suggest a correction';
+  button.setAttribute('aria-label', 'Suggest a correction');
+  button.textContent = '✏️';
+  button.style.cssText =
+    'font-size: 0.75em; opacity: 0.6; cursor: pointer; background: none; border: none; padding: 0 4px;';
+  button.addEventListener('mouseenter', () => {
+    button.style.opacity = '1';
+  });
+  button.addEventListener('mouseleave', () => {
+    button.style.opacity = '0.6';
+  });
+  return button;
 }

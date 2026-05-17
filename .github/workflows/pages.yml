@@ -82,6 +82,7 @@ jobs:
         env:
           VITE_STATIC_MODE: 'true'
           VITE_BASE_PATH: ${{ env.VITE_BASE_PATH }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
       - name: Add .nojekyll
         run: touch packages/web/dist/.nojekyll

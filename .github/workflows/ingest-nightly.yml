@@ -193,6 +193,12 @@ jobs:
       - name: Seed team aliases from anomalies
         run: pnpm --filter @pll/ingest seed:aliases ${{ github.workspace }}/data/lacrosse.db
 
+      - name: Apply community corrections
+        run: |
+          pnpm --filter @pll/ingest exec tsx src/scripts/applyCorrections.ts \
+            --db=${{ env.DB_LOCAL_PATH || 'data/lacrosse.db' }}
+        continue-on-error: true
+
       - name: Upload updated DB to Azure Files
         env:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}

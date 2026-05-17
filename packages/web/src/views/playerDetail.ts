@@ -7,6 +7,7 @@ import { isOutlier } from '../util/zscore.js';
 import { renderPerGameTrend } from '../charts/index.js';
 import type { PerGameTrendDatum } from '../charts/index.js';
 import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
+import { openCorrectionModal, type CorrectionTarget } from '../components/correctionModal.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   ensureShareCss();
@@ -113,7 +114,13 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     return;
   }
 
-  root.appendChild(buildPerGameTable(detail.perGame));
+  root.appendChild(buildPerGameTable(detail.perGame, detail.player.name));
+
+  const correctionNote = document.createElement('p');
+  correctionNote.className = 'correction-note';
+  correctionNote.style.cssText = 'font-size:0.75em;color:#888;margin-top:8px;';
+  correctionNote.textContent = 'See an error? Click ✏️ to suggest a correction.';
+  root.appendChild(correctionNote);
 }
 
 function buildSeasonCallouts(detail: PlayerDetail): HTMLElement {
@@ -142,7 +149,16 @@ function buildSeasonCallouts(detail: PlayerDetail): HTMLElement {
   return wrap;
 }
 
-function buildPerGameTable(stats: PlayerPerGameStat[]): HTMLElement {
+type CorrectablePlayerField =
+  | 'goals'
+  | 'assists'
+  | 'ground_balls'
+  | 'caused_turnovers'
+  | 'saves'
+  | 'fo_won'
+  | 'fo_taken';
+
+function buildPerGameTable(stats: PlayerPerGameStat[], playerName: string): HTMLElement {
   const sorted = [...stats].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   const goalsSeries = stats.map((s) => s.goals);
 
@@ -176,42 +192,127 @@ function buildPerGameTable(stats: PlayerPerGameStat[]): HTMLElement {
       }
     });
 
-    const cells: Array<string> = [
-      formatDate(ps.date),
-      String(ps.goals),
-      String(ps.assists),
-      String(ps.goals + ps.assists),
-      String(ps.groundBalls),
-      String(ps.causedTurnovers),
-      String(ps.saves),
-      ps.foTaken > 0 ? `${ps.foWon}/${ps.foTaken}` : '–',
-    ];
-    cells.forEach((value, i) => {
-      const td = document.createElement('td');
-      // Wave H6 Lane 2 (Yoda) — replaces Han's H4 hardcoded `goals > 12`
-      // heuristic with a data-driven 3σ check against the player's own
-      // season. Skips for sample sizes <3 (see isOutlier). Floor in the
-      // helper guards against tiny-stdev false positives.
-      if (i === 0 && isOutlier(ps.goals, goalsSeries)) {
-        const warn = document.createElement('span');
-        warn.className = 'anomaly-inline';
-        warn.title = 'Suspicious: per-game goals look implausibly high';
-        warn.setAttribute('aria-label', 'data anomaly');
-        warn.textContent = '⚠️ ';
-        td.appendChild(warn);
-        td.appendChild(document.createTextNode(value));
-      } else {
-        td.textContent = value;
-      }
-      if (i === 0) {
-        const badge = renderConfidenceBadge(ps.confidence);
-        if (badge) td.appendChild(badge);
-      }
-      if (i > 0) td.className = 'num';
-      tr.appendChild(td);
-    });
+    const dateTd = document.createElement('td');
+    const dateLabel = formatDate(ps.date);
+    // Wave H6 Lane 2 (Yoda) — replaces Han's H4 hardcoded `goals > 12`
+    // heuristic with a data-driven 3σ check against the player's own
+    // season. Skips for sample sizes <3 (see isOutlier). Floor in the
+    // helper guards against tiny-stdev false positives.
+    if (isOutlier(ps.goals, goalsSeries)) {
+      const warn = document.createElement('span');
+      warn.className = 'anomaly-inline';
+      warn.title = 'Suspicious: per-game goals look implausibly high';
+      warn.setAttribute('aria-label', 'data anomaly');
+      warn.textContent = '⚠️ ';
+      dateTd.appendChild(warn);
+      dateTd.appendChild(document.createTextNode(dateLabel));
+    } else {
+      dateTd.textContent = dateLabel;
+    }
+    const badge = renderConfidenceBadge(ps.confidence);
+    if (badge) dateTd.appendChild(badge);
+    tr.appendChild(dateTd);
+
+    tr.appendChild(createPlayerStatCell(ps, playerName, 'goals', 'Goals', ps.goals));
+    tr.appendChild(createPlayerStatCell(ps, playerName, 'assists', 'Assists', ps.assists));
+
+    const pointsTd = document.createElement('td');
+    pointsTd.className = 'num';
+    pointsTd.textContent = String(ps.goals + ps.assists);
+    tr.appendChild(pointsTd);
+
+    tr.appendChild(createPlayerStatCell(ps, playerName, 'ground_balls', 'Ground Balls', ps.groundBalls));
+    tr.appendChild(
+      createPlayerStatCell(ps, playerName, 'caused_turnovers', 'Caused Turnovers', ps.causedTurnovers),
+    );
+    tr.appendChild(createPlayerStatCell(ps, playerName, 'saves', 'Saves', ps.saves));
+    tr.appendChild(createPlayerFaceoffCell(ps, playerName));
+
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
   return table;
+}
+
+function createPlayerStatCell(
+  stat: PlayerPerGameStat,
+  playerName: string,
+  fieldName: CorrectablePlayerField,
+  fieldLabel: string,
+  currentValue: number,
+): HTMLTableCellElement {
+  const td = document.createElement('td');
+  td.className = 'num';
+  td.appendChild(document.createTextNode(String(currentValue)));
+
+  const button = createPlayerCorrectionButton(stat, playerName, fieldName, fieldLabel, currentValue);
+  if (button) td.appendChild(button);
+
+  return td;
+}
+
+function createPlayerFaceoffCell(stat: PlayerPerGameStat, playerName: string): HTMLTableCellElement {
+  const td = document.createElement('td');
+  td.className = 'num';
+
+  if (stat.foTaken <= 0) {
+    td.textContent = '–';
+    return td;
+  }
+
+  td.appendChild(document.createTextNode(String(stat.foWon)));
+  const wonButton = createPlayerCorrectionButton(stat, playerName, 'fo_won', 'FO Won', stat.foWon);
+  if (wonButton) td.appendChild(wonButton);
+
+  td.appendChild(document.createTextNode('/'));
+  td.appendChild(document.createTextNode(String(stat.foTaken)));
+  const takenButton = createPlayerCorrectionButton(
+    stat,
+    playerName,
+    'fo_taken',
+    'FO Taken',
+    stat.foTaken,
+  );
+  if (takenButton) td.appendChild(takenButton);
+
+  return td;
+}
+
+function createPlayerCorrectionButton(
+  stat: PlayerPerGameStat,
+  playerName: string,
+  fieldName: CorrectablePlayerField,
+  fieldLabel: string,
+  currentValue: number,
+): HTMLButtonElement | null {
+  if (typeof stat.id !== 'number') return null;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.title = 'Suggest a correction';
+  button.setAttribute('aria-label', 'Suggest a correction');
+  button.textContent = '✏️';
+  button.style.cssText =
+    'font-size: 0.75em; opacity: 0.6; cursor: pointer; background: none; border: none; padding: 0 4px;';
+  button.addEventListener('mouseenter', () => {
+    button.style.opacity = '1';
+  });
+  button.addEventListener('mouseleave', () => {
+    button.style.opacity = '0.6';
+  });
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const target: CorrectionTarget = {
+      entityType: 'player_stat',
+      entityId: stat.id,
+      fieldName,
+      fieldLabel,
+      currentValue,
+      contextLabel: `${playerName} (${formatDate(stat.date)})`,
+    };
+    openCorrectionModal(target);
+  });
+  return button;
 }

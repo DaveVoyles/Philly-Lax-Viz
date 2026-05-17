@@ -26,6 +26,7 @@ import { freshnessRoutes } from './routes/freshness.js';
 import { postImagesRoutes } from './routes/postImages.js';
 import { searchRoutes } from './routes/search.js';
 import { comparePlayersRoutes } from './routes/comparePlayers.js';
+import correctionsRoutes from './routes/corrections.js';
 import adminDedupRoutes from './routes/adminDedup.js';
 import { responseCachePlugin, type ResponseCacheOptions } from './plugins/responseCache.js';
 
@@ -103,6 +104,8 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
     reply.code(404).send({ error: 'NotFound', message: 'Route not found' });
   });
 
+  app.decorate('db', db);
+
   await healthRoutes(app, db);
   await teamsRoutes(app, db);
   await gamesRoutes(app, db);
@@ -121,6 +124,7 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   await postImagesRoutes(app, db);
   await searchRoutes(app, db);
   await comparePlayersRoutes(app, db);
+  await app.register(correctionsRoutes, { prefix: '/api' });
   await app.register(adminDedupRoutes, { db });
 
   return app;
