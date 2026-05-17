@@ -5,6 +5,7 @@
 // through. Lazy-imported from main.ts to keep the entry chunk lean.
 
 import { getFreshness } from '../api.js';
+import { IS_STATIC, staticFetch } from '../staticLoader.js';
 
 interface FreshnessResponse {
   scoreboardLast: string | null;
@@ -148,6 +149,9 @@ function relative(iso: string | null): string {
 
 async function fetchFreshness(): Promise<FreshnessResponse | null> {
   try {
+    if (IS_STATIC) {
+      return await staticFetch<FreshnessResponse>('/api/freshness');
+    }
     return await getFreshness();
   } catch {
     return null;
@@ -237,6 +241,13 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   intro.textContent =
     'Philly Lacrosse Vis is a community project. Every number you see traces back to one of the public sources below. If something looks wrong, please file an issue with the recap URL or a screenshot - we will fix it.';
   root.appendChild(intro);
+
+  if (IS_STATIC) {
+    const snapshot = document.createElement('p');
+    snapshot.className = 'muted';
+    snapshot.textContent = 'GitHub Pages shows a static export snapshot of this source metadata and freshness data.';
+    root.appendChild(snapshot);
+  }
 
   const grid = document.createElement('div');
   grid.className = 'sources-grid';

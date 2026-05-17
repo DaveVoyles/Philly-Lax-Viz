@@ -143,6 +143,9 @@ jobs:
             echo "::endgroup::"
           done
 
+      - name: Seed team aliases from anomalies
+        run: pnpm --filter @pll/ingest seed:aliases ${{ github.workspace }}/data/lacrosse.db
+
       - name: Run LaxNumbers ingest (PA-only additive)
         env:
           DB_PATH: ${{ env.DB_LOCAL_PATH }}
@@ -190,9 +193,6 @@ jobs:
             echo "::error::Anomaly spike detected: +${DELTA} new anomalies exceeds threshold of 50"
             exit 1
           fi
-
-      - name: Seed team aliases from anomalies
-        run: pnpm --filter @pll/ingest seed:aliases ${{ github.workspace }}/data/lacrosse.db
 
       - name: Apply community corrections
         run: |

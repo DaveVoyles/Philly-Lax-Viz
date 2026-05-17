@@ -34,6 +34,7 @@ const loaders: Record<Exclude<RouteName, 'notFound'>, () => Promise<ViewModule>>
   schedule: () => import('./views/schedule.js'),
   sources: () => import('./views/sources.js'),
   status: () => import('./views/status.js'),
+  adminCorrections: () => import('./views/adminCorrections.js'),
   adminDedup: () => import('./views/adminDedup.js'),
 };
 
@@ -57,7 +58,12 @@ const MORE_NAV: NavLink[] = [
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
   { href: '#/sources', label: 'Sources', match: 'sources' },
   { href: '#/status', label: 'Status', match: 'status' },
-  ...(IS_STATIC ? [] : [{ href: '#/admin/dedup', label: 'Admin', match: 'adminDedup' as const }]),
+  ...(IS_STATIC
+    ? []
+    : [
+        { href: '#/admin/corrections', label: 'Admin corrections', match: 'adminCorrections' as const },
+        { href: '#/admin/dedup', label: 'Admin dedup', match: 'adminDedup' as const },
+      ]),
 ];
 
 function mountShell(app: HTMLElement): {

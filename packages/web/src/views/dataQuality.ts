@@ -2,6 +2,7 @@
 // Single fetch on mount, then in-memory client-side filtering + aggregation.
 
 import { ApiError, getAnomalies, getPiaaMismatches, type PiaaMismatchResponse } from '../api.js';
+import { IS_STATIC, staticFetch } from '../staticLoader.js';
 import type { IngestAnomaly, ParserStrategy } from '@pll/shared';
 
 interface ViewState {
@@ -22,7 +23,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
 
   const subtitle = document.createElement('p');
   subtitle.className = 'muted anomaly-subtitle';
-  subtitle.textContent = 'Loading anomalies…';
+  subtitle.textContent = IS_STATIC ? 'Loading exported anomaly snapshot…' : 'Loading anomalies…';
   root.appendChild(subtitle);
 
   const status = document.createElement('div');
@@ -107,7 +108,9 @@ interface RenderTargets {
 async function load(t: RenderTargets): Promise<void> {
   let rows: IngestAnomaly[];
   try {
-    rows = await getAnomalies();
+    rows = IS_STATIC
+      ? await staticFetch<IngestAnomaly[]>('/api/anomalies')
+      : await getAnomalies();
   } catch (err) {
     const msg = err instanceof ApiError ? `${err.message} (${err.url})` : String(err);
     t.subtitle.textContent = '';
@@ -130,7 +133,7 @@ async function load(t: RenderTargets): Promise<void> {
   // Header / subtitle: total + date range.
   const range = computeDateRange(rows);
   t.subtitle.textContent =
-    `${rows.length} anomalies · ` +
+    `${rows.length} anomalies${IS_STATIC ? ' in this static snapshot' : ''} · ` +
     (range ? `${formatDate(range.first)} → ${formatDate(range.last)}` : 'no timestamps');
 
   const state: ViewState = { all: rows, kindFilter: '', search: '' };
@@ -442,7 +445,9 @@ function formatDateTime(iso: string): string {
 async function loadPiaa(subtitle: HTMLElement, body: HTMLElement): Promise<void> {
   let resp: PiaaMismatchResponse;
   try {
-    resp = await getPiaaMismatches();
+    resp = IS_STATIC
+      ? await staticFetch<PiaaMismatchResponse>('/api/data-quality/piaa-mismatches')
+      : await getPiaaMismatches();
   } catch (err) {
     const msg = err instanceof ApiError ? `${err.message} (${err.url})` : String(err);
     subtitle.textContent = '';
@@ -458,7 +463,7 @@ async function loadPiaa(subtitle: HTMLElement, body: HTMLElement): Promise<void>
     return;
   }
 
-  subtitle.textContent = `Snapshot: ${formatDateTime(resp.fetchedAt)} · piaad1.org`;
+  subtitle.textContent = `${IS_STATIC ? 'Static snapshot' : 'Snapshot'}: ${formatDateTime(resp.fetchedAt)} · piaad1.org`;
 
   body.replaceChildren();
   const summaryTable = document.createElement('table');

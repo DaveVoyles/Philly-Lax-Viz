@@ -803,6 +803,32 @@ export function getConstellation(): Promise<ConstellationResponse> {
   return request<ConstellationResponse>('/players/constellation');
 }
 
+export interface CorrectionRecord {
+  id: number;
+  submitter_first?: string;
+  submitter_last?: string;
+  submitter_email?: string;
+  submitter_name?: string;
+  entity_type: string;
+  entity_id: number;
+  field_name: string;
+  old_value: string | null;
+  new_value: string;
+  note: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'outlier';
+  submitted_at: string;
+  reviewed_at: string | null;
+  reviewer_notes: string | null;
+}
+
+export function getFlaggedCorrections(): Promise<CorrectionRecord[]> {
+  return request<CorrectionRecord[]>('/corrections/flagged');
+}
+
+export function getRecentCorrections(): Promise<CorrectionRecord[]> {
+  return request<CorrectionRecord[]>('/corrections/recent');
+}
+
 // ---- Admin player dedup review (LS-1-C, Chewy) ----
 
 export interface DedupCandidateRow {

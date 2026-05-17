@@ -35,7 +35,7 @@ interface IngestAnomalyRow {
 }
 
 const AUTO_SEED_SOURCE = 'anomaly-auto-seed';
-const HIGH_CONFIDENCE_THRESHOLD = 0.8;
+const HIGH_CONFIDENCE_THRESHOLD = 0.9;
 const REVIEW_THRESHOLD = 0.6;
 const LAXNUMBERS_TEAM_RE = /unknown (?:home|visitor) team:\s*"([^"]+)"/i;
 

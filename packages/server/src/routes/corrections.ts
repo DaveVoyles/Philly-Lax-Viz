@@ -73,6 +73,32 @@ function isCorrectableFieldName(value: string): value is CorrectableFieldName {
 }
 
 const correctionsRoutesImpl: FastifyPluginAsync = async (app) => {
+  app.get('/corrections/flagged', async (_request, reply) => {
+    const rows = app.db.prepare(`
+      SELECT id, submitter_first, submitter_last, submitter_email,
+             entity_type, entity_id, field_name, old_value, new_value, note,
+             status, submitted_at, reviewed_at, reviewer_notes
+      FROM community_corrections
+      WHERE status = 'outlier'
+      ORDER BY submitted_at DESC
+      LIMIT 200
+    `).all();
+    return reply.send(rows);
+  });
+
+  app.get('/corrections/recent', async (_request, reply) => {
+    const rows = app.db.prepare(`
+      SELECT id, submitter_first || ' ' || submitter_last AS submitter_name, submitter_email,
+             entity_type, entity_id, field_name, old_value, new_value, note,
+             status, submitted_at, reviewed_at, reviewer_notes
+      FROM community_corrections
+      WHERE status IN ('approved', 'outlier')
+      ORDER BY submitted_at DESC
+      LIMIT 50
+    `).all();
+    return reply.send(rows);
+  });
+
   app.post<{ Body: CorrectionsBody }>('/corrections', async (request, reply) => {
     const submitterFirst = getNonEmptyString(request.body?.submitterFirst);
     if (!submitterFirst) {

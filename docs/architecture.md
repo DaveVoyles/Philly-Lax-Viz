@@ -351,6 +351,7 @@ This is additive — it supplements phillylacrosse.com data, not replaces it.
 | `#/schedule` | Schedule | full season schedule |
 | `#/sources` | Sources | freshness timestamps (⚠️ no static export) |
 | `#/status` | Status | freshness + anomaly summary |
+| `#/admin/corrections` | Admin corrections | outlier inbox + recent approvals (intentionally disabled in static mode) |
 | `#/admin/dedup` | Admin dedup | dedup candidates (intentionally disabled in static mode) |
 
 ---
@@ -386,6 +387,8 @@ This is additive — it supplements phillylacrosse.com data, not replaces it.
 | GET | `/api/posts/images` | `postImages.ts` | ❌ **No static export** |
 | GET | `/api/search` | `search.ts` | ✅ client-side filtered via `search-index.json` |
 | GET | `/api/compare/players` | `comparePlayers.ts` | ❌ **No static export** |
+| GET | `/api/corrections/flagged` | `corrections.ts` | ❌ Admin only — intentionally excluded |
+| GET | `/api/corrections/recent` | `corrections.ts` | ❌ Admin only — intentionally excluded |
 | GET | `/api/admin/dedup-candidates` | `adminDedup.ts` | ❌ Admin only — intentionally excluded |
 | PATCH | `/api/admin/dedup-candidates/:id` | `adminDedup.ts` | ❌ Admin only |
 | POST | `/api/admin/dedup-candidates/:id/merge` | `adminDedup.ts` | ❌ Admin only |
@@ -408,7 +411,8 @@ Dashboard, Team Detail, Game Detail, Game Scrubber, Player Detail, Leaders, Anom
 | Page | Status |
 |------|--------|
 | `#/compare/players` | Falls back to `empty.json`; compare feature non-functional on Pages |
-| `#/admin/dedup` | Admin tool — intentionally excluded from static export |
+| `#/admin/corrections` | Admin tool - intentionally excluded from static export |
+| `#/admin/dedup` | Admin tool - intentionally excluded from static export |
 
 ---
 
@@ -422,7 +426,7 @@ Dashboard, Team Detail, Game Detail, Game Scrubber, Player Detail, Leaders, Anom
 ### ADR-002: GitHub Pages as primary deployment, not Azure
 **Decision:** GitHub Pages is the user-facing URL; Azure Container App is internal.  
 **Why:** GitHub Pages is free, requires no credential rotation, is always available, and has no cold-start latency. The Azure SWA/Container App has API routing complexity and credential maintenance overhead. For a read-heavy sports stats site, pre-built static JSON is sufficient for all user-facing views.  
-**Trade-off:** Dynamic features (compare players, H2H, admin dedup, PIAA mismatches) are not available on GitHub Pages. These degrade gracefully to empty states.
+**Trade-off:** Dynamic features (compare players, H2H, admin corrections, admin dedup, PIAA mismatches) are not available on GitHub Pages. These degrade gracefully to empty states.
 
 ### ADR-003: Static JSON export instead of API proxy at deploy time
 **Decision:** `exportStatic.ts` pre-generates all JSON responses at deploy time.  
@@ -518,4 +522,6 @@ Add `VITE_API_URL` as a GitHub Actions secret (Settings -> Secrets -> Actions):
 2. Nightly ingest runs (`ingest-nightly.yml`)
 3. `applyCorrections.ts` runs after ingest, applies all `pending` non-outlier corrections
 4. Outlier corrections (for example, goals: 2 -> 200) are marked `outlier` and skipped
-5. Applied corrections survive re-ingest because `applyCorrections.ts` runs after ingest each night
+5. Admins can review flagged items via `GET /api/corrections/flagged` or the `#/admin/corrections` inbox on the live web app
+6. Recent applied/outlier activity is exposed via `GET /api/corrections/recent` for the inbox summary table
+7. Applied corrections survive re-ingest because `applyCorrections.ts` runs after ingest each night
