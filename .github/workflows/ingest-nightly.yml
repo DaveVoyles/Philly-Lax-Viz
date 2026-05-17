@@ -103,10 +103,10 @@ jobs:
           DB_PATH: ${{ env.DB_LOCAL_PATH }}
         run: |
           echo "::group::Crawl hs-summaries"
-          pnpm --filter @pll/ingest crawl -- --category=hs-summaries
+          pnpm --filter @pll/ingest crawl --category=hs-summaries
           echo "::endgroup::"
           echo "::group::Crawl scoreboard"
-          pnpm --filter @pll/ingest crawl -- --category=scoreboard
+          pnpm --filter @pll/ingest crawl --category=scoreboard
           echo "::endgroup::"
 
       - name: Run ingest
