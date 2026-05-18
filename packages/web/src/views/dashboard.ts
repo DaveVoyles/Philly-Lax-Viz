@@ -32,7 +32,9 @@ type SortDir = 'asc' | 'desc';
 interface TeamSort { key: SortKey; dir: SortDir; }
 interface TeamFilter { hideLowGames: boolean; minGames: number; }
 
-const RECENT_GAME_LIMIT = 25;
+const RECENT_GAME_DAYS = 7;
+// Fetch enough rows to cover the seven-day window before client-side trimming.
+const RECENT_GAME_LIMIT = 200;
 const LEADER_PANEL_LIMIT = 10;
 const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 const DASHBOARD_LIVE_STYLE_ID = 'dashboard-live-poller-styles';
@@ -136,7 +138,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   const gamesHeader = document.createElement('div');
   gamesHeader.className = 'recent-games-header';
   const gamesTitle = document.createElement('h2');
-  gamesTitle.textContent = 'Recent Games';
+  gamesTitle.textContent = 'Recent Games (Last 7 Days)';
   const liveIndicator = document.createElement('span');
   liveIndicator.id = 'live-indicator';
   liveIndicator.className = 'live-dot';
@@ -482,7 +484,7 @@ async function loadTeamsAndGames(
   ]);
 
   if (recentGamesResult.status === 'fulfilled') {
-    const games = recentGamesResult.value;
+    const games = recentGamesWithinDays(recentGamesResult.value, RECENT_GAME_DAYS);
     await renderGamesList(gamesTarget, games, teamById);
     recentGamesSignature = buildGameSignature(games);
     recentGamesLastUpdated = new Date();
@@ -725,6 +727,15 @@ function buildGameSignature(games: Game[]): string {
     .join('|');
 }
 
+export function recentGamesWithinDays(
+  games: Game[],
+  days = RECENT_GAME_DAYS,
+  now = Date.now(),
+): Game[] {
+  const cutoff = now - days * 24 * 60 * 60 * 1000;
+  return games.filter((game) => Date.parse(`${game.date}T00:00:00Z`) >= cutoff);
+}
+
 async function loadRecentGameImages(games: Game[]): Promise<Record<string, PostImage>> {
   try {
     const slugs = games.map((g) => g.sourcePostId).filter((slug): slug is string => !!slug);
@@ -749,7 +760,7 @@ async function refreshGames(
   timestampEl: HTMLElement,
 ): Promise<void> {
   try {
-    const games = await getRecentGames(RECENT_GAME_LIMIT);
+    const games = recentGamesWithinDays(await getRecentGames(RECENT_GAME_LIMIT), RECENT_GAME_DAYS);
     const nextSignature = buildGameSignature(games);
     if (nextSignature !== recentGamesSignature) {
       await renderGamesList(container, games, teamById);

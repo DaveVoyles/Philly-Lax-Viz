@@ -1,5 +1,4 @@
 import { onRoute, startRouter, type RouteMatch } from './router.js';
-import { getFreshness } from './api.js';
 import { mountSearchBox } from './components/searchBox.js';
 import { IS_STATIC } from './staticLoader.js';
 
@@ -94,7 +93,7 @@ function mountShell(app: HTMLElement): {
     <main id="main" class="container"></main>
     <footer class="site-footer">
       <div class="site-footer__row">
-        <span class="muted" id="freshness-footer">Last scoreboard update: <span data-freshness="scoreboard">checking...</span></span>
+        <span class="muted" id="freshness-footer">Refreshed nightly</span>
         <span class="muted">
           <a href="#/sources">Where does this data come from?</a>
         </span>
@@ -252,33 +251,6 @@ function boot(): void {
   const app = document.getElementById('app');
   if (!app) throw new Error('#app root missing');
   const { main, setActive } = mountShell(app);
-
-  // W17 L3 (R2): populate the global "Last scoreboard update" footer slot
-  // from /api/freshness. Failure is silent so a server outage does not
-  // break the rest of the UI.
-  void getFreshness()
-    .then((f) => {
-      const slot = document.querySelector<HTMLElement>('[data-freshness="scoreboard"]');
-      if (!slot) return;
-      if (!f.scoreboardLast) {
-        slot.textContent = 'unknown';
-        return;
-      }
-      const t = Date.parse(f.scoreboardLast);
-      if (Number.isNaN(t)) {
-        slot.textContent = 'unknown';
-        return;
-      }
-      const ms = Date.now() - t;
-      const min = Math.round(ms / 60_000);
-      const rel =
-        min < 60 ? `${min}m ago` : min < 24 * 60 ? `${Math.round(min / 60)}h ago` : `${Math.round(min / 60 / 24)}d ago`;
-      slot.textContent = `${new Date(t).toLocaleString()} (${rel})`;
-    })
-    .catch(() => {
-      const slot = document.querySelector<HTMLElement>('[data-freshness="scoreboard"]');
-      if (slot) slot.textContent = 'unknown';
-    });
 
   onRoute((match) => {
     setActive(match.name);
