@@ -1,3 +1,5 @@
+import type { Game } from '@pll/shared';
+
 const ENV = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
 
 export const IS_STATIC: boolean = ENV.VITE_STATIC_MODE === 'true';
@@ -134,6 +136,13 @@ function sortSearchHits(hits: SearchHit[], lower: string): SearchHit[] {
   });
 }
 
+function sortGames(games: Game[]): Game[] {
+  return [...games].sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return b.id - a.id;
+  });
+}
+
 /** Fetch a static JSON file. For /api/search, does client-side filtering. */
 export async function staticFetch<T>(apiPath: string): Promise<T> {
   const url = readUrl(apiPath);
@@ -150,6 +159,45 @@ export async function staticFetch<T>(apiPath: string): Promise<T> {
   }
 
   const data = await fetchJson<unknown>(toStaticUrl(apiPath));
+
+  if (pathname === '/games' && Array.isArray(data)) {
+    let games = sortGames(data as Game[]);
+    const date = url.searchParams.get('date');
+    const from = url.searchParams.get('from');
+    const to = url.searchParams.get('to');
+    const teamRaw = url.searchParams.get('team_id') ?? url.searchParams.get('team');
+    const season = url.searchParams.get('season');
+
+    if (date) {
+      games = games.filter((game) => game.date === date);
+    }
+    if (from || to) {
+      const start = from ?? '0000-01-01';
+      const end = to ?? '9999-12-31';
+      games = games.filter((game) => game.date >= start && game.date <= end);
+    }
+    if (teamRaw !== null) {
+      const teamId = Number(teamRaw);
+      if (Number.isInteger(teamId) && teamId > 0) {
+        games = games.filter((game) => game.homeTeamId === teamId || game.awayTeamId === teamId);
+      }
+    }
+    if (season !== null) {
+      const year = Number(season);
+      if (Number.isInteger(year)) {
+        const prefix = String(year);
+        games = games.filter((game) => game.date.startsWith(prefix));
+      }
+    }
+    const offset = Number(url.searchParams.get('offset') ?? '');
+    if (Number.isFinite(offset) && offset > 0) {
+      games = games.slice(Math.trunc(offset));
+    }
+    if (Number.isFinite(limit) && limit > 0) {
+      games = games.slice(0, Math.trunc(limit));
+    }
+    return games as T;
+  }
 
   if (pathname.match(/^\/teams\/[^/]+\/topScorers$/)) {
     const effectiveLimit = Number.isFinite(limit) && limit > 0 ? Math.trunc(limit) : 5;

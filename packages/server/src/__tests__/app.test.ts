@@ -27,6 +27,10 @@ function seed(d: Database): void {
     `INSERT INTO games (id, date, home_team_id, away_team_id, home_score, away_score, ot_periods, postponed, source_post_id, recap_url, parsed_at)
      VALUES (11, '2025-04-19', 3, 1, 9, 11, 0, 0, 'post-2', NULL, ?)`,
   ).run(NOW);
+  d.prepare(
+    `INSERT INTO games (id, date, home_team_id, away_team_id, home_score, away_score, ot_periods, postponed, source_post_id, recap_url, parsed_at)
+     VALUES (12, '2025-04-20', 2, 3, 7, 6, 0, 0, 'post-3', NULL, ?)`,
+  ).run(NOW);
 
   // periods for game 10
   for (let p = 1; p <= 4; p += 1) {
@@ -100,7 +104,7 @@ describe('GET /api/health', () => {
     const body = res.json();
     expect(body.ok).toBe(true);
     expect(body.dbRows.teams).toBe(3);
-    expect(body.dbRows.games).toBe(2);
+    expect(body.dbRows.games).toBe(3);
     expect(body.dbRows.players).toBe(2);
     expect(body.dbRows.playerStats).toBe(3);
     expect(body.dbRows.rankings).toBe(3);
@@ -180,7 +184,7 @@ describe('GET /api/games', () => {
     const res = await app.inject({ method: 'GET', url: '/api/games' });
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body).toHaveLength(2);
+    expect(body).toHaveLength(3);
     expect(body[0].date).toBe('2025-04-21');
   });
 
@@ -192,10 +196,27 @@ describe('GET /api/games', () => {
     expect(body[0].id).toBe(11);
   });
 
+  it('filters by date range', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/games?from=2025-04-19&to=2025-04-21' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body).toHaveLength(3);
+    expect(body.map((g: { id: number }) => g.id)).toEqual([10, 12, 11]);
+  });
+
   it('filters by team_id', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/games?team_id=2' });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toHaveLength(1);
+    expect(res.json()).toHaveLength(2);
+  });
+
+  it('applies team filters before offset within a date range', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/games?from=2025-04-19&to=2025-04-21&team_id=1&offset=2',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toHaveLength(0);
   });
 
   it('rejects bad date', async () => {
@@ -203,7 +224,7 @@ describe('GET /api/games', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('caps limit at 200', async () => {
+  it('caps limit at 1000', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/games?limit=9999' });
     expect(res.statusCode).toBe(200);
   });

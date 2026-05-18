@@ -4,7 +4,6 @@ import {
   getGameCalendar,
   getGames,
   getTeams,
-  getRecentGames,
   getPlayerLeaders,
   getPostImages,
   type PlayerLeaderRow,
@@ -33,8 +32,6 @@ interface TeamSort { key: SortKey; dir: SortDir; }
 interface TeamFilter { hideLowGames: boolean; minGames: number; }
 
 const RECENT_GAME_DAYS = 7;
-// Fetch enough rows to cover the seven-day window before client-side trimming.
-const RECENT_GAME_LIMIT = 200;
 const LEADER_PANEL_LIMIT = 10;
 const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 const DASHBOARD_LIVE_STYLE_ID = 'dashboard-live-poller-styles';
@@ -479,7 +476,7 @@ async function loadTeamsAndGames(
   const teamById = new Map<number, Team>(teams.map((t) => [t.id, t]));
 
   const [recentGamesResult, allGamesResult] = await Promise.allSettled([
-    getRecentGames(RECENT_GAME_LIMIT),
+    getGames(recentGamesQueryWindow()),
     getGames(),
   ]);
 
@@ -736,6 +733,12 @@ export function recentGamesWithinDays(
   return games.filter((game) => Date.parse(`${game.date}T00:00:00Z`) >= cutoff);
 }
 
+function recentGamesQueryWindow(days = RECENT_GAME_DAYS, now = Date.now()): { from: string; to: string } {
+  const to = new Date(now).toISOString().slice(0, 10);
+  const from = new Date(now - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return { from, to };
+}
+
 async function loadRecentGameImages(games: Game[]): Promise<Record<string, PostImage>> {
   try {
     const slugs = games.map((g) => g.sourcePostId).filter((slug): slug is string => !!slug);
@@ -760,7 +763,7 @@ async function refreshGames(
   timestampEl: HTMLElement,
 ): Promise<void> {
   try {
-    const games = recentGamesWithinDays(await getRecentGames(RECENT_GAME_LIMIT), RECENT_GAME_DAYS);
+    const games = recentGamesWithinDays(await getGames(recentGamesQueryWindow()), RECENT_GAME_DAYS);
     const nextSignature = buildGameSignature(games);
     if (nextSignature !== recentGamesSignature) {
       await renderGamesList(container, games, teamById);

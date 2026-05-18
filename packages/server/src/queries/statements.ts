@@ -16,6 +16,8 @@ export interface Statements {
   latestRankingForTeam: Statement;
 
   listGames: Statement;
+  listGamesByRange: Statement;
+  listGamesByRangeAndTeam: Statement;
   listGamesByDate: Statement;
   listGamesByTeam: Statement;
   listGamesByDateAndTeam: Statement;
@@ -142,6 +144,18 @@ export function getStatements(db: Database): Statements {
 
     listGames: db.prepare(
       `SELECT * FROM games
+       ORDER BY date DESC, id DESC
+       LIMIT ? OFFSET ?`,
+    ),
+    listGamesByRange: db.prepare(
+      `SELECT * FROM games
+       WHERE date >= ? AND date <= ?
+       ORDER BY date DESC, id DESC
+       LIMIT ? OFFSET ?`,
+    ),
+    listGamesByRangeAndTeam: db.prepare(
+      `SELECT * FROM games
+       WHERE date >= ? AND date <= ? AND (home_team_id = ? OR away_team_id = ?)
        ORDER BY date DESC, id DESC
        LIMIT ? OFFSET ?`,
     ),

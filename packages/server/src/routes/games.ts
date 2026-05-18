@@ -16,6 +16,8 @@ import { getImageForSlug } from '../queries/postImages.js';
 
 interface ListQuery {
   date?: string;
+  from?: string;
+  to?: string;
   team_id?: string;
   team?: string;
   season?: string;
@@ -54,14 +56,16 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
   app.get<{ Querystring: ListQuery }>('/api/games', async (req, reply) => {
     const { date } = req.query;
 
-    let limit = 50;
+    const hasDateRange = req.query.from !== undefined || req.query.to !== undefined;
+
+    let limit = hasDateRange ? 1000 : 50;
     if (req.query.limit !== undefined) {
       const n = Number(req.query.limit);
       if (!Number.isInteger(n) || n <= 0) {
         reply.code(400);
         return { error: 'BadRequest', message: 'limit must be a positive integer' };
       }
-      limit = Math.min(n, 200);
+      limit = Math.min(n, 1000);
     }
 
     let offset = 0;
@@ -77,6 +81,18 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
     if (date !== undefined && !ISO_DATE.test(date)) {
       reply.code(400);
       return { error: 'BadRequest', message: 'date must be YYYY-MM-DD' };
+    }
+    if (req.query.from !== undefined && !ISO_DATE.test(req.query.from)) {
+      reply.code(400);
+      return { error: 'BadRequest', message: 'from must be YYYY-MM-DD' };
+    }
+    if (req.query.to !== undefined && !ISO_DATE.test(req.query.to)) {
+      reply.code(400);
+      return { error: 'BadRequest', message: 'to must be YYYY-MM-DD' };
+    }
+    if (req.query.from !== undefined && req.query.to !== undefined && req.query.from > req.query.to) {
+      reply.code(400);
+      return { error: 'BadRequest', message: 'from must be <= to' };
     }
 
     let teamId: number | undefined;
@@ -107,6 +123,13 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
       rows = s.listGamesByDateAndTeam.all(date, teamId, teamId, limit, offset) as GameRow[];
     } else if (date) {
       rows = s.listGamesByDate.all(date, limit, offset) as GameRow[];
+    } else if (hasDateRange) {
+      const from = req.query.from ?? '0000-01-01';
+      const to = req.query.to ?? '9999-12-31';
+      rows =
+        teamId !== undefined
+          ? (s.listGamesByRangeAndTeam.all(from, to, teamId, teamId, limit, offset) as GameRow[])
+          : (s.listGamesByRange.all(from, to, limit, offset) as GameRow[]);
     } else if (teamId !== undefined) {
       rows = s.listGamesByTeam.all(teamId, teamId, limit, offset) as GameRow[];
     } else {
