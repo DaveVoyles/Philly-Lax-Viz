@@ -15,7 +15,9 @@ Start here when joining the project cold:
 | 2 | [azure-deployment.md](./azure-deployment.md) | How the stack is deployed; cost model; known pitfalls from live runs |
 | 3 | [pipeline-gaps.md](./pipeline-gaps.md) | What the nightly pipeline does NOT do yet; actionable fix snippets |
 | 4 | [runbooks/source-priority.md](./runbooks/source-priority.md) | Trust hierarchy across data sources; when to invoke each one |
-| 5 | [improvements/00-INDEX.md](./improvements/00-INDEX.md) | Prioritized RFC backlog; choose your next wave from here |
+| 5 | [runbooks/deploy-to-pages.md](./runbooks/deploy-to-pages.md) | How to deploy code and data changes to the live site |
+| 6 | [runbooks/local-data-import.md](./runbooks/local-data-import.md) | Importing external data (spreadsheets, corrections) safely |
+| 7 | [improvements/00-INDEX.md](./improvements/00-INDEX.md) | Prioritized RFC backlog; choose your next wave from here |
 
 ---
 
@@ -92,6 +94,22 @@ Includes commands to invoke each source for on-demand reconciliation.
 
 ---
 
+### [runbooks/deploy-to-pages.md](./runbooks/deploy-to-pages.md)
+Step-by-step deploy guide. Covers why push-to-main does NOT auto-deploy, how to trigger the Pages workflow
+manually, how to deploy data-only changes via `pnpm db:deploy`, and troubleshooting common deploy failures.
+
+**When to use:** After any push to main, after local data imports, or when the live site is stale.
+
+---
+
+### [runbooks/local-data-import.md](./runbooks/local-data-import.md)
+Runbook for importing external data (spreadsheets, manual corrections, dedup operations) into the local DB
+and syncing to the live site. Covers the standard backup-import-verify-deploy workflow and common mistakes.
+
+**When to use:** Whenever running a script that writes to `data/lacrosse.db` from an external source.
+
+---
+
 ### [improvements/00-INDEX.md](./improvements/00-INDEX.md)
 Prioritized RFC backlog (10 proposals). Covers data quality, performance, visualizations, tech debt,
 and DevOps improvements — each with effort/risk rating and a recommended wave sequence.
@@ -102,16 +120,16 @@ and DevOps improvements — each with effort/risk rating and a recommended wave 
 
 ## Session and Wave Artifacts
 
-Wave-specific plans and analysis live alongside this file with date-prefixed names:
+Wave-specific plans and analysis are archived in `docs/archive/` with date-prefixed names:
 
 | File | Topic |
 |------|-------|
-| [2026-04-22-roadmap-data-azure-webgl.md](./2026-04-22-roadmap-data-azure-webgl.md) | Post-Wave-9 roadmap across 3 tracks |
-| [2026-04-22-remaining-anomalies.md](./2026-04-22-remaining-anomalies.md) | Post-Wave-17 ingest anomaly status |
-| [2026-04-22-wave16-lane2-schedule.md](./2026-04-22-wave16-lane2-schedule.md) | Wave 16 schedule scrape lane |
-| [2026-04-22-wave3-logos-and-stat-leaders-analysis.md](./2026-04-22-wave3-logos-and-stat-leaders-analysis.md) | Wave 3 logos + stat leaders analysis |
+| [archive/2026-04-22-roadmap-data-azure-webgl.md](./archive/2026-04-22-roadmap-data-azure-webgl.md) | Post-Wave-9 roadmap across 3 tracks |
+| [archive/2026-04-22-remaining-anomalies.md](./archive/2026-04-22-remaining-anomalies.md) | Post-Wave-17 ingest anomaly status |
+| [archive/2026-04-22-wave16-lane2-schedule.md](./archive/2026-04-22-wave16-lane2-schedule.md) | Wave 16 schedule scrape lane |
+| [archive/2026-04-22-wave3-logos-and-stat-leaders-analysis.md](./archive/2026-04-22-wave3-logos-and-stat-leaders-analysis.md) | Wave 3 logos + stat leaders analysis |
 
-These are historical records. Read the most recent one first when resuming a mid-project session.
+These are historical records. Current work should reference running plans only, not these archives.
 
 ---
 

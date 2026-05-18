@@ -256,3 +256,20 @@ Readers can submit corrections via ✏️ buttons on `playerDetail` and `gameDet
 | home_score / away_score | 30 | proposed/current > 10 |
 
 **Correctable entity types:** `player_stat`, `game`, `player` (name + jersey_number).
+
+## 12. Common mistakes (avoid these)
+
+These are pitfalls that have bitten agents and contributors multiple times:
+
+| Mistake | Why it fails | Correct approach |
+|---------|-------------|-----------------|
+| Push to `main` and assume site updates | `pages.yml` only triggers on `workflow_dispatch` or `ingest-nightly` completion | Run `gh workflow run pages.yml --ref main` after push |
+| Import data locally without `pnpm db:deploy` | Azure DB (used by Pages export) still has old data | Always run `pnpm db:deploy` after any local DB mutation |
+| Store logo files as `.png` | MaxPreps serves `.gif`; mismatch breaks display | Use `.gif` extension for all logo files |
+| Use unicode characters in HTTP-bound strings | Em-dashes, smart quotes break undici headers | Use ASCII-only: `-` not `--`, `'` not curly quotes |
+| Add a new view without IS_STATIC guard | Page renders blank on GitHub Pages | Always add `staticFetch` or `staticUnavailableNode` fallback |
+| Assume `packages/web/public/data/` is committed | It is gitignored; generated at deploy time | Don't manually edit static exports; they are rebuilt from Azure DB |
+| Open the DB writably during another agent's wave | SQLite WAL conflicts can corrupt data | Use read-only `sqlite3` queries when another agent is active |
+| Upload DB to Azure and immediately trigger Pages | Race condition: workflow may download pre-upload version | Wait a few seconds after upload completes before dispatching |
+
+See `docs/runbooks/` for detailed step-by-step guides.
