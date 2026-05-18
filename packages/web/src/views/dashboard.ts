@@ -117,7 +117,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   disclaimer.className = 'muted';
   disclaimer.style.cssText = 'font-size:0.85rem; margin-top:0.25rem;';
   disclaimer.textContent =
-    'Data is compiled from multiple sources (PhillyLacrosse.com, PIAA, MaxPreps) and may be incomplete or contain errors.';
+    'Data is compiled from multiple sources (PhillyLacrosse.com, PIAA, MaxPreps) and may be incomplete or most likely contains errors. Until the region has a single source of truth (like Newsday.com for Long Island), this is the best we can do. Users can manually update values and the AI agent & admin will review and approve. Let\'s make this a community effort.';
   root.appendChild(disclaimer);
 
   const teamsSection = document.createElement('section');
