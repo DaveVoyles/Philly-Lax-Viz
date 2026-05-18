@@ -81,6 +81,15 @@ describe('openDb', () => {
     db.close();
   });
 
+  it('players table has a jersey_number column', () => {
+    const db = openDb(':memory:');
+    const cols = (db.prepare('PRAGMA table_info(players)').all() as Array<{ name: string }>)
+      .map((c) => c.name)
+      .sort();
+    expect(cols).toContain('jersey_number');
+    db.close();
+  });
+
   it('games table has expected columns from the plan', () => {
     const db = openDb(':memory:');
     const cols = (db.prepare('PRAGMA table_info(games)').all() as Array<{ name: string }>)

@@ -9,6 +9,9 @@ data/raw-cache/
 .DS_Store
 .vite/
 coverage/
+.env
+.env.local
+.env.*.local
 data/lacrosse.db-shm
 data/lacrosse.db-wal
 # SQLite backups & per-package ghost data dirs

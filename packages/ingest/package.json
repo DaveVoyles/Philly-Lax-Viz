@@ -10,6 +10,7 @@
     "crawl": "tsx src/cli/crawl.ts",
     "ingest": "tsx src/cli/ingest.ts",
     "sync:logos": "tsx src/scripts/syncLogos.ts",
+    "sync:hudl": "tsx src/scripts/syncHudl.ts",
     "test:db:seed": "tsx src/scripts/seedTestDb.ts",
     "dedup:players": "tsx src/scripts/dedupPlayers.ts",
     "players:dedup": "tsx src/scripts/dedupPlayers.ts",
@@ -44,6 +45,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^22.9.0",
+    "playwright": "^1.60.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vitest": "^2.1.4"

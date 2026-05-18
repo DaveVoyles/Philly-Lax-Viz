@@ -14,7 +14,7 @@ The site is deployed two ways:
 
 | Package | Path | Role | Key entry files |
 |---|---|---|---|
-| `@pll/ingest` | `packages/ingest/` | Scrapers, parsers, pipelines, migrations, CLI/scripts that write to SQLite | `src/cli/crawl.ts`, `src/cli/ingest.ts`, `src/scripts/syncLogos.ts`, `src/db.ts`, `src/parsers/index.ts` |
+| `@pll/ingest` | `packages/ingest/` | Scrapers, parsers, pipelines, migrations, CLI/scripts that write to SQLite | `src/cli/crawl.ts`, `src/cli/ingest.ts`, `src/scripts/syncLogos.ts`, `src/scripts/syncHudl.ts`, `src/db.ts`, `src/parsers/index.ts` |
 | `@pll/server` | `packages/server/` | Fastify HTTP API + static logo serving | `src/index.ts`, `src/app.ts`, `src/routes/`, `src/queries/` |
 | `@pll/shared` | `packages/shared/` | Single source of truth for shared TS types (`Team`, `Game`, `Player`, etc.) | `src/index.ts` |
 | `@pll/web` | `packages/web/` | Vite + D3 client (charts, views, simple router) | `src/main.ts`, `src/router.ts`, `src/api.ts`, `src/views/`, `src/charts/` |
@@ -41,6 +41,7 @@ pnpm ingest
 
 # refresh team logos from MaxPreps into data/logos/
 pnpm --filter @pll/ingest sync:logos
+pnpm --filter @pll/ingest sync:hudl -- --headed   # Hudl coach-account scaffold
 
 # per-package examples
 pnpm --filter @pll/ingest test
@@ -56,6 +57,8 @@ Other ingest scripts (run via tsx, no root alias):
 
 ```bash
 pnpm --filter @pll/ingest exec tsx src/scripts/syncPiaa.ts            # sync PIAA standings
+pnpm --filter @pll/ingest exec tsx src/scripts/syncHudl.ts --headed   # inspect Hudl DOM / selectors
+pnpm --filter @pll/ingest exec tsx src/scripts/syncHudl.ts --dry-run  # scrape Hudl without DB writes
 pnpm --filter @pll/ingest exec tsx src/scripts/dedupTeams.ts           # interactive team dedup
 pnpm --filter @pll/ingest exec tsx src/scripts/applyCorrections.ts --db=data/lacrosse.db   # apply pending community corrections
 pnpm --filter @pll/ingest exec tsx src/scripts/applyCorrections.ts --db=data/lacrosse.db --dry-run
@@ -163,7 +166,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 `teams.ts`, `games.ts`, `players.ts`, `schedule.ts`, `rankings.ts`, `h2h.ts`, `corrections.ts`, `search.ts`, `dataExport.ts`, `sources.ts`
 
 **Key web views** (all under `packages/web/src/views/`):
-`dashboard.ts`, `teamDetail.ts`, `gameDetail.ts`, `playerDetail.ts`, `leaders.ts`, `schedule.ts`, `compare.ts`, `h2h.ts`, `playerCompare.ts`, `constellation.ts`, `dataQuality.ts`, `sources.ts`, `adminCorrections.ts`
+`dashboard.ts`, `teamDetail.ts`, `gameDetail.ts`, `playerDetail.ts`, `leaders.ts`, `topTeams.ts`, `schedule.ts`, `compare.ts`, `h2h.ts`, `playerCompare.ts`, `constellation.ts`, `dataQuality.ts`, `sources.ts`, `adminCorrections.ts`
 
 **Key CI workflows** (all under `.github/workflows/`):
 - `ingest-nightly.yml` — crawl + parse + ingest + applyCorrections + export static + deploy
@@ -176,6 +179,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 - **phillylacrosse.com** — RSS feed: scoreboards + game summaries. Primary source for all game scores.
 - **piaad1.org** — official PIAA District 1 standings & rankings.
 - **phillylaxnumbers.com (LaxNumbers)** — per-game player stats (goals, assists, etc.) scraped by game ID match. Required team alias resolution via `team_aliases` table before stats are usable.
+- **hudl.com** — authenticated coach-account scraper scaffold for Harriton roster + per-game stats. Requires `HUDL_EMAIL` / `HUDL_PASSWORD`, optional `HUDL_TEAM_URL`, and first-run selector discovery in `--headed` mode.
 - **maxpreps.com** — team logos. Required footer attribution on the web client: *"Team logos courtesy of MaxPreps.com"*.
 
 ## 9. Conventions for sub-agents

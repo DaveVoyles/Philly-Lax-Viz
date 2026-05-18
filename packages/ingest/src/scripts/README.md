@@ -149,3 +149,12 @@ normalized `teams.name` / `teams.slug` (honors `data/team-overrides.json` for
 manual fixups), downloads to `data/logos/<slug>.gif` (file-skip when
 `Content-Length` matches), updates `teams.logo_url` + `teams.maxpreps_slug`.
 250ms inter-download delay. Run: `pnpm --filter @pll/ingest run sync:logos`.
+
+### `syncHudl.ts`
+Authenticated Hudl scraper scaffold for a Harriton coach account. Logs into
+Hudl with `HUDL_EMAIL` / `HUDL_PASSWORD`, optionally opens `HUDL_TEAM_URL`,
+then heuristically scrapes roster rows plus per-game player stats using
+Playwright. Supports `--headed` for first-run selector discovery and
+`--dry-run` to log scraped output without mutating SQLite. Run:
+`pnpm --filter @pll/ingest run sync:hudl -- --headed` or
+`pnpm --filter @pll/ingest exec tsx src/scripts/syncHudl.ts --dry-run`.

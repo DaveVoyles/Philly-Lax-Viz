@@ -821,6 +821,64 @@ export interface CorrectionRecord {
   reviewer_notes: string | null;
 }
 
+export interface SubmitCorrectionPayload {
+  submitter_first: string;
+  submitter_last: string;
+  submitter_email: string;
+  entity_type: string;
+  entity_id: number;
+  field_name: string;
+  old_value: string;
+  new_value: string;
+  note?: string;
+}
+
+export interface SubmitCorrectionResponse {
+  id: number;
+  status: string;
+}
+
+export async function submitCorrection(
+  payload: SubmitCorrectionPayload,
+): Promise<SubmitCorrectionResponse> {
+  const url = apiUrl('/api/corrections');
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        submitterFirst: payload.submitter_first,
+        submitterLast: payload.submitter_last,
+        submitterEmail: payload.submitter_email,
+        entityType: payload.entity_type,
+        entityId: payload.entity_id,
+        fieldName: payload.field_name,
+        oldValue: payload.old_value,
+        newValue: payload.new_value,
+        note: payload.note?.trim() || undefined,
+      }),
+    });
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : 'network error';
+    throw new ApiError(`Network error: ${reason}`, 0, url);
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new ApiError(
+      `${res.status} ${res.statusText}${text ? ` — ${text.slice(0, 200)}` : ''}`,
+      res.status,
+      url,
+    );
+  }
+
+  return (await res.json()) as SubmitCorrectionResponse;
+}
+
 export function getFlaggedCorrections(): Promise<CorrectionRecord[]> {
   return request<CorrectionRecord[]>('/corrections/flagged');
 }

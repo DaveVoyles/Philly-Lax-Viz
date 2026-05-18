@@ -28,9 +28,6 @@ interface FreshnessResponse {
   generatedAt: string;
 }
 
-const ISSUE_TRACKER =
-  'https://github.com/davevoyles/Philly-Lacrosse-Vis/issues/new?labels=data-correction&title=Data%20correction%3A%20%3Cdescribe%3E';
-
 interface SourceCard {
   id: string;
   title: string;
@@ -89,7 +86,7 @@ const SOURCES: SourceCard[] = [
     url: 'https://www.maxpreps.com',
     urlLabel: 'maxpreps.com',
     notes:
-      'Hex colors and short nicknames live in the teams table. Submit a correction if a logo is wrong or low-resolution.',
+      'Hex colors and short nicknames live in the teams table. Use the ✏️ buttons on Player Detail or Game Detail pages if a logo or team label looks wrong.',
     freshness: () => null,
     countLabel: (f) => `${f.counts.teams} teams`,
   },
@@ -101,7 +98,7 @@ const SOURCES: SourceCard[] = [
     url: null,
     urlLabel: null,
     notes:
-      'A player with a missing or duplicate stat line is usually an alias miss. File an issue with the recap URL.',
+      'A player with a missing or duplicate stat line is usually an alias miss. Use the ✏️ buttons on the related Player Detail or Game Detail page to flag it for review.',
     freshness: (f) => f.aliasesLast,
     countLabel: (f) =>
       f.counts.playerAliases > 0
@@ -216,12 +213,7 @@ function makeCard(card: SourceCard, freshness: FreshnessResponse | null): HTMLEl
   const dt3 = document.createElement('dt');
   dt3.textContent = 'Suggest a correction';
   const dd3 = document.createElement('dd');
-  const issueA = document.createElement('a');
-  issueA.href = ISSUE_TRACKER;
-  issueA.target = '_blank';
-  issueA.rel = 'noopener noreferrer';
-  issueA.textContent = 'Open a GitHub issue';
-  dd3.appendChild(issueA);
+  dd3.textContent = 'Use the ✏️ buttons on Player Detail or Game Detail pages to suggest corrections.';
   meta.appendChild(dt3);
   meta.appendChild(dd3);
 
@@ -239,7 +231,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   const intro = document.createElement('p');
   intro.className = 'muted';
   intro.textContent =
-    'Philly Lacrosse Vis is a community project. Every number you see traces back to one of the public sources below. If something looks wrong, please file an issue with the recap URL or a screenshot - we will fix it.';
+    'Philly Lacrosse Vis is a community project. Every number you see traces back to one of the public sources below. If something looks wrong, use the ✏️ buttons on Player Detail or Game Detail pages to suggest a correction for review.';
   root.appendChild(intro);
 
   if (IS_STATIC) {

@@ -68,6 +68,7 @@ export function toStaticUrl(apiPath: string): string {
   const segments = pathname.split('/').filter(Boolean);
   const root = dataRoot();
 
+  if (pathname.startsWith('/data/')) return joinUrl(ENV.BASE_URL ?? '/', pathname);
   if (pathname === '/health') return joinUrl(root, 'health.json');
   if (pathname === '/seasons') return joinUrl(root, 'seasons.json');
   if (pathname === '/search') return joinUrl(root, String(season), 'search-index.json');

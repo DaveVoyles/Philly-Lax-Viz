@@ -1,3 +1,5 @@
+import { ApiError, submitCorrection as submitCorrectionRequest } from '../api.js';
+
 export interface CorrectionTarget {
   entityType: 'player_stat' | 'game';
   entityId: number;
@@ -10,7 +12,6 @@ export interface CorrectionTarget {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HIGH_PLAYER_FIELDS = new Set(['goals', 'assists']);
 const HIGH_SCORE_FIELDS = new Set(['home_score', 'away_score']);
-const ENV = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
 
 let correctionModalCssInjected = false;
 
@@ -145,7 +146,7 @@ export function openCorrectionModal(target: CorrectionTarget): void {
   };
 
   submit.addEventListener('click', () => {
-    void submitCorrection({
+    void handleSubmitCorrection({
       target,
       firstName: firstName.input,
       lastName: lastName.input,
@@ -161,7 +162,7 @@ export function openCorrectionModal(target: CorrectionTarget): void {
   firstName.input.focus();
 }
 
-async function submitCorrection(args: {
+async function handleSubmitCorrection(args: {
   target: CorrectionTarget;
   firstName: HTMLInputElement;
   lastName: HTMLInputElement;
@@ -194,39 +195,30 @@ async function submitCorrection(args: {
   args.submit.disabled = true;
   args.submit.textContent = 'Submitting...';
 
-  const apiBase = ENV.VITE_API_URL ?? '';
-
   try {
-    const response = await fetch(`${apiBase}/api/corrections`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        submitterFirst,
-        submitterLast,
-        submitterEmail,
-        entityType: args.target.entityType,
-        entityId: args.target.entityId,
-        fieldName: args.target.fieldName,
-        newValue: String(proposedValue),
-        note: args.note.value.trim(),
-      }),
+    await submitCorrectionRequest({
+      submitter_first: submitterFirst,
+      submitter_last: submitterLast,
+      submitter_email: submitterEmail,
+      entity_type: args.target.entityType,
+      entity_id: args.target.entityId,
+      field_name: args.target.fieldName,
+      old_value: String(args.target.currentValue),
+      new_value: String(proposedValue),
+      note: args.note.value.trim() || undefined,
     });
 
-    if (response.status === 201) {
-      const success = document.createElement('div');
-      success.className = 'correction-success';
-      success.textContent = '✅ Thank you! Your correction will be reviewed tonight.';
-      args.formWrap.replaceChildren(success);
-      return;
-    }
-
-    if (response.status === 429) {
+    const success = document.createElement('div');
+    success.className = 'correction-success';
+    success.textContent = '✅ Thank you! Your correction will be reviewed tonight.';
+    args.formWrap.replaceChildren(success);
+    return;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 429) {
       args.setMessage("You've submitted too many corrections today. Please try again tomorrow.", 'error');
       return;
     }
 
-    args.setMessage('Something went wrong. Please try again.', 'error');
-  } catch {
     args.setMessage('Something went wrong. Please try again.', 'error');
   } finally {
     if (document.body.contains(args.submit)) {

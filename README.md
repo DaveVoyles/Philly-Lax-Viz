@@ -26,6 +26,7 @@ updated nightly.
 - **Players** — season totals and a per-game trend chart for goals, assists, and points
 - **Games** — full scoreboard with quarter-by-quarter breakdown and player stat tables
 - **League Leaders** — ranked leaderboards for goals, assists, saves, faceoff %, and more
+- **Top 5 Teams** — a podium-style view of the best records in the league right now
 - **Rankings** — PIAA District 1 official standings
 - **Rivalries** — a force-directed graph showing head-to-head matchup history
 - **Schedule** — upcoming games
@@ -65,6 +66,8 @@ Useful one-offs:
 pnpm -r typecheck     # strict TS across all packages
 pnpm -r test          # vitest across all packages
 pnpm --filter @pll/web build
+pnpm --filter @pll/ingest sync:hudl -- --headed      # inspect Hudl selectors with a visible browser
+pnpm --filter @pll/ingest sync:hudl -- --dry-run     # scrape Hudl without DB writes
 pnpm --filter @pll/ingest apply:harriton-workbook -- --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db  # dry-run
 pnpm --filter @pll/ingest apply:harriton-workbook -- --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db --apply
 ```
@@ -154,7 +157,7 @@ Full package entry points, key files, and path map → **[AGENTS.md §2 & §7](.
 
 Per-game scores: **MaxPreps** > PhillyLacrosse.
 Season W/L records: **PIAA** > computed-from-games > PhillyLacrosse.
-Per-player stats: **PhillyLacrosse** (sole source).
+Per-player stats: **PhillyLacrosse** by default, with optional authenticated **Hudl** imports for Harriton roster + game-level stat backfill.
 
 When sources conflict, the higher-authority source wins. See **[docs/runbooks/source-priority.md](./docs/runbooks/source-priority.md)** for the full reconciliation flow.
 

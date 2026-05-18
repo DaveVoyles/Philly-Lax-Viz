@@ -328,6 +328,11 @@ table.stat tbody tr.row-link:focus { outline: 2px solid var(--accent); outline-o
   border-radius: 4px;
   color: inherit;
   text-decoration: none;
+  transition: transform 0.18s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.team-grid li a:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 16px rgba(78, 161, 255, 0.25);
 }
 .team-grid li a > .team-badge { flex: 1 1 auto; min-width: 0; margin-right: auto; }
 .team-grid li a > .team-badge .team-badge__name {
@@ -339,6 +344,77 @@ table.stat tbody tr.row-link:focus { outline: 2px solid var(--accent); outline-o
 .team-grid li a > .team-row__gap { flex: 0 0 auto; }
 .team-grid li a:hover { background: var(--accent); color: var(--accent-fg); text-decoration: none; }
 .team-grid li a:hover .team-badge__name { color: var(--accent-fg); }
+
+/* Staggered fade-in for team cards */
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.team-grid li.card-animate {
+  opacity: 0;
+  animation: cardFadeIn 0.4s ease-out forwards;
+}
+
+/* Scroll-reveal for sections */
+@keyframes slideReveal {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.scroll-reveal {
+  opacity: 0;
+  transition: none;
+}
+.scroll-reveal.is-visible {
+  animation: slideReveal 0.5s ease-out forwards;
+}
+
+/* Leader panel bar animation */
+@keyframes barGrow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.leader-panel.is-visible .bar-fill {
+  transform-origin: left;
+  animation: barGrow 0.6s ease-out forwards;
+}
+
+/* Recent games row hover sweep */
+.recent-games tbody tr {
+  transition: background 0.2s ease;
+  position: relative;
+}
+.recent-games tbody tr::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(78, 161, 255, 0.06), transparent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.recent-games tbody tr:hover::after {
+  opacity: 1;
+}
+
+/* New game flash on live refresh */
+@keyframes newGameFlash {
+  0% { background: rgba(96, 165, 250, 0.2); }
+  100% { background: transparent; }
+}
+.game-row-new {
+  animation: newGameFlash 1.5s ease-out;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .team-grid li.card-animate { animation: none; opacity: 1; }
+  .scroll-reveal { opacity: 1; }
+  .scroll-reveal.is-visible { animation: none; opacity: 1; }
+  .leader-panel.is-visible .bar-fill { animation: none; transform: scaleX(1); }
+  .team-grid li a { transition: none; }
+  .team-grid li a:hover { transform: none; }
+  .game-row-new { animation: none; }
+}
 
 .teams-controls {
   display: flex;

@@ -19,6 +19,10 @@ import type { ChartHandle } from '../charts/types.js';
 import { renderEmptyState } from '../components/emptyState.js';
 import { renderGameThumb } from '../components/postImage.js';
 import { renderPiaaBadge } from '../components/piaaBadge.js';
+import { mountParticleHero, type ParticleHeroHandle } from '../components/particleHero.js';
+import { mountTeamCardGlow, type GlowHandle } from '../components/teamCardGlow.js';
+import { mountHypeCard, type HypeCardHandle, type HypePlayerData } from '../components/hypeCard.js';
+import { shouldAnimate, shouldMountWebGL } from '../util/motionPrefs.js';
 import { IS_STATIC } from '../staticLoader.js';
 import { formatDate } from '../util/format.js';
 import { createPoller, isActiveSeason } from '../util/livePoller.js';
@@ -41,6 +45,11 @@ let dashboardCharts: ChartHandle[] = [];
 let recentGamesPoller: { stop: () => void } | null = null;
 let recentGamesLastUpdated: Date | null = null;
 let recentGamesSignature = '';
+
+// WebGL effect handles — cleaned up on route teardown.
+let particleHeroHandle: ParticleHeroHandle | null = null;
+let glowHandle: GlowHandle | null = null;
+let hypeCardHandle: HypeCardHandle | null = null;
 
 function ensureDashboardLiveStyles(): void {
   if (document.getElementById(DASHBOARD_LIVE_STYLE_ID)) return;
@@ -92,6 +101,10 @@ function destroyDashboardCharts(): void {
   dashboardCharts = [];
   recentGamesLastUpdated = null;
   recentGamesSignature = '';
+  // Tear down WebGL effects
+  if (particleHeroHandle) { particleHeroHandle.destroy(); particleHeroHandle = null; }
+  if (glowHandle) { glowHandle.destroy(); glowHandle = null; }
+  if (hypeCardHandle) { hypeCardHandle.destroy(); hypeCardHandle = null; }
 }
 
 export function destroy(): void {
@@ -131,6 +144,19 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
 
   disclaimer.append(disclaimerIcon, disclaimerText, author);
   root.appendChild(disclaimer);
+
+  // WebGL particle hero banner (above team grid)
+  const heroHost = document.createElement('div');
+  heroHost.style.marginTop = '1.5rem';
+  root.appendChild(heroHost);
+  if (shouldMountWebGL()) {
+    particleHeroHandle = mountParticleHero(heroHost);
+  }
+
+  // Hype card placeholder — filled async after leader data loads
+  const hypeHost = document.createElement('div');
+  hypeHost.id = 'hype-card-host';
+  root.appendChild(hypeHost);
 
   const teamsSection = document.createElement('section');
   const teamsHeader = document.createElement('h2');
@@ -229,10 +255,33 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
     if (!shouldAutoRefreshRecentGames()) {
       liveIndicator.style.display = 'none';
       lastUpdated.textContent = '';
-      return;
+    } else {
+      liveIndicator.style.display = 'inline';
+      startRefresh(gamesBody, teamById, lastUpdated);
     }
-    liveIndicator.style.display = 'inline';
-    startRefresh(gamesBody, teamById, lastUpdated);
+    // Stagger card fade-in animations
+    if (shouldAnimate()) {
+      const cards = teamsBody.querySelectorAll('.team-grid li');
+      cards.forEach((li, i) => {
+        (li as HTMLElement).classList.add('card-animate');
+        (li as HTMLElement).style.animationDelay = `${i * 30}ms`;
+      });
+    }
+    // Mount WebGL glow strips behind team cards
+    if (shouldMountWebGL()) {
+      const grid = teamsBody.querySelector('.team-grid');
+      if (grid) {
+        const colorMap = new Map<number, string>();
+        const items = grid.querySelectorAll('li');
+        items.forEach((li, i) => {
+          const borderColor = (li.querySelector('a') as HTMLElement | null)?.style.borderLeftColor;
+          if (borderColor) colorMap.set(i, borderColor);
+        });
+        if (colorMap.size > 0) {
+          glowHandle = mountTeamCardGlow(grid as HTMLElement, colorMap);
+        }
+      }
+    }
   });
 
   void getGameCalendar()
@@ -250,6 +299,27 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   void loadLeaderPanel(savesPanel.body, 'saves', { minGames: 3 }, intFmt, 'Saves');
   void loadLeaderPanel(foPctPanel.body, 'fo_pct', { minAttempts: 20 }, pctFmt, 'FO %');
   void loadLeaderPanel(gbPanel.body, 'ground_balls', { minGames: 3 }, intFmt, 'Ground balls');
+
+  // Hype card — show the week's top goal scorer
+  void loadHypeCard(hypeHost);
+
+  // Scroll-reveal for leader panels
+  if (shouldAnimate()) {
+    leadersSection.classList.add('scroll-reveal');
+    marginSection.classList.add('scroll-reveal');
+    calSection.classList.add('scroll-reveal');
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        }
+      }
+    }, { threshold: 0.1 });
+    observer.observe(leadersSection);
+    observer.observe(marginSection);
+    observer.observe(calSection);
+  }
 
   // Wave H4 Lane 3 (Leia) — "Data updated X ago" footer line at the very
   // bottom of the dashboard. Sourced from /api/freshness; silent on failure
@@ -285,6 +355,38 @@ async function loadDashboardFreshness(target: HTMLElement): Promise<void> {
     target.textContent = `Data updated ${rel} ago.`;
   } catch {
     target.textContent = '';
+  }
+}
+
+async function loadHypeCard(host: HTMLElement): Promise<void> {
+  try {
+    const resp = await getPlayerLeaders({ metric: 'goals', limit: 1, minGames: 3 });
+    const top = resp.rows[0];
+    if (!top) return;
+    const data: HypePlayerData = {
+      playerName: top.playerName,
+      teamName: top.teamName,
+      teamLogoUrl: top.teamLogoUrl ?? undefined,
+      statLabel: 'Goals this season',
+      statValue: top.value,
+      secondaryStat: top.assists > 0 ? { label: 'Assists', value: top.assists } : undefined,
+      playerHref: `#/players/${top.playerId}`,
+    };
+    if (shouldMountWebGL()) {
+      hypeCardHandle = mountHypeCard(host, data);
+    } else {
+      // Fallback: simple styled card without WebGL
+      const card = document.createElement('a');
+      card.href = data.playerHref;
+      card.style.cssText = 'display:block; padding:1.25rem 1.5rem; border-radius:12px; background:#0e1119; border:2px solid #ffd166; margin-bottom:1.5rem; text-decoration:none; color:inherit;';
+      card.innerHTML = `<span style="color:#ffd166;font-weight:700;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">&#128293; Player of the Week</span>
+        <div style="font-size:1.4rem;font-weight:700;color:#e5e7eb;margin-top:0.25rem;">${data.playerName}</div>
+        <div style="font-size:0.85rem;color:#9ca3af;">${data.teamName}</div>
+        <div style="font-size:2rem;font-weight:700;color:#ffd166;margin-top:0.5rem;">${Math.round(data.statValue)} <span style="font-size:0.85rem;font-weight:400;color:#9ca3af;">${data.statLabel}</span></div>`;
+      host.appendChild(card);
+    }
+  } catch {
+    // Silent — hype card is optional enhancement
   }
 }
 

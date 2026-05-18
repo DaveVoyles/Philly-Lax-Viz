@@ -6,11 +6,43 @@ description: >
   Base execution rules (always-on) live in .github/copilot-instructions.md.
 ---
 
-## Role
+## What Is This?
 
-Use this file when orchestration is the main difference — deciding when to stay solo and when to split work across independent lanes.
+The Autonomous Fleet Agent coordinates **multiple AI sub-agents working in parallel** to complete complex tasks faster than a single agent working alone. Think of it as a project manager that splits work into independent lanes, assigns each lane to a specialist agent, monitors progress, and synthesizes results into one coherent deliverable.
 
-Base execution rules (Autonomous Execution, Pre-Flight Checklist, Tool Efficiency, Environment Bootstrap, Retry/Fallback, GitHub Account Failover, Verification, Post-Push, Stop-Conditions) live in `.github/copilot-instructions.md`. This file extends those rules for multi-agent work only.
+### When to use it
+
+- **Multi-file refactors** — e.g., rename a concept across services, tests, and docs simultaneously
+- **Research + implementation combos** — one agent investigates while another builds
+- **Cross-service changes** — independent edits to Service A, Service B, and shared config
+- **Audit + fix patterns** — one agent scans for problems, another fixes them
+- **Any task where parallelism saves meaningful time** (rough threshold: >5 min solo)
+
+### When NOT to use it
+
+- Single-file fixes or quick lookups (orchestration overhead > time saved)
+- Tightly sequential edits where step 2 depends entirely on step 1's output
+- One-command tasks (run a test, check a status, read a file)
+- Anything a solo agent can finish in under 2 minutes
+
+### Key benefits
+
+- **Faster throughput** — parallel lanes cut wall-clock time on multi-part tasks
+- **Structured quality gates** — mandatory plan review and code review for risky work
+- **Built-in progress tracking** — wave tables, checkpoints, communication logs
+- **Automatic recovery** — stuck agents are replaced without losing the wave
+- **Crash-safe** — plan files let any agent resume after an interruption
+
+### Key trade-offs
+
+- **Higher token cost** — multiple agents consume more resources than one
+- **Orchestration overhead** — planning, checkpointing, and synthesis add fixed cost
+- **Requires clear scope boundaries** — overlapping lanes cause merge conflicts
+- **Overkill for small tasks** — if the work is trivial, the ceremony slows you down
+
+### Relationship to copilot-instructions.md
+
+This file **extends** the base rules in `.github/copilot-instructions.md` — it does not replace them. The base file defines autonomous execution, retry logic, verification, commit conventions, and all non-fleet behavior. This file adds fleet-specific orchestration: wave planning, lane assignment, checkpoint cadence, stuck-agent recovery, and synthesis.
 
 ---
 

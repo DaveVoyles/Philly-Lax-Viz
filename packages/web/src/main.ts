@@ -26,6 +26,7 @@ const loaders: Record<Exclude<RouteName, 'notFound'>, () => Promise<ViewModule>>
   comparePlayers: () => import('./views/comparePlayers.js'),
   dataQuality: () => import('./views/dataQuality.js'),
   leaders: () => import('./views/leaders.js'),
+  topTeams: () => import('./views/topTeams.js'),
   anomalies: () => import('./views/anomalies.js'),
   graph: () => import('./views/graph.js'),
   constellation: () => import('./views/constellation.js'),
@@ -54,6 +55,7 @@ const NAV: NavLink[] = [
 
 const MORE_NAV: NavLink[] = [
   { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
+  { href: '#/top-teams', label: 'Top 5 Teams', match: 'topTeams' },
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
   { href: '#/sources', label: 'Sources', match: 'sources' },
   { href: '#/status', label: 'Status', match: 'status' },

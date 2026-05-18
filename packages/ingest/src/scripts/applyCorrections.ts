@@ -18,9 +18,12 @@ export const FIELD_BOUNDS: Record<string, { hardCap: number; maxMultiplier?: num
   away_score: { hardCap: 30, maxMultiplier: 10 },
 };
 
+export const PLAYER_ALLOWED_FIELDS = ['name', 'jersey_number'];
+
 export const ALLOWED_FIELDS: Record<string, string[]> = {
   player_stat: ['goals', 'assists', 'ground_balls', 'caused_turnovers', 'saves', 'fo_won', 'fo_taken'],
   game: ['home_score', 'away_score'],
+  player: PLAYER_ALLOWED_FIELDS,
 };
 
 interface CorrectionRow {
@@ -43,12 +46,24 @@ interface ApplyCorrectionsSummary {
 }
 
 interface EntityTarget {
-  tableName: 'player_stats' | 'games';
+  tableName: 'player_stats' | 'games' | 'players';
 }
 
-export function isOutlier(fieldName: string, newValue: number, currentValue: number): boolean {
+export function isOutlier(
+  fieldName: string,
+  newValue: number | string,
+  currentValue: number | string,
+): boolean {
+  if (fieldName === 'name') {
+    return typeof newValue !== 'string' || newValue.trim() === '' || newValue.length > 100;
+  }
+  if (fieldName === 'jersey_number') {
+    const jerseyNumber = typeof newValue === 'number' ? newValue : Number.parseInt(newValue, 10);
+    return Number.isNaN(jerseyNumber) || jerseyNumber < 0 || jerseyNumber > 99;
+  }
+
   const bounds = FIELD_BOUNDS[fieldName];
-  if (!bounds) return false;
+  if (!bounds || typeof newValue !== 'number' || typeof currentValue !== 'number') return false;
   if (newValue > bounds.hardCap) return true;
   if (bounds.maxMultiplier && currentValue > 0 && newValue / currentValue > bounds.maxMultiplier) {
     return true;
@@ -76,6 +91,7 @@ function resolveDbPath(inputPath: string): string {
 function getEntityTarget(entityType: string): EntityTarget | null {
   if (entityType === 'player_stat') return { tableName: 'player_stats' };
   if (entityType === 'game') return { tableName: 'games' };
+  if (entityType === 'player') return { tableName: 'players' };
   return null;
 }
 
@@ -161,10 +177,55 @@ export function applyCorrections(
 
     const currentRow = db
       .prepare(`SELECT ${row.field_name} AS value FROM ${target.tableName} WHERE id = ?`)
-      .get(row.entity_id) as { value: number | null } | undefined;
+      .get(row.entity_id) as { value: number | string | null } | undefined;
 
     if (!currentRow) {
       rejectCorrection(db, row, summary, dryRun, 'auto-rejected by nightly script: target row not found');
+      continue;
+    }
+
+    if (row.entity_type === 'player' && row.field_name === 'name') {
+      const currentValue = String(currentRow.value ?? '');
+      if (isOutlier(row.field_name, row.new_value, currentValue)) {
+        flagOutlier(db, row, summary, dryRun, 'auto-flagged by nightly script: outlier correction requires manual review');
+        continue;
+      }
+
+      if (dryRun) {
+        summary.dryRun += 1;
+        console.log(
+          `[applyCorrections] dry-run would apply correction ${row.id}: ${target.tableName}.${row.field_name} ` +
+            `id=${row.entity_id} ${currentValue} -> ${row.new_value}`,
+        );
+        continue;
+      }
+
+      db.prepare('UPDATE players SET name = ? WHERE id = ?').run(row.new_value, row.entity_id);
+      updateCorrectionStatus(db, row.id, 'approved', 'auto-approved by nightly script');
+      summary.approved += 1;
+      continue;
+    }
+
+    if (row.entity_type === 'player' && row.field_name === 'jersey_number') {
+      const currentValue = String(currentRow.value ?? '');
+      if (isOutlier(row.field_name, row.new_value, currentValue)) {
+        flagOutlier(db, row, summary, dryRun, 'auto-flagged by nightly script: outlier correction requires manual review');
+        continue;
+      }
+
+      const jerseyNumber = Number.parseInt(row.new_value, 10);
+      if (dryRun) {
+        summary.dryRun += 1;
+        console.log(
+          `[applyCorrections] dry-run would apply correction ${row.id}: ${target.tableName}.${row.field_name} ` +
+            `id=${row.entity_id} ${currentValue} -> ${jerseyNumber}`,
+        );
+        continue;
+      }
+
+      db.prepare('UPDATE players SET jersey_number = CAST(? AS INTEGER) WHERE id = ?').run(jerseyNumber, row.entity_id);
+      updateCorrectionStatus(db, row.id, 'approved', 'auto-approved by nightly script');
+      summary.approved += 1;
       continue;
     }
 

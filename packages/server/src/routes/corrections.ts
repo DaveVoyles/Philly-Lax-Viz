@@ -7,7 +7,7 @@ interface CorrectionsBody {
   submitterFirst?: string;
   submitterLast?: string;
   submitterEmail?: string;
-  entityType?: 'player_stat' | 'game';
+  entityType?: 'player_stat' | 'game' | 'player';
   entityId?: number;
   fieldName?: string;
   newValue?: string;
@@ -35,11 +35,16 @@ const CORRECTABLE_FIELDS = {
   fo_taken:         { entityType: 'player_stat', table: 'player_stats', hardCap: 50 },
   home_score:       { entityType: 'game',        table: 'games',        hardCap: 30, maxMultiplier: 10 },
   away_score:       { entityType: 'game',        table: 'games',        hardCap: 30, maxMultiplier: 10 },
+  name:             { entityType: 'player',      table: 'players',      maxLength: 100 },
+  jersey_number:    { entityType: 'player',      table: 'players',      min: 0, max: 99 },
 } as const satisfies Record<string, {
-  entityType: 'player_stat' | 'game';
+  entityType: 'player_stat' | 'game' | 'player';
   table: string;
   hardCap?: number;
   maxMultiplier?: number;
+  min?: number;
+  max?: number;
+  maxLength?: number;
 }>;
 
 type CorrectableFieldName = keyof typeof CORRECTABLE_FIELDS;
@@ -145,10 +150,34 @@ const correctionsRoutesImpl: FastifyPluginAsync = async (app) => {
       return { error: 'BadRequest', message: 'newValue must be a non-empty string' };
     }
 
-    const newValue = Number.parseInt(newValueRaw, 10);
-    if (Number.isNaN(newValue)) {
-      reply.code(400);
-      return { error: 'BadRequest', message: 'newValue must parse to an integer' };
+    let newValueText = newValueRaw;
+    let newValueNumber: number | null = null;
+    if (fieldName === 'name') {
+      const maxLength = 'maxLength' in fieldConfig ? fieldConfig.maxLength : 100;
+      if (newValueRaw.length > maxLength) {
+        reply.code(400);
+        return { error: 'BadRequest', message: 'newValue must be 100 characters or fewer' };
+      }
+    } else if (fieldName === 'jersey_number') {
+      if (!/^\d+$/.test(newValueRaw)) {
+        reply.code(400);
+        return { error: 'BadRequest', message: 'newValue must be an integer string between 0 and 99' };
+      }
+      newValueNumber = Number.parseInt(newValueRaw, 10);
+      const minVal = 'min' in fieldConfig ? fieldConfig.min : 0;
+      const maxVal = 'max' in fieldConfig ? fieldConfig.max : 99;
+      if (newValueNumber < minVal || newValueNumber > maxVal) {
+        reply.code(400);
+        return { error: 'BadRequest', message: 'newValue must be an integer string between 0 and 99' };
+      }
+      newValueText = String(newValueNumber);
+    } else {
+      newValueNumber = Number.parseInt(newValueRaw, 10);
+      if (Number.isNaN(newValueNumber)) {
+        reply.code(400);
+        return { error: 'BadRequest', message: 'newValue must parse to an integer' };
+      }
+      newValueText = String(newValueNumber);
     }
 
     const note = request.body?.note;
@@ -179,13 +208,15 @@ const correctionsRoutesImpl: FastifyPluginAsync = async (app) => {
     const maxMultiplier = 'maxMultiplier' in fieldConfig ? fieldConfig.maxMultiplier : undefined;
 
     let status: 'pending' | 'outlier' = 'pending';
-    if (fieldConfig.hardCap !== undefined && newValue > fieldConfig.hardCap) {
+    const hardCap = 'hardCap' in fieldConfig ? fieldConfig.hardCap : undefined;
+    if (newValueNumber !== null && hardCap !== undefined && newValueNumber > hardCap) {
       status = 'outlier';
     } else if (
+      newValueNumber !== null &&
       maxMultiplier !== undefined &&
       Number.isFinite(oldValueNumber) &&
       oldValueNumber > 0 &&
-      newValue / oldValueNumber > maxMultiplier
+      newValueNumber / oldValueNumber > maxMultiplier
     ) {
       status = 'outlier';
     }
@@ -225,7 +256,7 @@ const correctionsRoutesImpl: FastifyPluginAsync = async (app) => {
         entityId,
         fieldName,
         oldValueText,
-        String(newValue),
+        newValueText,
         note?.trim() || null,
         status,
         ipHash,
