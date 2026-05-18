@@ -123,6 +123,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 - **Stay in your lane.** Lane assignments are in the current wave plan in `docs/`.
 - **Logo files are `.gif` not `.png`.** MaxPreps serves .gif logos. Storing as `.png` will break display.
 - **Every new web view must handle IS_STATIC mode.** See §10 below — blank pages on GitHub Pages are the symptom of missing guards.
+- **After any local-only DB mutation, run `pnpm db:deploy`.** The live GitHub Pages site exports from the Azure DB, not the local one. If you run a script that writes to `data/lacrosse.db` (workbook imports, dedup, manual corrections, migrations), you **must** sync to Azure with `pnpm db:deploy` or the changes will not appear on the live site. The nightly CI handles RSS-sourced data automatically, but ad-hoc local scripts do not sync themselves.
 - **Azure mutations require the `AZURE_CREDENTIALS` service principal** via the `update-azure-config.yml` workflow. Local `az` CLI (`dvoyles@microsoft.com`) lacks Container App write permissions.
 
 ## 6. Runtime logs & dev servers
