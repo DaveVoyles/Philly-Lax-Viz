@@ -49,6 +49,8 @@ Two deployment targets:
 | GitHub Pages (primary, user-facing) | Pre-built JSON snapshots | No — `staticLoader.ts` |
 | Azure Container App (admin/dev) | Live SQLite via Fastify | Yes |
 
+**After local-only data changes** (workbook imports, manual corrections, dedup): run `pnpm db:deploy` to upload the local DB to Azure and trigger a Pages redeploy. The nightly CI handles this automatically for RSS-sourced data, but ad-hoc local scripts require this manual sync step.
+
 ---
 
 ## What Each Doc Covers

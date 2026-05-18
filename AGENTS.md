@@ -66,6 +66,16 @@ pnpm --filter @pll/ingest exec tsx src/scripts/applyHarritonWorkbook.ts --workbo
 pnpm --filter @pll/ingest exec tsx src/scripts/applyHarritonWorkbook.ts --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db --apply
 ```
 
+Azure DB sync (after any local-only ingestion):
+
+```bash
+pnpm db:upload                  # upload local DB to Azure File Share
+pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
+./scripts/db-upload.sh --deploy # equivalent shell invocation
+```
+
+**Important:** After running any local-only script (workbook imports, dedup, manual corrections), you must run `pnpm db:deploy` to make changes visible on the live GitHub Pages site. The nightly CI workflow syncs automatically, but ad-hoc local imports require this manual step.
+
 ## 4. Database conventions
 
 - **Live DB:** `data/lacrosse.db` (SQLite, `user_version = 16`).
