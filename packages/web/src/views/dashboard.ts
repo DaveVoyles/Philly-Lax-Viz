@@ -113,11 +113,23 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   sub.textContent = 'Season scoreboard, team records, and recent games.';
   root.appendChild(sub);
 
-  const disclaimer = document.createElement('p');
-  disclaimer.className = 'muted';
-  disclaimer.style.cssText = 'font-size:0.85rem; margin-top:0.25rem;';
-  disclaimer.textContent =
+  const disclaimer = document.createElement('div');
+  disclaimer.style.cssText =
+    'margin-top:1rem; padding:1rem 1.25rem; border-left:4px solid var(--accent); background:var(--surface, var(--bg)); border-radius:8px; font-size:0.875rem; line-height:1.5;';
+
+  const disclaimerIcon = document.createElement('span');
+  disclaimerIcon.style.cssText = 'font-size:1.25rem; margin-right:0.5rem; vertical-align:middle;';
+  disclaimerIcon.textContent = '\uD83E\uDD4D'; // lacrosse emoji
+
+  const disclaimerText = document.createElement('span');
+  disclaimerText.textContent =
     'Data is compiled from multiple sources (PhillyLacrosse.com, PIAA, MaxPreps) and may be incomplete or most likely contains errors. Until the region has a single source of truth (like Newsday.com for Long Island), this is the best we can do. Users can manually update values and the AI agent & admin will review and approve. Let\'s make this a community effort.';
+
+  const author = document.createElement('p');
+  author.style.cssText = 'margin-top:0.5rem; font-size:0.8rem; opacity:0.7; font-style:italic;';
+  author.textContent = 'Built by Dave Voyles, a coach at Harriton HS';
+
+  disclaimer.append(disclaimerIcon, disclaimerText, author);
   root.appendChild(disclaimer);
 
   const teamsSection = document.createElement('section');
