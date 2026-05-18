@@ -87,8 +87,9 @@ export function renderMarginHistogram(
 
   inner
     .append('text')
-    .attr('x', 0)
+    .attr('x', innerWidth)
     .attr('y', -10)
+    .attr('text-anchor', 'end')
     .attr('fill', theme.muted)
     .style('font-size', '12px')
     .text(`${games.length} game${games.length === 1 ? '' : 's'}`);
