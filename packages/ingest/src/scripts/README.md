@@ -68,6 +68,14 @@ Manual player-merge aliases (calls `mergePlayers()` from `dedupPlayers`).
 Idempotent — already-merged pairs are no-ops. Run: `pnpm --filter @pll/ingest
 player-aliases:seed [-- --apply]`.
 
+### `applyHarritonWorkbook.ts`
+Harriton-only workbook importer for parent-provided XLSX stats. Reads a local
+`.xlsx` file, maps opponent sheets to Harriton games, maps player names to
+existing Harriton players (auto-creates high-confidence missing players, skips
+ambiguous rows), then replaces Harriton `player_stats` rows for mapped games.
+Dry-run by default. Run:
+`pnpm --filter @pll/ingest exec tsx src/scripts/applyHarritonWorkbook.ts --workbook=/path/to/HHS\\ Lax\\ 2026.xlsx --db=data/lacrosse.db [--apply]`.
+
 ### `seedTestDb.ts`
 Build the frozen, tiny, deterministic `data/lacrosse.test.db` from the real
 migration files (~5 teams / 3 games / 10 players). Called by vitest

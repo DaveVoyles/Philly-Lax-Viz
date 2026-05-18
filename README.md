@@ -65,6 +65,8 @@ Useful one-offs:
 pnpm -r typecheck     # strict TS across all packages
 pnpm -r test          # vitest across all packages
 pnpm --filter @pll/web build
+pnpm --filter @pll/ingest apply:harriton-workbook -- --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db  # dry-run
+pnpm --filter @pll/ingest apply:harriton-workbook -- --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db --apply
 ```
 
 ## Architecture
