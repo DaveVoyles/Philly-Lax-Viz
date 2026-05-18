@@ -63,26 +63,56 @@ export function renderTopScorers(
   for (const d of data) {
     const yPos = y(d.playerName) ?? 0;
     const bandH = y.bandwidth();
+    const goalWidth = x(d.goals);
+    const assistWidth = x(d.assists);
 
     inner
       .append('rect')
       .attr('x', 0)
       .attr('y', yPos)
-      .attr('width', x(d.goals))
+      .attr('width', goalWidth)
       .attr('height', bandH)
       .attr('fill', opts.goalColor)
       .append('title')
-      .text(`${d.playerName} — Goals: ${d.goals}`);
+      .text(`${d.playerName} - Goals: ${d.goals}`);
+
+    // Goal count label inside goal bar (if wide enough)
+    if (goalWidth > 20) {
+      inner
+        .append('text')
+        .attr('x', goalWidth / 2)
+        .attr('y', yPos + bandH / 2)
+        .attr('dominant-baseline', 'middle')
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#fff')
+        .style('font-size', '11px')
+        .style('font-weight', '600')
+        .text(String(d.goals));
+    }
 
     inner
       .append('rect')
-      .attr('x', x(d.goals))
+      .attr('x', goalWidth)
       .attr('y', yPos)
-      .attr('width', x(d.assists))
+      .attr('width', assistWidth)
       .attr('height', bandH)
       .attr('fill', opts.assistColor)
       .append('title')
-      .text(`${d.playerName} — Assists: ${d.assists}`);
+      .text(`${d.playerName} - Assists: ${d.assists}`);
+
+    // Assist count label inside assist bar (if wide enough)
+    if (assistWidth > 20) {
+      inner
+        .append('text')
+        .attr('x', goalWidth + assistWidth / 2)
+        .attr('y', yPos + bandH / 2)
+        .attr('dominant-baseline', 'middle')
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#fff')
+        .style('font-size', '11px')
+        .style('font-weight', '600')
+        .text(String(d.assists));
+    }
 
     // Total label at end of bar
     inner

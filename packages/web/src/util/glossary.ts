@@ -65,6 +65,28 @@ const GLOSSARY_ICON_CSS = `.glossary-icon {
   vertical-align: middle;
   text-decoration: none;
   line-height: 1;
+  position: relative;
+}
+.glossary-icon .glossary-tip {
+  display: none;
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: #f9fafb;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.glossary-icon:hover .glossary-tip,
+.glossary-icon:focus .glossary-tip {
+  display: block;
 }`;
 
 let glossaryCssInjected = false;
@@ -91,7 +113,7 @@ export function glossaryIcon(label: string): string {
   const def = getGlossary(label);
   if (!def) return '';
   const escaped = escapeHtmlAttr(def);
-  return `<span class="glossary-icon" title="${escaped}" aria-label="Definition: ${escaped}">?</span>`;
+  return `<span class="glossary-icon" tabindex="0" aria-label="Definition: ${escaped}">?<span class="glossary-tip">${escaped}</span></span>`;
 }
 
 export function ensureGlossaryCss(): void {
