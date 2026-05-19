@@ -709,6 +709,60 @@ function main(): void {
     : [];
   addFile(`${DEFAULT_SEASON}/rankings.json`, rankings);
 
+  // LaxNumbers ratings by conference view
+  const LAXNUMBERS_VIEWS = [
+    { id: 3454, name: 'inter-ac' },
+    { id: 3468, name: 'private-schools' },
+  ];
+  for (const view of LAXNUMBERS_VIEWS) {
+    const ratingsRows = db
+      .prepare(
+        `SELECT lr.*, t.name AS team_name, t.slug AS team_slug, t.logo_url
+         FROM laxnumbers_ratings lr
+         JOIN teams t ON lr.team_id = t.id
+         WHERE lr.year = ? AND lr.view_id = ?
+         ORDER BY lr.ranking ASC`,
+      )
+      .all(DEFAULT_SEASON, view.id) as Array<{
+      team_id: number;
+      laxnumbers_team_id: number;
+      view_id: number;
+      year: number;
+      ranking: number;
+      rating: number;
+      agd: number;
+      sched: number;
+      wins: number;
+      losses: number;
+      ties: number;
+      gf: number;
+      ga: number;
+      captured_at: string;
+      team_name: string;
+      team_slug: string;
+      logo_url: string | null;
+    }>;
+    addFile(`${DEFAULT_SEASON}/laxnumbers-ratings-${view.name}.json`, ratingsRows.map((r) => ({
+      teamId: r.team_id,
+      teamName: r.team_name,
+      teamSlug: r.team_slug,
+      logoUrl: r.logo_url,
+      laxnumbersTeamId: r.laxnumbers_team_id,
+      viewId: r.view_id,
+      year: r.year,
+      ranking: r.ranking,
+      rating: r.rating,
+      agd: r.agd,
+      sched: r.sched,
+      wins: r.wins,
+      losses: r.losses,
+      ties: r.ties,
+      gf: r.gf,
+      ga: r.ga,
+      capturedAt: r.captured_at,
+    })));
+  }
+
   for (const metric of PLAYER_METRICS) {
     const minGames = defaultMinGames(metric);
     const rows = getPlayerLeaders(db, {

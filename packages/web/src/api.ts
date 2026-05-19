@@ -14,6 +14,8 @@ import type {
   GamePeriod,
   HudlTeam,
   IngestAnomaly,
+  LaxNumbersRating,
+  LaxNumbersTeamRating,
   PiaaRecord,
   Player,
   PlayerMilestones,
@@ -273,6 +275,17 @@ export function getPlayerList(params?: {
 
 export function getRankings(params?: RankingsQuery): Promise<Ranking[]> {
   return request<Ranking[]>(`/rankings${buildQuery(params)}`);
+}
+
+export function getLaxNumbersRatings(params?: { year?: number; view?: number }): Promise<LaxNumbersRating[]> {
+  const q: Record<string, string | number> = {};
+  if (params?.year) q['year'] = params.year;
+  if (params?.view) q['view'] = params.view;
+  return request<LaxNumbersRating[]>(`/laxnumbers/ratings${buildQuery(q)}`);
+}
+
+export function getLaxNumbersTeamRating(teamId: number): Promise<LaxNumbersTeamRating[]> {
+  return request<LaxNumbersTeamRating[]>(`/laxnumbers/ratings/team/${teamId}`);
 }
 
 export function getAnomalies(): Promise<IngestAnomaly[]> {

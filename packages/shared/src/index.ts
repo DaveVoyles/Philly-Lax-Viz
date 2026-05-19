@@ -488,3 +488,38 @@ export interface ManualUpload {
   appliedAt?: string;
   revertedAt?: string;
 }
+
+export interface LaxNumbersRating {
+  teamId: number;
+  teamName: string;
+  teamSlug: string;
+  logoUrl: string | null;
+  laxnumbersTeamId: number;
+  viewId: number;
+  year: number;
+  ranking: number;
+  rating: number;
+  agd: number;
+  sched: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  gf: number;
+  ga: number;
+  capturedAt: string;
+}
+
+export interface LaxNumbersTeamRating {
+  viewId: number;
+  year: number;
+  ranking: number;
+  rating: number;
+  agd: number;
+  sched: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  gf: number;
+  ga: number;
+  capturedAt: string;
+}

@@ -32,6 +32,7 @@ const loaders: Record<Exclude<RouteName, 'notFound'>, () => Promise<ViewModule>>
   dataQuality: () => import('./views/dataQuality.js'),
   leaders: () => import('./views/leaders.js'),
   topTeams: () => import('./views/topTeams.js'),
+  ratings: () => import('./views/ratings.js'),
   anomalies: () => import('./views/anomalies.js'),
   graph: () => import('./views/graph.js'),
   constellation: () => import('./views/constellation.js'),
@@ -57,6 +58,7 @@ interface NavLink {
 const NAV: NavLink[] = [
   { href: '#/', label: 'Dashboard', match: 'dashboard' },
   { href: '#/leaders', label: 'Leaders', match: 'leaders' },
+  { href: '#/ratings', label: 'Ratings', match: 'ratings' },
   { href: '#/h2h', label: 'Compare', match: 'h2h' },
   { href: '#/graph', label: 'Team Connections', match: 'graph' },
   { href: '#/schedule', label: 'Schedule', match: 'schedule' },
@@ -215,6 +217,7 @@ const ROUTE_TITLES: Partial<Record<RouteName, string>> = {
   dataQuality: 'Data Quality',
   leaders: 'Stat Leaders',
   topTeams: 'Top Teams',
+  ratings: 'Power Ratings',
   anomalies: 'Anomalies',
   graph: 'Team Connections',
   constellation: 'Player Map',

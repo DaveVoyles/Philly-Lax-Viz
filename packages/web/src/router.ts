@@ -12,6 +12,7 @@ export interface RouteMatch {
     | 'dataQuality'
     | 'leaders'
     | 'topTeams'
+    | 'ratings'
     | 'anomalies'
     | 'graph'
     | 'constellation'
@@ -49,6 +50,7 @@ const routes: RouteDef[] = [
   { name: 'dataQuality', pattern: /^\/data-quality\/?$/, keys: [] },
   { name: 'leaders', pattern: /^\/leaders\/?$/, keys: [] },
   { name: 'topTeams', pattern: /^\/top-teams\/?$/, keys: [] },
+  { name: 'ratings', pattern: /^\/ratings\/?$/, keys: [] },
   { name: 'anomalies', pattern: /^\/anomalies\/?$/, keys: [] },
   { name: 'graph', pattern: /^\/graph\/?$/, keys: [] },
   { name: 'constellation', pattern: /^\/constellation\/?$/, keys: [] },
