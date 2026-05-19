@@ -3,8 +3,11 @@ import path, { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { Database as DatabaseType } from 'better-sqlite3';
+import { createLogger } from '@pll/shared';
 
 import { openDb } from '../db.js';
+
+const log = createLogger({ name: 'ingest:applyCorrections' });
 
 export const FIELD_BOUNDS: Record<string, { hardCap: number; maxMultiplier?: number }> = {
   goals: { hardCap: 15, maxMultiplier: 5 },
@@ -121,7 +124,7 @@ function rejectCorrection(
 ): void {
   summary.rejected += 1;
   if (dryRun) {
-    console.log(`[applyCorrections] dry-run would reject correction ${row.id}: ${reason}`);
+    log.info({ correctionId: row.id, reason }, 'dry-run would reject correction');
     return;
   }
   updateCorrectionStatus(db, row.id, 'rejected', reason);
@@ -136,7 +139,7 @@ function flagOutlier(
 ): void {
   summary.outliers += 1;
   if (dryRun) {
-    console.log(`[applyCorrections] dry-run would mark correction ${row.id} as outlier: ${reason}`);
+    log.info({ correctionId: row.id, reason }, 'dry-run would mark correction as outlier');
     return;
   }
   updateCorrectionStatus(db, row.id, 'outlier', reason);
@@ -193,9 +196,16 @@ export function applyCorrections(
 
       if (dryRun) {
         summary.dryRun += 1;
-        console.log(
-          `[applyCorrections] dry-run would apply correction ${row.id}: ${target.tableName}.${row.field_name} ` +
-            `id=${row.entity_id} ${currentValue} -> ${row.new_value}`,
+        log.info(
+          {
+            correctionId: row.id,
+            tableName: target.tableName,
+            fieldName: row.field_name,
+            entityId: row.entity_id,
+            from: currentValue,
+            to: row.new_value,
+          },
+          'dry-run would apply correction',
         );
         continue;
       }
@@ -216,9 +226,16 @@ export function applyCorrections(
       const jerseyNumber = Number.parseInt(row.new_value, 10);
       if (dryRun) {
         summary.dryRun += 1;
-        console.log(
-          `[applyCorrections] dry-run would apply correction ${row.id}: ${target.tableName}.${row.field_name} ` +
-            `id=${row.entity_id} ${currentValue} -> ${jerseyNumber}`,
+        log.info(
+          {
+            correctionId: row.id,
+            tableName: target.tableName,
+            fieldName: row.field_name,
+            entityId: row.entity_id,
+            from: currentValue,
+            to: jerseyNumber,
+          },
+          'dry-run would apply correction',
         );
         continue;
       }
@@ -243,9 +260,16 @@ export function applyCorrections(
 
     if (dryRun) {
       summary.dryRun += 1;
-      console.log(
-        `[applyCorrections] dry-run would apply correction ${row.id}: ${target.tableName}.${row.field_name} ` +
-          `id=${row.entity_id} ${currentValue} -> ${newValue}`,
+      log.info(
+        {
+          correctionId: row.id,
+          tableName: target.tableName,
+          fieldName: row.field_name,
+          entityId: row.entity_id,
+          from: currentValue,
+          to: newValue,
+        },
+        'dry-run would apply correction',
       );
       continue;
     }
@@ -259,9 +283,7 @@ export function applyCorrections(
 }
 
 function printSummary(summary: ApplyCorrectionsSummary): void {
-  console.log(
-    `[applyCorrections] Applied: ${summary.approved} approved, ${summary.outliers} outliers skipped, ${summary.rejected} rejected, ${summary.dryRun} dry-run`,
-  );
+  log.info(summary, 'applyCorrections complete');
 }
 
 function main(): void {

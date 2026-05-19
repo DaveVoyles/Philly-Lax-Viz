@@ -1,11 +1,9 @@
-// RFC 03 — response cache + ETag/Cache-Control behaviour.
-
+import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { Database } from 'better-sqlite3';
 import { openDb } from '@pll/ingest/src/db.js';
 import { buildApp } from '../app.js';
-import { resetSnapshotEpochCache } from '../snapshot.js';
 
 const NOW = '2025-04-21T12:00:00Z';
 
@@ -18,11 +16,14 @@ function seed(d: Database): void {
   ).run(NOW);
 }
 
+function expectedEtag(body: string): string {
+  return createHash('sha256').update(body).digest('hex').slice(0, 16);
+}
+
 let db: Database;
 let app: FastifyInstance;
 
 beforeEach(async () => {
-  resetSnapshotEpochCache();
   db = openDb(':memory:');
   seed(db);
   app = await buildApp(db);
@@ -35,85 +36,87 @@ afterEach(async () => {
 });
 
 describe('responseCache plugin', () => {
-  it('first request is a MISS and sets ETag + Cache-Control', async () => {
+  it('sets MISS headers and an SHA-256 ETag on first cacheable GET', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/teams' });
+
     expect(res.statusCode).toBe(200);
     expect(res.headers['x-cache']).toBe('MISS');
-    expect(res.headers['etag']).toMatch(/^W\/"[0-9a-f]{16}"$/);
-    expect(res.headers['cache-control']).toMatch(/public, max-age=30, must-revalidate/);
-    expect(res.headers['vary']).toBe('Accept-Encoding');
+    expect(res.headers['cache-control']).toBe('public, max-age=60');
+    expect(res.headers['etag']).toBe(expectedEtag(res.body));
   });
 
-  it('second identical request is a HIT and returns the same body + etag', async () => {
+  it('returns HIT for the same route pattern and URL', async () => {
     const first = await app.inject({ method: 'GET', url: '/api/teams' });
     const second = await app.inject({ method: 'GET', url: '/api/teams' });
+
     expect(second.statusCode).toBe(200);
     expect(second.headers['x-cache']).toBe('HIT');
     expect(second.headers['etag']).toBe(first.headers['etag']);
     expect(second.body).toBe(first.body);
   });
 
-  it('If-None-Match matching the cached etag returns 304 with empty body', async () => {
+  it('returns 304 when If-None-Match matches a cached response', async () => {
     const first = await app.inject({ method: 'GET', url: '/api/teams' });
-    const etag = first.headers['etag'] as string;
     const res = await app.inject({
       method: 'GET',
       url: '/api/teams',
-      headers: { 'if-none-match': etag },
+      headers: { 'if-none-match': String(first.headers['etag']) },
     });
+
     expect(res.statusCode).toBe(304);
     expect(res.body).toBe('');
-    expect(res.headers['x-cache']).toBe('HIT-304');
-    expect(res.headers['etag']).toBe(etag);
+    expect(res.headers['x-cache']).toBe('HIT');
+    expect(res.headers['etag']).toBe(first.headers['etag']);
   });
 
-  it('normalises query-string ordering', async () => {
-    // Use /api/games which accepts query params; both should hit the same key.
+  it('uses the full request URL in the cache key', async () => {
     const a = await app.inject({ method: 'GET', url: '/api/games?limit=10&offset=0' });
     const b = await app.inject({ method: 'GET', url: '/api/games?offset=0&limit=10' });
+
     expect(a.statusCode).toBe(200);
     expect(b.statusCode).toBe(200);
     expect(a.headers['x-cache']).toBe('MISS');
-    expect(b.headers['x-cache']).toBe('HIT');
-    expect(b.headers['etag']).toBe(a.headers['etag']);
+    expect(b.headers['x-cache']).toBe('MISS');
   });
 
-  it('does NOT cache /api/health (snapshot exposed there must stay live)', async () => {
+  it('does not cache excluded routes', async () => {
     const a = await app.inject({ method: 'GET', url: '/api/health' });
     const b = await app.inject({ method: 'GET', url: '/api/health' });
+
     expect(a.statusCode).toBe(200);
     expect(b.statusCode).toBe(200);
     expect(a.headers['x-cache']).toBeUndefined();
     expect(b.headers['x-cache']).toBeUndefined();
     expect(a.headers['etag']).toBeUndefined();
+    expect(b.headers['etag']).toBeUndefined();
   });
 
-  it('exposes snapshotEpoch on /api/health', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/health' });
-    const body = res.json();
-    expect(typeof body.snapshotEpoch).toBe('string');
-    expect(body.snapshotEpoch.length).toBeGreaterThan(0);
-  });
-
-  it('clearResponseCache invalidates entries (simulated snapshot rollover)', async () => {
-    const first = await app.inject({ method: 'GET', url: '/api/teams' });
-    expect(first.headers['x-cache']).toBe('MISS');
-    const cached = await app.inject({ method: 'GET', url: '/api/teams' });
-    expect(cached.headers['x-cache']).toBe('HIT');
-
-    app.clearResponseCache();
-
-    const afterFlush = await app.inject({ method: 'GET', url: '/api/teams' });
-    expect(afterFlush.headers['x-cache']).toBe('MISS');
-  });
-
-  it('does not cache 4xx responses', async () => {
+  it('does not cache non-2xx responses', async () => {
     const a = await app.inject({ method: 'GET', url: '/api/games?date=garbage' });
-    expect(a.statusCode).toBe(400);
     const b = await app.inject({ method: 'GET', url: '/api/games?date=garbage' });
+
+    expect(a.statusCode).toBe(400);
     expect(b.statusCode).toBe(400);
-    // Neither response should set the response-cache headers since they aren't 200.
     expect(a.headers['x-cache']).toBeUndefined();
     expect(b.headers['x-cache']).toBeUndefined();
+  });
+
+  it('does not cache POST routes', async () => {
+    const payload = {
+      entityType: 'game',
+      entityId: 10,
+      field: 'home_score',
+      oldValue: '12',
+      newValue: '13',
+      justification: 'Box score typo',
+      submitterName: 'Han Solo',
+      submitterEmail: 'han@example.com',
+    };
+
+    const first = await app.inject({ method: 'POST', url: '/api/corrections', payload });
+    const second = await app.inject({ method: 'POST', url: '/api/corrections', payload });
+
+    expect(first.headers['x-cache']).toBeUndefined();
+    expect(second.headers['x-cache']).toBeUndefined();
   });
 });

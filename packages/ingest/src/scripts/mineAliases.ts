@@ -28,8 +28,11 @@ import { writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Database as DatabaseType } from 'better-sqlite3';
+import { createLogger } from '@pll/shared';
 import { openDb } from '../db.js';
 import { normalizeTeamName } from '../normalize/teamName.js';
+
+const log = createLogger({ name: 'ingest:mineAliases' });
 
 export const MINER_SOURCE = 'anomaly-mined';
 
@@ -321,15 +324,9 @@ export function summarize(candidates: AliasCandidate[]): MinerSummary {
 }
 
 function printSummary(summary: MinerSummary, outPath: string): void {
-  console.log('-------- mineAliases summary --------');
-  console.log(`output:                  ${outPath}`);
-  console.log(`total candidates:        ${summary.totalCandidates}`);
-  console.log(`  accepted (≥0.80):      ${summary.accepted}`);
-  console.log(`    at 0.95:             ${summary.acceptedAt95}`);
-  console.log(`    at 0.80:             ${summary.acceptedAt80}`);
-  console.log(`  rejected:              ${summary.rejected}`);
-  for (const [reason, n] of Object.entries(summary.rejectedByReason)) {
-    console.log(`    ${reason}: ${n}`);
+  log.info({ outPath, ...summary }, 'mineAliases summary');
+  for (const [reason, count] of Object.entries(summary.rejectedByReason)) {
+    log.info({ reason, count }, 'mineAliases rejected reason');
   }
 }
 
@@ -342,7 +339,7 @@ function main(): void {
   const outPath = outIdx >= 0 && argv[outIdx + 1] ? resolve(argv[outIdx + 1]!) : defaultOut;
   const dbPath = process.env.DB_PATH ?? resolve(repoRoot, 'data', 'lacrosse.db');
 
-  console.log(`[mineAliases] reading ${dbPath}`);
+  log.info({ dbPath }, 'mineAliases reading database');
   const db = openDb(dbPath);
   db.pragma('foreign_keys = ON');
 

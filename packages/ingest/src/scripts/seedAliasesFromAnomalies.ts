@@ -2,8 +2,11 @@ import { existsSync } from 'node:fs';
 import path, { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Database as DatabaseType } from 'better-sqlite3';
+import { createLogger } from '@pll/shared';
 import { openDb } from '../db.js';
 import { normalizeTeamName, normalizeTeamToken } from '../pipelines/teamResolver.js';
+
+const log = createLogger({ name: 'ingest:seedAliasesFromAnomalies' });
 
 export interface RawAliasCandidate {
   rawValue: string;
@@ -225,14 +228,14 @@ export function seedAliasesFromAnomalies(
       if (!alias) continue;
       if (aliasExists.get(alias)) {
         summary.alreadyPresent += 1;
-        console.log(`[skip] alias already present: "${candidate.rawValue}" -> alias="${alias}"`);
+        log.info({ rawValue: candidate.rawValue, alias }, 'alias already present; skipping');
         continue;
       }
 
       const best = findBestTeamMatch(candidate.rawValue, teams);
       if (!best) {
         summary.manualReview += 1;
-        console.log(`[no-match] "${candidate.rawValue}" -> no team rows available`);
+        log.warn({ rawValue: candidate.rawValue }, 'no team rows available for alias candidate');
         continue;
       }
 
@@ -245,21 +248,30 @@ export function seedAliasesFromAnomalies(
         ].join('; ');
         if (dryRun) {
           summary.autoSeeded += 1;
-          console.log(`[dry-run] auto-seed "${candidate.rawValue}" -> "${best.teamName}" (${pct}%)`);
+          log.info(
+            { rawValue: candidate.rawValue, teamName: best.teamName, confidencePct: pct },
+            'dry-run would auto-seed alias',
+          );
         } else {
           const info = insert.run(alias, best.teamId, AUTO_SEED_SOURCE, best.score, note);
           if (info.changes === 1) {
             summary.autoSeeded += 1;
-            console.log(`[seeded] "${candidate.rawValue}" -> "${best.teamName}" (${pct}%)`);
+            log.info(
+              { rawValue: candidate.rawValue, alias, teamName: best.teamName, confidencePct: pct },
+              'auto-seeded alias',
+            );
           } else {
             summary.alreadyPresent += 1;
-            console.log(`[skip] alias already present: "${candidate.rawValue}" -> alias="${alias}"`);
+            log.info({ rawValue: candidate.rawValue, alias }, 'alias already present; skipping');
           }
         }
       } else {
         summary.manualReview += 1;
         const level = best.score >= REVIEW_THRESHOLD ? 'review' : 'no-match';
-        console.log(`[${level}] "${candidate.rawValue}" -> "${best.teamName}" (${pct}%)`);
+        log.warn(
+          { level, rawValue: candidate.rawValue, teamName: best.teamName, confidencePct: pct },
+          'alias candidate requires manual review',
+        );
       }
     }
   });
@@ -269,12 +281,7 @@ export function seedAliasesFromAnomalies(
 }
 
 function printSummary(summary: AliasSeedingSummary, dryRun: boolean): void {
-  console.log('-------- seedAliasesFromAnomalies --------');
-  console.log(`mode:               ${dryRun ? 'dry-run' : 'apply'}`);
-  console.log(`candidates found:   ${summary.candidatesFound}`);
-  console.log(`${dryRun ? 'would auto-seed' : 'auto-seeded'}:     ${summary.autoSeeded}`);
-  console.log(`already present:    ${summary.alreadyPresent}`);
-  console.log(`manual review:      ${summary.manualReview}`);
+  log.info({ dryRun, ...summary }, 'seedAliasesFromAnomalies summary');
 }
 
 function parseArgs(argv: string[]): { dbPath: string; dryRun: boolean } {
@@ -302,7 +309,7 @@ function main(): void {
 
   const db = openDb(resolvedDbPath);
   try {
-    console.log(`[seedAliasesFromAnomalies] db=${resolvedDbPath} mode=${dryRun ? 'dry-run' : 'apply'}`);
+    log.info({ dbPath: resolvedDbPath, dryRun }, 'seedAliasesFromAnomalies starting');
     const summary = seedAliasesFromAnomalies(db, { dryRun });
     printSummary(summary, dryRun);
   } finally {

@@ -16,8 +16,11 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Database as DatabaseType } from 'better-sqlite3';
+import { createLogger } from '@pll/shared';
 import { openDb } from '../db.js';
 import { MINER_SOURCE } from './mineAliases.js';
+
+const log = createLogger({ name: 'ingest:seedAliasesFromMine' });
 
 export interface SeedRow {
   alias: string;
@@ -150,17 +153,20 @@ export function seedFromCandidates(
 }
 
 function printResult(result: SeedResult, apply: boolean, minConf: number): void {
-  console.log(`-------- ${apply ? 'Applied' : 'Dry-run plan'}: seedAliasesFromMine --------`);
-  console.log(`min confidence:   ${minConf.toFixed(2)}`);
-  console.log(`considered:       ${result.considered}`);
-  console.log(`filtered out:     ${result.filteredOut}`);
-  console.log(`already present:  ${result.alreadyPresent}`);
-  console.log(`${apply ? 'inserted' : 'would insert'}:       ${result.inserted}`);
-  if (result.missingTeam.length > 0) {
-    console.log(`!! missing team rows (skipped): ${result.missingTeam.length}`);
-    for (const r of result.missingTeam.slice(0, 10)) {
-      console.log(`    alias="${r.alias}" -> team_id=${r.teamId} (${r.teamName})`);
-    }
+  log.info(
+    {
+      apply,
+      minConfidence: minConf,
+      considered: result.considered,
+      filteredOut: result.filteredOut,
+      alreadyPresent: result.alreadyPresent,
+      inserted: result.inserted,
+      missingTeamCount: result.missingTeam.length,
+    },
+    'seedAliasesFromMine summary',
+  );
+  for (const row of result.missingTeam.slice(0, 10)) {
+    log.warn({ alias: row.alias, teamId: row.teamId, teamName: row.teamName }, 'missing team row skipped');
   }
 }
 
@@ -179,7 +185,7 @@ function main(): void {
       : resolve(repoRoot, 'data', 'aliases-candidates.tsv');
   const dbPath = process.env.DB_PATH ?? resolve(repoRoot, 'data', 'lacrosse.db');
 
-  console.log(`[seedAliasesFromMine] tsv=${tsvPath} db=${dbPath} (${apply ? 'APPLY' : 'dry-run'})`);
+  log.info({ tsvPath, dbPath, apply }, 'seedAliasesFromMine starting');
 
   const tsv = readFileSync(tsvPath, 'utf8');
   const rows = parseTsv(tsv);
@@ -195,9 +201,9 @@ function main(): void {
     const mined = (db
       .prepare('SELECT COUNT(*) AS n FROM team_aliases WHERE source = ?')
       .get(MINER_SOURCE) as { n: number }).n;
-    console.log(`team_aliases total: ${total}  (anomaly-mined: ${mined})`);
+    log.info({ total, mined }, 'team_aliases totals after apply');
   } else {
-    console.log('\n(Dry-run only. Re-run with --apply to write.)');
+    log.info('dry-run only; re-run with --apply to write');
   }
 
   db.close();

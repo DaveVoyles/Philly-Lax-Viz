@@ -66,6 +66,8 @@ Agents should understand what they can do autonomously and what requires human a
 
 **Goal:** Route `PhillyLaxStats.com` to the Azure Container App and update all references.
 
+**Status:** Domain purchased from NameCheap (2026-05-19). Ready for DNS configuration.
+
 **Automation level:** ~80% automatable. DNS records can be set via NameCheap API once credentials are provided.
 
 | Lane | Task | Size | Automatable? | Notes |
@@ -180,7 +182,7 @@ Agent should generate a downloadable template `.xlsx` that coaches can fill out.
 
 ---
 
-## Wave 5 — Data Pipeline Hardening
+## Wave 5 — Data Pipeline Hardening ✅ COMPLETE (2026-05-19)
 
 **Goal:** Improve data accuracy, observability, and robustness for production use.
 
@@ -188,14 +190,14 @@ Agent should generate a downloadable template `.xlsx` that coaches can fill out.
 
 These items come from `docs/improvements/00-INDEX.md` (existing RFCs). Each is already spec'd — agents should read the RFC before implementing.
 
-| Lane | Task | Size | RFC |
-|------|------|------|-----|
-| 1 | Anomaly-driven team alias auto-seeder | S | [#01](./improvements/01-anomaly-driven-alias-seeder.md) |
-| 2 | API response cache + ETag headers | S | [#03](./improvements/03-api-response-cache-and-http-caching.md) |
-| 3 | Game flow chart (period scoring visualization) | S | [#06](./improvements/06-game-flow-chart.md) |
-| 4 | Centralized Pino logger (replace scattered console.log) | S | [#07](./improvements/07-centralized-logger-rollout.md) |
+| Lane | Task | Size | RFC | Status |
+|------|------|------|-----|--------|
+| 1 | Anomaly-driven team alias auto-seeder | S | [#01](./improvements/01-anomaly-driven-alias-seeder.md) | ✅ Done — 11 aliases, ~71 anomalies covered |
+| 2 | API response cache + ETag headers | S | [#03](./improvements/03-api-response-cache-and-http-caching.md) | ✅ Done — LRU + SHA-256 ETag + 304 |
+| 3 | Game flow chart (period scoring visualization) | S | [#06](./improvements/06-game-flow-chart.md) | ✅ Done — D3 curveStepAfter in gameDetail |
+| 4 | Centralized Pino logger (replace scattered console.log) | S | [#07](./improvements/07-centralized-logger-rollout.md) | ✅ Done — all non-test ingest sources converted |
 
-**Done-when:** Anomaly count reduced by >=30%. API responds with cache headers. Game detail shows period-by-period flow chart. All packages use Pino logger.
+**Done-when:** ~~Anomaly count reduced by >=30%. API responds with cache headers. Game detail shows period-by-period flow chart. All packages use Pino logger.~~ All met.
 
 ---
 

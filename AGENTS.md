@@ -15,7 +15,7 @@ The site is deployed two ways:
 | Package | Path | Role | Key entry files |
 |---|---|---|---|
 | `@pll/ingest` | `packages/ingest/` | Scrapers, parsers, pipelines, migrations, CLI/scripts that write to SQLite | `src/cli/crawl.ts`, `src/cli/ingest.ts`, `src/scripts/syncLogos.ts`, `src/scripts/syncHudl.ts`, `src/db.ts`, `src/parsers/index.ts` |
-| `@pll/server` | `packages/server/` | Fastify HTTP API + static logo serving | `src/index.ts`, `src/app.ts`, `src/routes/`, `src/queries/` |
+| `@pll/server` | `packages/server/` | Fastify HTTP API + static logo serving | `src/index.ts`, `src/app.ts`, `src/routes/`, `src/queries/`, `src/plugins/responseCache.ts` |
 | `@pll/shared` | `packages/shared/` | Single source of truth for shared TS types (`Team`, `Game`, `Player`, etc.) | `src/index.ts` |
 | `@pll/web` | `packages/web/` | Vite + D3 client (charts, views, simple router) | `src/main.ts`, `src/router.ts`, `src/api.ts`, `src/views/`, `src/charts/` |
 
@@ -137,6 +137,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 - **Server:** http://localhost:3001 (Fastify, `@pll/server`).
 - **Web:** http://localhost:5173 (Vite, `@pll/web`).
 - Static logos served at `/logos/*` from `data/logos/` with 1y immutable cache.
+- Selected read-only `GET /api/*` routes use `packages/server/src/plugins/responseCache.ts` for a 60s in-memory LRU cache plus `ETag`, `Cache-Control`, and `x-cache` headers. Cache keys use `${request.routeOptions.url}::${request.url}`. Exclude `/api/corrections`, `/api/upload`, and `/api/health`.
 
 ## 7. Where things live (quick map)
 

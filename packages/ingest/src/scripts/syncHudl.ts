@@ -606,8 +606,8 @@ function writeToDb(roster: HudlPlayer[], games: HudlGame[], args: HudlArgs): voi
 
 async function main(): Promise<void> {
   if (!HUDL_EMAIL || !HUDL_PASSWORD) {
-    console.error('ERROR: HUDL_EMAIL and HUDL_PASSWORD env vars are required.');
-    console.error('Set them in packages/ingest/.env (gitignored) or export them before running syncHudl.');
+    log.error('HUDL_EMAIL and HUDL_PASSWORD env vars are required');
+    log.error('Set them in packages/ingest/.env (gitignored) or export them before running syncHudl');
     process.exit(1);
   }
 

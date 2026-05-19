@@ -367,7 +367,7 @@ function enrichOpponentData(db: Database, hudlSchedule: HudlScheduleEntry[]): {
 
 async function main(): Promise<void> {
   if (!HUDL_EMAIL || !HUDL_PASSWORD) {
-    console.error('ERROR: HUDL_EMAIL and HUDL_PASSWORD required in env');
+    log.error('HUDL_EMAIL and HUDL_PASSWORD required in env');
     process.exit(1);
   }
 

@@ -88,7 +88,7 @@ function seed(d: Database): void {
 beforeAll(async () => {
   db = openDb(':memory:');
   seed(db);
-  app = await buildApp(db);
+  app = await buildApp(db, { responseCache: false });
   await app.ready();
 });
 

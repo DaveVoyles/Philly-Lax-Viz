@@ -11,9 +11,9 @@ type GameDetailWithTeams = GameDetail & {
 };
 import { formatDate } from '../util/format.js';
 import { renderQuarterByQuarter } from '../charts/index.js';
+import { renderGameFlow } from '../charts/gameFlow.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderAnomalyBanner } from '../components/anomalyBanner.js';
-import { renderGameFlowChart } from '../components/gameFlowChart.js';
 import { renderConfidenceBadge } from '../util/confidence.js';
 import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 import { openCorrectionModal, type CorrectionTarget } from '../components/correctionModal.js';
@@ -95,23 +95,6 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     root.appendChild(renderGameHero(game.imageUrl, `${awayName} at ${homeName}`));
   }
 
-  // RFC 06 — cumulative game-flow line chart (story arc) renders ABOVE the
-  // grouped per-quarter bars (detail). Both coexist intentionally.
-  if (periods.length > 0) {
-    const flowSlot = document.createElement('div');
-    flowSlot.className = 'chart-slot game-flow-slot';
-    root.appendChild(flowSlot);
-    renderGameFlowChart(flowSlot, {
-      periods,
-      homeTeamId: game.homeTeamId,
-      awayTeamId: game.awayTeamId,
-      homeTeamName: homeName,
-      awayTeamName: awayName,
-      finalHome: game.homeScore,
-      finalAway: game.awayScore,
-    });
-  }
-
   const qChartSlot = document.createElement('div');
   qChartSlot.dataset['chart'] = 'quarterByQuarter';
   qChartSlot.className = 'chart-slot';
@@ -124,6 +107,16 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       homeTeamName: homeName,
       awayTeamName: awayName,
     });
+
+    const flowSlot = document.createElement('div');
+    flowSlot.className = 'game-flow-slot';
+    root.appendChild(flowSlot);
+    renderGameFlow(
+      flowSlot,
+      periods,
+      { id: game.homeTeamId, name: homeName },
+      { id: game.awayTeamId, name: awayName },
+    );
   }
 
   const byQuarterHeader = document.createElement('h2');

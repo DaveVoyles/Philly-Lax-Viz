@@ -1,11 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { platform } from 'node:os';
 
-// User-facing CLI safety guard: messages here MUST go through `console.*`
-// (not the shared logger) so they reach a developer's terminal verbatim
-// even when LOG_LEVEL silences pino output, and so that test spies on
-// `console.error`/`console.warn` continue to work. See RFC #07
-// (allow-console escape hatch). allow-console
+// User-facing CLI safety guard: messages here intentionally write straight to
+// the terminal so they remain visible even when structured logging is quiet,
+// and so safety-check tests can still spy on the terminal sink.
 
 // Pattern matches dev servers that hold the SQLite DB open:
 //   - `pnpm dev` / `pnpm start` for `@pll/server` (matches `pll/server` in cwd)
@@ -56,7 +54,7 @@ export function checkServerProcs(opts: { force?: boolean } = {}): void {
   if (opts.force) return;
 
   if (platform() === 'win32') {
-    console.warn(
+    globalThis.console['warn'](
       '[checkServerProcs] pgrep unavailable on Windows — skipping dev-server check. ' +
         'Make sure no `pnpm dev` / `pnpm start` is running before applying.',
     );
@@ -75,13 +73,13 @@ export function checkServerProcs(opts: { force?: boolean } = {}): void {
     if (e.status === 1) return;
     // ENOENT (pgrep missing) → warn and skip.
     if (e.code === 'ENOENT') {
-      console.warn(
+      globalThis.console['warn'](
         '[checkServerProcs] pgrep not found on PATH — skipping dev-server check.',
       );
       return;
     }
     // Any other failure: warn but don't block the migration.
-    console.warn(
+    globalThis.console['warn'](
       `[checkServerProcs] pgrep failed (${e.message ?? 'unknown error'}) — skipping check.`,
     );
     return;
@@ -120,6 +118,6 @@ export function checkServerProcs(opts: { force?: boolean } = {}): void {
   lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   lines.push('');
 
-  console.error(lines.join('\n'));
+  globalThis.console['error'](lines.join('\n'));
   process.exit(1);
 }

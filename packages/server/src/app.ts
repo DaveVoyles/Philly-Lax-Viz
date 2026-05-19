@@ -28,7 +28,7 @@ import { searchRoutes } from './routes/search.js';
 import { comparePlayersRoutes } from './routes/comparePlayers.js';
 import correctionsRoutes from './routes/corrections.js';
 import adminDedupRoutes from './routes/adminDedup.js';
-import { responseCachePlugin, type ResponseCacheOptions } from './plugins/responseCache.js';
+import responseCache, { type ResponseCacheOptions } from './plugins/responseCache.js';
 
 export interface BuildOptions {
   /** A pino logger instance (preferred), or `true` to enable Fastify's
@@ -38,15 +38,21 @@ export interface BuildOptions {
   responseCache?: ResponseCacheOptions | false;
 }
 
-// Routes that opt into the in-memory response cache + ETag/Cache-Control.
-// See docs/improvements/03-api-response-cache-and-http-caching.md.
-// MUST NOT include /api/health or /api/freshness — those communicate
-// snapshot/deploy state and need to bypass the cache.
-const CACHED_ROUTES: readonly string[] = [
+const CACHED_ROUTE_PREFIXES: readonly string[] = [
+  '/api/leaders',
   '/api/teams',
   '/api/games',
-  '/api/leaders/players',
-  '/api/leaders/teams',
+  '/api/rankings',
+  '/api/h2h',
+  '/api/constellation',
+  '/api/schedule',
+  '/api/sources',
+];
+
+const UNCACHED_ROUTE_PREFIXES: readonly string[] = [
+  '/api/corrections',
+  '/api/upload',
+  '/api/health',
 ];
 
 // Resolve the default logos directory the same way index.ts resolves the DB:
@@ -79,8 +85,11 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   });
 
   if (opts.responseCache !== false) {
-    await app.register(responseCachePlugin, opts.responseCache ?? {});
-    for (const routeId of CACHED_ROUTES) app.cacheRoute(routeId);
+    await app.register(responseCache, {
+      includePrefixes: [...CACHED_ROUTE_PREFIXES],
+      excludePrefixes: [...UNCACHED_ROUTE_PREFIXES],
+      ...(opts.responseCache ?? {}),
+    });
   }
 
   await app.register(fastifyStatic, {

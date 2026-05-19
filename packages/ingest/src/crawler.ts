@@ -57,7 +57,7 @@ export interface CrawlerDeps {
   now?: () => Date;
   /** Optional sleep override for tests. */
   sleep?: (ms: number) => Promise<void>;
-  /** Optional logger. Default console. */
+  /** Optional logger. Defaults to the module logger. */
   log?: (msg: string) => void;
 }
 

@@ -153,7 +153,7 @@ pnpm --filter @pll/ingest apply:harriton-workbook -- --workbook='/Users/.../HHS 
 | -------------- | -------------------------------------------------------------------- |
 | `@pll/shared`  | Domain types (`Team`, `Game`, `PlayerStat`, …) shared across packages. |
 | `@pll/ingest`  | Crawler, HTML parsers, ingest pipelines, SQLite migration & schema, CLIs (`crawl`, `ingest`). |
-| `@pll/server`  | Fastify HTTP API over the SQLite DB. CORS-locked to `localhost:5173`. |
+| `@pll/server`  | Fastify HTTP API over the SQLite DB. CORS-locked to `localhost:5173`, with a 60s in-memory response cache + ETag headers on selected read-only `/api/*` routes. |
 | `@pll/web`     | Vite + TypeScript SPA. Hash router, D3 charts, no framework runtime. |
 
 Full package entry points, key files, and path map → **[AGENTS.md §2 & §7](./AGENTS.md)**.

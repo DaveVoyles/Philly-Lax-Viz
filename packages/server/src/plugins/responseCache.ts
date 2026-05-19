@@ -1,162 +1,99 @@
-// In-memory LRU response cache for read-only GET routes.
-//
-// Per RFC 03 (docs/improvements/03-api-response-cache-and-http-caching.md):
-//   - Route opts in via `app.cacheRoute(routeId)`; the plugin then matches
-//     incoming requests against the registered set.
-//   - Cache key = `${snapshotEpoch}::${routeId}::${sortedQueryString}`.
-//   - On cache hit: serve cached body, set `x-cache: HIT`, ETag, Cache-Control.
-//   - On `If-None-Match` matching the cached etag: 304 Not Modified.
-//   - On miss: capture the serialised JSON in onSend, store, set headers.
-//   - The snapshot epoch is mixed into both key and etag, so a new DB snapshot
-//     atomically invalidates every entry without a manual flush.
-
-import crypto from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { LRUCache } from 'lru-cache';
 import fp from 'fastify-plugin';
-import type {
-  FastifyInstance,
-  FastifyPluginAsync,
-  FastifyReply,
-  FastifyRequest,
-} from 'fastify';
-import { getSnapshotEpoch } from '../snapshot.js';
+import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 
 interface CacheEntry {
   etag: string;
   body: string;
   contentType: string;
   cachedAt: number;
-  epoch: string;
 }
 
 export interface ResponseCacheOptions {
+  includePrefixes?: string[];
+  excludePrefixes?: string[];
   maxEntries?: number;
   ttlMs?: number;
   maxAgeSeconds?: number;
-  staleWhileRevalidateSeconds?: number;
 }
 
 declare module 'fastify' {
-  interface FastifyInstance {
-    cacheRoute(routeId: string): void;
-    clearResponseCache(): void;
-  }
   interface FastifyRequest {
-    _cacheRouteId?: string;
-    _cacheKey?: string;
-    _cacheEpoch?: string;
+    _responseCacheKey?: string;
+    _responseCacheServed?: boolean;
   }
 }
 
-function sortedQueryString(query: unknown): string {
-  if (!query || typeof query !== 'object') return '';
-  const entries: Array<[string, string]> = [];
-  for (const [k, v] of Object.entries(query as Record<string, unknown>)) {
-    if (Array.isArray(v)) {
-      for (const item of v) entries.push([k, String(item)]);
-    } else if (v !== undefined && v !== null) {
-      entries.push([k, String(v)]);
-    }
-  }
-  entries.sort(([a, av], [b, bv]) => (a === b ? av.localeCompare(bv) : a.localeCompare(b)));
-  const sp = new URLSearchParams();
-  for (const [k, v] of entries) sp.append(k, v);
-  return sp.toString();
+function shouldCacheRoute(
+  routeUrl: string,
+  includePrefixes: readonly string[],
+  excludePrefixes: readonly string[],
+): boolean {
+  if (excludePrefixes.some((prefix) => routeUrl.startsWith(prefix))) return false;
+  return includePrefixes.some((prefix) => routeUrl.startsWith(prefix));
 }
 
-function computeEtag(epoch: string, body: string): string {
-  const hash = crypto
-    .createHash('sha1')
-    .update(epoch)
-    .update('::')
-    .update(body)
-    .digest('hex')
-    .slice(0, 16);
-  return `W/"${hash}"`;
+function createEtag(body: string): string {
+  return createHash('sha256').update(body).digest('hex').slice(0, 16);
 }
 
-function buildCacheControl(maxAge: number, swr: number): string {
-  return `public, max-age=${maxAge}, must-revalidate, stale-while-revalidate=${swr}`;
-}
-
-export const responseCachePlugin = fp<ResponseCacheOptions>(
+const responseCache = fp<ResponseCacheOptions>(
   async (app: FastifyInstance, opts: ResponseCacheOptions = {}) => {
-    const maxEntries = opts.maxEntries ?? 500;
-    const ttlMs = opts.ttlMs ?? 60_000;
-    const maxAgeSeconds = opts.maxAgeSeconds ?? 30;
-    const swrSeconds = opts.staleWhileRevalidateSeconds ?? 300;
-    const cacheControl = buildCacheControl(maxAgeSeconds, swrSeconds);
-
-    const cache = new LRUCache<string, CacheEntry>({ max: maxEntries, ttl: ttlMs });
-    const enabledRoutes = new Set<string>();
-
-    app.decorate('cacheRoute', (routeId: string) => {
-      enabledRoutes.add(routeId);
+    const cache = new LRUCache<string, CacheEntry>({
+      max: opts.maxEntries ?? 500,
+      ttl: opts.ttlMs ?? 60_000,
     });
+    const includePrefixes = opts.includePrefixes ?? [];
+    const excludePrefixes = opts.excludePrefixes ?? [];
+    const cacheControl = `public, max-age=${opts.maxAgeSeconds ?? 60}`;
 
-    app.decorate('clearResponseCache', () => {
-      cache.clear();
-    });
+    app.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
+      if (request.method !== 'GET') return;
 
-    app.addHook('onRequest', async (req: FastifyRequest, reply: FastifyReply) => {
-      if (req.method !== 'GET') return;
-      const routeId = req.routeOptions?.url;
-      if (!routeId || !enabledRoutes.has(routeId)) return;
+      const routeUrl = request.routeOptions.url;
+      if (!routeUrl) return;
+      if (!shouldCacheRoute(routeUrl, includePrefixes, excludePrefixes)) return;
 
-      const epoch = getSnapshotEpoch();
-      const key = `${epoch}::${routeId}::${sortedQueryString(req.query)}`;
-      req._cacheRouteId = routeId;
-      req._cacheKey = key;
-      req._cacheEpoch = epoch;
+      const cacheKey = `${routeUrl}::${request.url}`;
+      request._responseCacheKey = cacheKey;
 
-      const hit = cache.get(key);
+      const hit = cache.get(cacheKey);
       if (!hit) return;
 
-      const ifNoneMatch = req.headers['if-none-match'];
-      void reply.header('ETag', hit.etag);
-      void reply.header('Cache-Control', cacheControl);
-      void reply.header('Vary', 'Accept-Encoding');
-      if (typeof ifNoneMatch === 'string' && ifNoneMatch === hit.etag) {
-        void reply.header('x-cache', 'HIT-304');
+      reply.header('x-cache', 'HIT');
+      reply.header('ETag', hit.etag);
+      reply.header('Cache-Control', cacheControl);
+
+      if (request.headers['if-none-match'] === hit.etag) {
+        request._responseCacheServed = true;
         return reply.code(304).send();
       }
-      void reply.header('x-cache', 'HIT');
-      void reply.header('Content-Type', hit.contentType);
+
+      request._responseCacheServed = true;
+      reply.header('Content-Type', hit.contentType);
       return reply.send(hit.body);
     });
 
-    app.addHook('onSend', async (req: FastifyRequest, reply: FastifyReply, payload) => {
-      const key = req._cacheKey;
-      const epoch = req._cacheEpoch;
-      if (!key || !epoch) return payload;
-      if (reply.statusCode !== 200) return payload;
-      const existingXCache = reply.getHeader('x-cache');
-      if (existingXCache === 'HIT' || existingXCache === 'HIT-304') return payload;
+    app.addHook('onSend', async (request: FastifyRequest, reply: FastifyReply, payload) => {
+      if (request._responseCacheServed) return payload;
+      if (!request._responseCacheKey) return payload;
+      if (reply.statusCode < 200 || reply.statusCode >= 300) return payload;
       if (typeof payload !== 'string') return payload;
 
-      const contentType =
-        (reply.getHeader('content-type') as string | undefined) ??
-        'application/json; charset=utf-8';
-      const etag = computeEtag(epoch, payload);
-      cache.set(key, {
+      const contentType = String(reply.getHeader('content-type') ?? 'application/json; charset=utf-8');
+      const etag = createEtag(payload);
+
+      cache.set(request._responseCacheKey, {
         etag,
         body: payload,
         contentType,
         cachedAt: Date.now(),
-        epoch,
       });
 
-      void reply.header('ETag', etag);
-      void reply.header('Cache-Control', cacheControl);
-      void reply.header('Vary', 'Accept-Encoding');
-      void reply.header('x-cache', 'MISS');
-
-      const ifNoneMatch = req.headers['if-none-match'];
-      if (typeof ifNoneMatch === 'string' && ifNoneMatch === etag) {
-        void reply.code(304);
-        void reply.header('x-cache', 'MISS-304');
-        return '';
-      }
+      reply.header('x-cache', 'MISS');
+      reply.header('ETag', etag);
+      reply.header('Cache-Control', cacheControl);
 
       return payload;
     });
@@ -164,4 +101,4 @@ export const responseCachePlugin = fp<ResponseCacheOptions>(
   { name: 'pll-response-cache', fastify: '5.x' },
 ) as FastifyPluginAsync<ResponseCacheOptions>;
 
-export default responseCachePlugin;
+export default responseCache;
