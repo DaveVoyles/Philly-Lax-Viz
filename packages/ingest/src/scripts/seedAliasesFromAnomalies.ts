@@ -202,6 +202,29 @@ export function findBestTeamMatch(rawValue: string, teams: readonly TeamRow[]): 
   return best;
 }
 
+/**
+ * Find teams within Levenshtein distance <= maxDist of the raw value.
+ * Returns all matches at the minimum distance found.
+ */
+export function findLevenshteinMatches(
+  rawValue: string,
+  teams: readonly TeamRow[],
+  maxDist = 1,
+): TeamMatch[] {
+  const normRaw = normalizeForSimilarity(rawValue);
+  const matches: Array<TeamMatch & { dist: number }> = [];
+  for (const team of teams) {
+    const normTeam = normalizeForSimilarity(team.name);
+    const dist = levenshtein(normRaw, normTeam);
+    if (dist <= maxDist) {
+      matches.push({ teamId: team.id, teamName: team.name, score: 1 - dist / Math.max(normRaw.length, normTeam.length, 1), dist });
+    }
+  }
+  if (matches.length === 0) return [];
+  const minDist = Math.min(...matches.map((m) => m.dist));
+  return matches.filter((m) => m.dist === minDist);
+}
+
 export function seedAliasesFromAnomalies(
   db: DatabaseType,
   options: { dryRun?: boolean } = {},
@@ -266,12 +289,42 @@ export function seedAliasesFromAnomalies(
           }
         }
       } else {
-        summary.manualReview += 1;
-        const level = best.score >= REVIEW_THRESHOLD ? 'review' : 'no-match';
-        log.warn(
-          { level, rawValue: candidate.rawValue, teamName: best.teamName, confidencePct: pct },
-          'alias candidate requires manual review',
-        );
+        // Fallback: if Levenshtein distance <= 1 with exactly one candidate, auto-seed
+        const levMatches = findLevenshteinMatches(candidate.rawValue, teams, 1);
+        if (levMatches.length === 1) {
+          const levMatch = levMatches[0]!;
+          const levNote = [
+            `raw_value=${candidate.rawValue}`,
+            `occurrences=${candidate.occurrences}`,
+            `sources=${candidate.sources.join(',')}`,
+            `method=levenshtein-1`,
+          ].join('; ');
+          if (dryRun) {
+            summary.autoSeeded += 1;
+            log.info(
+              { rawValue: candidate.rawValue, teamName: levMatch.teamName, method: 'levenshtein-1' },
+              'dry-run would auto-seed alias (Levenshtein <= 1)',
+            );
+          } else {
+            const info = insert.run(alias, levMatch.teamId, 'auto-fuzzy', 0.9, levNote);
+            if (info.changes === 1) {
+              summary.autoSeeded += 1;
+              log.info(
+                { rawValue: candidate.rawValue, alias, teamName: levMatch.teamName, method: 'levenshtein-1' },
+                'auto-seeded alias (Levenshtein <= 1)',
+              );
+            } else {
+              summary.alreadyPresent += 1;
+            }
+          }
+        } else {
+          summary.manualReview += 1;
+          const level = best.score >= REVIEW_THRESHOLD ? 'review' : 'no-match';
+          log.warn(
+            { level, rawValue: candidate.rawValue, teamName: best.teamName, confidencePct: pct },
+            'alias candidate requires manual review',
+          );
+        }
       }
     }
   });
