@@ -116,6 +116,65 @@ export interface CoachDashboardResponse {
   uploadUrl: string;
 }
 
+export interface CoachTrendPoint {
+  gameId: number;
+  date: string;
+  opponent: string;
+  goalsFor: number;
+  goalsAgainst: number;
+  assists: number;
+  groundBalls: number;
+  saves: number;
+  foWon: number;
+  foTaken: number;
+}
+
+export interface CoachTrendsResponse {
+  trends: CoachTrendPoint[];
+}
+
+export interface CoachScoutingGame {
+  date: string;
+  opponent: string;
+  score: string;
+  result: 'W' | 'L';
+}
+
+export interface CoachScoutingTopScorer {
+  name: string;
+  goals: number;
+  assists: number;
+}
+
+export interface CoachHeadToHeadResult {
+  date: string;
+  score: string;
+  result: 'W' | 'L';
+}
+
+export interface CoachScoutingReport {
+  opponent: {
+    id: number;
+    name: string;
+    record: string;
+  };
+  last5Games: CoachScoutingGame[];
+  avgGoalsFor: number;
+  avgGoalsAgainst: number;
+  topScorers: CoachScoutingTopScorer[];
+  h2h: CoachHeadToHeadResult[];
+}
+
+export interface CoachPracticeSuggestion {
+  area: string;
+  reason: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface CoachPracticeFocus {
+  suggestions: CoachPracticeSuggestion[];
+}
+
 export interface Game {
   id: number;
   date: string; // ISO date (YYYY-MM-DD), local Philadelphia date of game

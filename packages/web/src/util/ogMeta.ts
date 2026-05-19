@@ -5,6 +5,8 @@ interface OgMetaOptions {
   image?: string;
 }
 
+const CANONICAL_ORIGIN = 'https://phillylaxstats.com';
+
 function ensureMeta(selector: string, attrs: Record<string, string>): HTMLMetaElement {
   let meta = document.head.querySelector<HTMLMetaElement>(selector);
   if (!meta) {
@@ -24,8 +26,25 @@ function normalizeUrl(value: string | undefined): string | undefined {
   }
 }
 
+function buildCanonicalUrl(value: string | undefined): string | undefined {
+  const normalized = normalizeUrl(value ?? window.location.href);
+  if (!normalized) return undefined;
+
+  try {
+    const url = new URL(normalized, window.location.href);
+    const hashRoute = url.hash && url.hash !== '#'
+      ? (url.hash.startsWith('#/') ? url.hash : `#/${url.hash.replace(/^#/, '')}`)
+      : url.pathname !== '/' || url.search
+        ? `#${url.pathname}${url.search}`
+        : '#/';
+    return `${CANONICAL_ORIGIN}/${hashRoute}`;
+  } catch {
+    return normalized;
+  }
+}
+
 export function setCanonicalUrl(value: string | undefined): void {
-  const url = normalizeUrl(value ?? window.location.href);
+  const url = buildCanonicalUrl(value ?? window.location.href);
   if (!url) return;
   let link = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
   if (!link) {
@@ -53,8 +72,9 @@ export function setOgMeta(opts: OgMetaOptions): void {
 
   if (url) {
     ensureMeta('meta[property="og:url"]', { property: 'og:url' }).content = url;
-    setCanonicalUrl(url);
   }
+
+  setCanonicalUrl(opts.url ?? window.location.href);
 
   const ogImage = ensureMeta('meta[property="og:image"]', { property: 'og:image' });
   const twitterImage = ensureMeta('meta[name="twitter:image"]', { name: 'twitter:image' });

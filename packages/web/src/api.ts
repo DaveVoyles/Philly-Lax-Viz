@@ -160,6 +160,58 @@ export interface TeamDetailResponse {
   roster: Player[];
 }
 
+// TODO: Move these coach analytics types to @pll/shared once the shared package exports them.
+export interface TrendPoint {
+  gameId: number;
+  date: string;
+  opponent: string;
+  goalsFor: number;
+  goalsAgainst: number;
+  assists: number;
+  groundBalls: number;
+  saves: number;
+  foWon: number;
+  foTaken: number;
+}
+
+export interface CoachTrendsResponse {
+  trends: TrendPoint[];
+}
+
+export interface CoachScoutingReport {
+  opponent: {
+    id: number;
+    name: string;
+    record: string;
+  };
+  last5Games: Array<{
+    date: string;
+    opponent: string;
+    score: string;
+    result: 'W' | 'L';
+  }>;
+  avgGoalsFor: number;
+  avgGoalsAgainst: number;
+  topScorers: Array<{
+    name: string;
+    goals: number;
+    assists: number;
+  }>;
+  h2h: Array<{
+    date: string;
+    score: string;
+    result: 'W' | 'L';
+  }>;
+}
+
+export interface CoachPracticeFocus {
+  suggestions: Array<{
+    area: string;
+    reason: string;
+    priority: 'high' | 'medium' | 'low';
+  }>;
+}
+
 export interface GameDetailResponse {
   game: Game;
   homeTeam: Team;
@@ -428,6 +480,18 @@ export function getTeamDetail(id: string | number): Promise<TeamDetail> {
 
 export function getCoachDashboard(teamId: string | number): Promise<CoachDashboardResponse> {
   return request<CoachDashboardResponse>(`/coach/dashboard${buildQuery({ teamId })}`);
+}
+
+export async function getCoachTrends(teamId: number, season?: number): Promise<CoachTrendsResponse> {
+  return request<CoachTrendsResponse>(`/coach/trends${buildQuery({ teamId, season })}`);
+}
+
+export async function getCoachScouting(teamId: number, opponentId: number, season?: number): Promise<CoachScoutingReport> {
+  return request<CoachScoutingReport>(`/coach/scouting${buildQuery({ teamId, opponentId, season })}`);
+}
+
+export async function getCoachPracticeFocus(teamId: number, season?: number): Promise<CoachPracticeFocus> {
+  return request<CoachPracticeFocus>(`/coach/practice-focus${buildQuery({ teamId, season })}`);
 }
 
 export function getGameDetail(id: string | number): Promise<GameDetail> {

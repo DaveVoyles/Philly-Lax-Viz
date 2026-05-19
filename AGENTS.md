@@ -146,7 +146,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 - **Server:** http://localhost:3001 (Fastify, `@pll/server`).
 - **Web:** http://localhost:5173 (Vite, `@pll/web`).
 - Static logos served at `/logos/*` from `data/logos/` with 1y immutable cache.
-- Coach tooling routes include `#/coach/dashboard` (coverage + upload triage) and `#/coach/upload` (spreadsheet import).
+- Coach tooling routes include `#/coach/dashboard` (coverage, trends, scouting, and practice-focus analytics) and `#/coach/upload` (spreadsheet import).
 - Selected read-only `GET /api/*` routes opt into `packages/server/src/plugins/responseCache.ts` via the exported `cacheable` route option. The plugin keeps a 60s in-memory LRU cache, emits `ETag`, `Cache-Control`, and `x-cache` headers, keys entries by `request.url`, and skips requests with `Authorization` headers.
 
 ## 7. Where things live (quick map)

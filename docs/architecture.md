@@ -1,6 +1,6 @@
 # Philly Lacrosse Viz — Architecture Reference
 
-> **Last updated:** 2026-05-18  
+> **Last updated:** 2026-05-19  
 > **Audience:** agents and contributors joining this repo cold  
 > **Purpose:** single-source-of-truth for how data flows from external sources to the deployed site
 >
@@ -38,7 +38,7 @@ External Sources
 
        │ crawl.ts / syncPiaa.ts / syncLogos.ts
        ▼
-  data/lacrosse.db (SQLite, user_version=4)
+  data/lacrosse.db (SQLite, user_version=16)
 
        │ ingest-nightly.yml (GitHub Actions, self-hosted runner)
        ▼
@@ -53,10 +53,10 @@ External Sources
 
 | Target | URL | Data source | Live API? |
 |--------|-----|-------------|-----------|
-| GitHub Pages | https://davevoyles.github.io/Philly-Lax-Viz | Pre-built static JSON | No — `staticLoader.ts` maps `/api/*` to JSON files |
-| Azure Container App | (internal, not shared publicly) | Live SQLite via Fastify | Yes — full `/api/*` |
+| GitHub Pages | https://phillylaxstats.com | Pre-built static JSON | No — `staticLoader.ts` maps `/api/*` to JSON files |
+| Azure Container App | https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io | Live SQLite via Fastify | Yes — full `/api/*` |
 
-GitHub Pages is the **primary user-facing deployment**. The Azure Container App is used for DB storage (Azure File Share) and as a live API endpoint for admin/development use.
+GitHub Pages is the **primary user-facing deployment** at `phillylaxstats.com`. The Azure Container App is used for DB storage (Azure File Share) and as a live API endpoint for coach uploads, commitment submissions, and admin tools.
 
 ---
 
@@ -371,19 +371,24 @@ This is additive — it supplements phillylacrosse.com data, not replaces it.
 | `#/games/:id` | Game detail | game + periods + player stats |
 | `#/game/:id` | Game scrubber | same as game detail (alternate layout) |
 | `#/players/:id` | Player detail | player + season stats + per-game |
-| `#/compare/players` | Compare players | multi-player detail (⚠️ no static export) |
-| `#/top-teams` | Top teams | top 5 teams by win record |
-| `#/data-quality` | Data quality | anomalies + PIAA mismatches (⚠️ partial static) |
+| `#/compare/players` | Compare players | multi-player detail (no static export) |
+| `#/top-teams` | Top 10 teams | top 10 teams by win record |
+| `#/data-quality` | Data quality | anomalies + PIAA mismatches (partial static) |
 | `#/leaders` | Leaders | player/team leaderboards + sparklines |
 | `#/anomalies` | Anomalies | anomaly list |
 | `#/graph` | Rivalry graph | rivalries data |
 | `#/constellation` | Constellation | constellation dataset |
-| `#/h2h` | Head to head | teams + players + H2H data (⚠️ H2H endpoints have no static export) |
+| `#/h2h` | Head to head | teams + players + H2H data |
 | `#/schedule` | Schedule | full season schedule |
-| `#/sources` | Sources | freshness timestamps (⚠️ no static export) |
+| `#/commitments` | Commitments | college commitments + self-service form |
+| `#/sources` | Sources | freshness timestamps |
 | `#/status` | Status | freshness + anomaly summary |
-| `#/admin/corrections` | Admin corrections | outlier inbox + recent approvals (intentionally disabled in static mode) |
-| `#/admin/dedup` | Admin dedup | dedup candidates (intentionally disabled in static mode) |
+| `#/guide` | Site Guide | static content - how to use every feature |
+| `#/coach/upload` | Coach Upload | spreadsheet upload form (live API only) |
+| `#/coach/dashboard` | Coach Dashboard | coverage gaps, trends, scouting, practice focus |
+| `#/admin/corrections` | Admin corrections | outlier inbox + recent approvals |
+| `#/admin/dedup` | Admin dedup | dedup candidates |
+| `#/admin/hudl` | Admin Hudl | Hudl team registration |
 
 ---
 
@@ -418,6 +423,11 @@ This is additive — it supplements phillylacrosse.com data, not replaces it.
 | GET | `/api/posts/images` | `postImages.ts` | ❌ **No static export** |
 | GET | `/api/search` | `search.ts` | ✅ client-side filtered via `search-index.json` |
 | GET | `/api/compare/players` | `comparePlayers.ts` | ❌ **No static export** |
+| GET | `/api/coach/dashboard` | `coachDashboard.ts` | ❌ Coach tool — live API only |
+| GET | `/api/coach/trends` | `coachDashboard.ts` | ❌ Coach tool — live API only |
+| GET | `/api/coach/scouting` | `coachDashboard.ts` | ❌ Coach tool — live API only |
+| GET | `/api/coach/practice-focus` | `coachDashboard.ts` | ❌ Coach tool — live API only |
+| POST | `/api/commitments/submit` | `commitments.ts` | ❌ Write endpoint — live API only |
 | GET | `/api/corrections/flagged` | `corrections.ts` | ❌ Admin only — intentionally excluded |
 | GET | `/api/corrections/recent` | `corrections.ts` | ❌ Admin only — intentionally excluded |
 | GET | `/api/admin/dedup-candidates` | `adminDedup.ts` | ❌ Admin only — intentionally excluded |

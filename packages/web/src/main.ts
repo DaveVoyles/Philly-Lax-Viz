@@ -40,6 +40,7 @@ const loaders: Record<Exclude<RouteName, 'notFound'>, () => Promise<ViewModule>>
   commitments: () => import('./views/commitments.js'),
   sources: () => import('./views/sources.js'),
   status: () => import('./views/status.js'),
+  guide: () => import('./views/guide.js'),
   coachDashboard: () => import('./views/coachDashboard.js'),
   coachUpload: () => import('./views/coachUpload.js'),
   adminCorrections: () => import('./views/adminCorrections.js'),
@@ -65,6 +66,7 @@ const NAV: NavLink[] = [
 ];
 
 const MORE_NAV: NavLink[] = [
+  { href: '#/guide', label: 'Guide', match: 'guide' },
   { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
   { href: '#/top-teams', label: 'Top 10 Teams', match: 'topTeams' },
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
@@ -221,6 +223,7 @@ const ROUTE_TITLES: Partial<Record<RouteName, string>> = {
   commitments: 'College Commitments',
   sources: 'Sources',
   status: 'Site Status',
+  guide: 'Site Guide',
   coachDashboard: 'Coach Dashboard',
   coachUpload: 'Coach Upload',
   adminCorrections: 'Admin Corrections',

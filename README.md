@@ -8,7 +8,7 @@
 <summary>Developer / admin deployment (not user-facing)</summary>
 
 An Azure Container App hosts a live Fastify API server with the SQLite DB mounted via Azure Files.
-This powers admin-only features: coach dashboard (`#/coach/dashboard`), player dedup (`#/admin/dedup`),
+This powers admin-only features: coach dashboard analytics (`#/coach/dashboard`), player dedup (`#/admin/dedup`),
 coach spreadsheet upload (`#/coach/upload`), community corrections review (`#/admin/corrections`),
 Hudl team management (`#/admin/hudl`), and live data-quality diagnostics. It is **not** the primary
 user-facing site.

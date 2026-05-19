@@ -20,6 +20,7 @@ export interface RouteMatch {
     | 'commitments'
     | 'sources'
     | 'status'
+    | 'guide'
     | 'coachDashboard'
     | 'coachUpload'
     | 'adminCorrections'
@@ -57,6 +58,7 @@ const routes: RouteDef[] = [
   { name: 'sources', pattern: /^\/sources\/?$/, keys: [] },
   { name: 'status', pattern: /^\/status\/?$/, keys: [] },
   { name: 'coachDashboard', pattern: /^\/coach\/dashboard\/?$/, keys: [] },
+  { name: 'guide', pattern: /^\/guide\/?$/, keys: [] },
   { name: 'coachUpload', pattern: /^\/coach\/upload\/?$/, keys: [] },
   { name: 'adminCorrections', pattern: /^\/admin\/corrections\/?$/, keys: [] },
   { name: 'adminDedup', pattern: /^\/admin\/dedup\/?$/, keys: [] },
