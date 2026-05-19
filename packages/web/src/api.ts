@@ -3,6 +3,10 @@
 
 import type {
   CoachDashboardResponse,
+  CoachPracticeFocus,
+  CoachScoutingReport,
+  CoachTrendPoint,
+  CoachTrendsResponse,
   Commitment,
   CommitmentSelfSubmission,
   CommitmentSubmission,
@@ -26,7 +30,7 @@ import {
 import { apiUrl } from './apiBase.js';
 import { IS_STATIC, staticFetch } from './staticLoader.js';
 
-export type { GamePeriod, PiaaRecord };
+export type { GamePeriod, PiaaRecord, CoachTrendsResponse, CoachScoutingReport, CoachPracticeFocus };
 
 export { currentSeason } from './components/seasonPicker.js';
 
@@ -160,57 +164,8 @@ export interface TeamDetailResponse {
   roster: Player[];
 }
 
-// TODO: Move these coach analytics types to @pll/shared once the shared package exports them.
-export interface TrendPoint {
-  gameId: number;
-  date: string;
-  opponent: string;
-  goalsFor: number;
-  goalsAgainst: number;
-  assists: number;
-  groundBalls: number;
-  saves: number;
-  foWon: number;
-  foTaken: number;
-}
-
-export interface CoachTrendsResponse {
-  trends: TrendPoint[];
-}
-
-export interface CoachScoutingReport {
-  opponent: {
-    id: number;
-    name: string;
-    record: string;
-  };
-  last5Games: Array<{
-    date: string;
-    opponent: string;
-    score: string;
-    result: 'W' | 'L';
-  }>;
-  avgGoalsFor: number;
-  avgGoalsAgainst: number;
-  topScorers: Array<{
-    name: string;
-    goals: number;
-    assists: number;
-  }>;
-  h2h: Array<{
-    date: string;
-    score: string;
-    result: 'W' | 'L';
-  }>;
-}
-
-export interface CoachPracticeFocus {
-  suggestions: Array<{
-    area: string;
-    reason: string;
-    priority: 'high' | 'medium' | 'low';
-  }>;
-}
+// Coach analytics types re-exported from @pll/shared above.
+export type TrendPoint = CoachTrendPoint;
 
 export interface GameDetailResponse {
   game: Game;

@@ -364,8 +364,11 @@ function buildPreview(db: Database, teamId: number, parsedRows: ParsedUploadRow[
 }
 
 const uploadRoutesImpl: FastifyPluginAsync = async (app) => {
-  // TODO: Persist preview plans and overwritten stat snapshots in SQLite so
-  // confirm/revert survive server restarts instead of relying on process memory.
+  // Ensure columns exist (idempotent — migration 021 adds them officially).
+  try { app.db.exec('ALTER TABLE manual_uploads ADD COLUMN preview_plan_json TEXT'); } catch { /* already exists */ }
+  try { app.db.exec('ALTER TABLE manual_uploads ADD COLUMN revert_snapshot_json TEXT'); } catch { /* already exists */ }
+
+  // In-memory fallback (hot cache; SQLite is source of truth).
   const pendingUploads = new Map<string, PendingUploadPlan>();
   const revertSnapshots = new Map<string, ExistingStatRow[]>();
 
@@ -401,6 +404,8 @@ const uploadRoutesImpl: FastifyPluginAsync = async (app) => {
       );
 
       pendingUploads.set(preview.uploadId, plan);
+      app.db.prepare('UPDATE manual_uploads SET preview_plan_json = ? WHERE id = ?')
+        .run(JSON.stringify(plan), preview.uploadId);
       return reply.send(preview);
     } catch (error) {
       reply.code(400);
@@ -428,7 +433,11 @@ const uploadRoutesImpl: FastifyPluginAsync = async (app) => {
       return { error: 'Conflict', message: `upload ${uploadId} is already ${uploadRow.status}` };
     }
 
-    const plan = pendingUploads.get(uploadId);
+    const plan = pendingUploads.get(uploadId)
+      ?? (() => {
+        const row = app.db.prepare('SELECT preview_plan_json FROM manual_uploads WHERE id = ?').get(uploadId) as { preview_plan_json: string | null } | undefined;
+        return row?.preview_plan_json ? JSON.parse(row.preview_plan_json) as PendingUploadPlan : undefined;
+      })();
     if (!plan) {
       reply.code(404);
       return { error: 'NotFound', message: `upload ${uploadId} is no longer available for confirmation` };
@@ -516,6 +525,8 @@ const uploadRoutesImpl: FastifyPluginAsync = async (app) => {
 
     tx();
     revertSnapshots.set(uploadId, snapshots);
+    app.db.prepare('UPDATE manual_uploads SET revert_snapshot_json = ?, preview_plan_json = NULL WHERE id = ?')
+      .run(JSON.stringify(snapshots), uploadId);
     pendingUploads.delete(uploadId);
 
     return reply.send({
@@ -557,7 +568,11 @@ const uploadRoutesImpl: FastifyPluginAsync = async (app) => {
         WHERE upload_id = ?`,
     ).all(uploadId) as ExistingStatRow[];
 
-    const snapshots = revertSnapshots.get(uploadId) ?? [];
+    const snapshots = revertSnapshots.get(uploadId)
+      ?? (() => {
+        const row = app.db.prepare('SELECT revert_snapshot_json FROM manual_uploads WHERE id = ?').get(uploadId) as { revert_snapshot_json: string | null } | undefined;
+        return row?.revert_snapshot_json ? JSON.parse(row.revert_snapshot_json) as ExistingStatRow[] : [];
+      })();
     const deleteUploadedRows = app.db.prepare('DELETE FROM player_stats WHERE upload_id = ?');
     const restoreRow = app.db.prepare(
       `INSERT INTO player_stats (
@@ -610,6 +625,7 @@ const uploadRoutesImpl: FastifyPluginAsync = async (app) => {
 
     tx();
     revertSnapshots.delete(uploadId);
+    app.db.prepare('UPDATE manual_uploads SET revert_snapshot_json = NULL WHERE id = ?').run(uploadId);
 
     return reply.send({
       uploadId,
