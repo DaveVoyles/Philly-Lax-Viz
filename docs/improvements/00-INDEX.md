@@ -36,20 +36,20 @@ Scored as `Impact × Urgency − Effort − Risk` (each on 1–10):
 | 9 | 02 | Losing-side stats backfill | 8 | 6 | 7 | 5 | **2** | High value but L effort + new external scraper risk |
 | 10 | 08 | Domain type consolidation | 6 | 5 | 5 | 4 | **1** | Will surface bugs (good!) but slow burn |
 
-## Implementation waves
+## Recommended implementation order
 
-### Wave 4 (this session) — Top quick wins
-- **#03** API response cache + ETag (Han 😉🚀)
-- **#01** Alias auto-seeder (Yoda 👽✨)
-- **#06** Game flow chart (Leia 👑💁‍♀️)
+### Phase 1 — Quick wins (independent, S-M effort, Low risk)
+- **#03** API response cache + ETag
+- **#01** Alias auto-seeder
+- **#06** Game flow chart
 
-These three are independent (server-only / script+DB / web-only), all S–M effort, all Low risk. Ships measurable user-visible improvements (faster API + fewer anomalies + new chart) in one wave.
+These three are independent (server-only / script+DB / web-only), all S-M effort, all Low risk. Ships measurable user-visible improvements (faster API + fewer anomalies + new chart).
 
-### Wave 5 (deploy reliability) — Recommended next
+### Phase 2 — Deploy reliability
 - **#09** GitHub-hosted runner + OIDC
 - **#10** Pre-deploy validation + rollback
 
-These pair tightly. Recommended once #09 lands (#10 plugs into the new pipeline). Requires Azure AD app-registration step that benefits from a user-confirmation moment.
+These pair tightly. #10 plugs into the pipeline created by #09. Requires Azure AD app-registration step.
 
-### Wave 6+ — Backlog
-#04 (bundle split), #07 (logger), #05 (radar), #02 (MaxPreps backfill), #08 (type consolidation) — sequence based on remaining time and priorities.
+### Phase 3 — Backlog
+#04 (bundle split), #07 (logger), #05 (radar), #02 (MaxPreps backfill), #08 (type consolidation) — sequence based on priorities.

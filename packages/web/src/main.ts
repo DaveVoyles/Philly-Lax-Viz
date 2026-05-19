@@ -99,7 +99,7 @@ function mountShell(app: HTMLElement): {
         <span class="muted">
           <a href="#/sources">Where does this data come from?</a>
         </span>
-        <span class="muted">Made with &#129405; in Philly</span>
+        <span class="muted">Made with &#10084;&#65039; in Philly</span>
       </div>
       <span class="muted attribution">
         Win/loss records and rankings: <a href="https://www.piaa.org" target="_blank" rel="noopener noreferrer">PIAA District 1</a> (state officials, ground truth).

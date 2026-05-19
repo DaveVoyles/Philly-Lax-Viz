@@ -3,6 +3,19 @@
 > Cold-start entrypoint for agents and contributors. Read this first.
 > For repo-wide onboarding (commands, DB schema, conventions), see `AGENTS.md` at the repo root.
 
+### Doc responsibilities
+
+| Doc | Owns | Read when |
+|-----|------|-----------|
+| `AGENTS.md` (repo root) | Quick-start: commands, hard rules, conventions, key file map | Always — first thing to read |
+| `docs/architecture.md` | Deep architecture: data flow, all sources, full DB schema, API inventory, ADRs | Understanding internals |
+| `docs/pipeline-gaps.md` | Actionable backlog of missing CI steps and static export gaps | Planning ingest improvements |
+| `docs/improvements/` | RFC proposals for future work | Choosing next project |
+| `docs/runbooks/` | Step-by-step guides for specific operations | Deploying, importing data |
+| `docs/archive/` | Historical wave plans and session artifacts | Archaeology only |
+
+When both `AGENTS.md` and `architecture.md` cover the same topic, `AGENTS.md` is authoritative for conventions and commands; `architecture.md` is authoritative for system design and data flow.
+
 ---
 
 ## Reading Order
@@ -120,14 +133,7 @@ and DevOps improvements — each with effort/risk rating and a recommended wave 
 
 ## Session and Wave Artifacts
 
-Wave-specific plans and analysis are archived in `docs/archive/` with date-prefixed names:
-
-| File | Topic |
-|------|-------|
-| [archive/2026-04-22-roadmap-data-azure-webgl.md](./archive/2026-04-22-roadmap-data-azure-webgl.md) | Post-Wave-9 roadmap across 3 tracks |
-| [archive/2026-04-22-remaining-anomalies.md](./archive/2026-04-22-remaining-anomalies.md) | Post-Wave-17 ingest anomaly status |
-| [archive/2026-04-22-wave16-lane2-schedule.md](./archive/2026-04-22-wave16-lane2-schedule.md) | Wave 16 schedule scrape lane |
-| [archive/2026-04-22-wave3-logos-and-stat-leaders-analysis.md](./archive/2026-04-22-wave3-logos-and-stat-leaders-analysis.md) | Wave 3 logos + stat leaders analysis |
+Wave-specific plans and analysis are archived in `docs/archive/` (repo-level plans) and formerly in `.github/docs/` (now moved to `docs/archive/` as well). All date-prefixed files are historical records.
 
 These are historical records. Current work should reference running plans only, not these archives.
 

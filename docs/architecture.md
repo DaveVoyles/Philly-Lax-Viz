@@ -1,8 +1,11 @@
 # Philly Lacrosse Viz — Architecture Reference
 
-> **Last updated:** 2026-05-17  
+> **Last updated:** 2026-05-18  
 > **Audience:** agents and contributors joining this repo cold  
 > **Purpose:** single-source-of-truth for how data flows from external sources to the deployed site
+>
+> **Quick-start instead?** See `AGENTS.md` at the repo root for commands, hard rules, and conventions.  
+> This doc is the deep-dive reference. AGENTS.md is the 2-minute onboarding.
 
 ---
 
@@ -137,13 +140,13 @@ GitHub Pages is the **primary user-facing deployment**. The Azure Container App 
 |----------|--------|
 | URL patterns | Schools index + per-team logo CDN |
 | Format | HTML + image binary |
-| Crawl frequency | **Manual only** — `pnpm --filter @pll/ingest sync:logos` |
+| Crawl frequency | **Weekly** (Sunday) — `sync-logos.yml` workflow; also manual via `pnpm --filter @pll/ingest sync:logos` |
 | Script | `syncLogos.ts` |
 | Source files | `maxprepsSchools.ts`, `logoDownload.ts` |
-| DB tables populated | `teams.logo_url` (bare filename, e.g. `harriton.png`) |
-| Files on disk | `data/logos/*.png` |
+| DB tables populated | `teams.logo_url` (bare filename, e.g. `harriton.gif`) |
+| Files on disk | `data/logos/*.gif` |
 
-**Important:** `logo_url` stores the **bare filename only** (e.g., `harriton.png`). The server prefixes `/logos/` when emitting to clients. Never store full paths or URLs in this column.
+**Important:** `logo_url` stores the **bare filename only** (e.g., `harriton.gif`). The server prefixes `/logos/` when emitting to clients. Never store full paths or URLs in this column.
 
 **Required attribution:** The web client footer must display: *"Team logos courtesy of MaxPreps.com"*
 
@@ -159,7 +162,21 @@ GitHub Pages is the **primary user-facing deployment**. The Azure Container App 
 
 **What it provides:** PA-wide supplementary stats and scores, acting as a secondary source to fill gaps when phillylacrosse.com hasn't published yet.
 
-**Limitation:** Covers yesterday–today window only in nightly run; historical backfill requires manual invocation.
+**Limitation:** Covers yesterday-today window only in nightly run; historical backfill requires manual invocation.
+
+### 3.6 Hudl.com
+
+| Property | Detail |
+|----------|--------|
+| Format | Authenticated HTML scraping (Playwright) |
+| Crawl frequency | **Manual only** - `pnpm --filter @pll/ingest sync:hudl -- --headed` |
+| Script | `syncHudl.ts` |
+| DB tables populated | `players`, `player_stats` (roster + per-game stats for Harriton) |
+| Authentication | Requires `HUDL_EMAIL` / `HUDL_PASSWORD` env vars |
+
+**What it provides:** Coach-authenticated access to detailed roster and per-game stats for teams with Hudl accounts. Currently scaffolded for Harriton only.
+
+**Limitation:** Requires first-run selector discovery in `--headed` mode. Not yet generalized for other teams.
 
 ---
 
@@ -167,7 +184,7 @@ GitHub Pages is the **primary user-facing deployment**. The Azure Container App 
 
 **Location:** `data/lacrosse.db`  
 **Engine:** SQLite  
-**Current `user_version`:** 4 (migrations 001–004 applied)  
+**Current `user_version`:** 16 (migrations 001–016 applied)  
 **Test DB:** `data/lacrosse.test.db` — auto-seeded by vitest; **never touch the live DB in tests**
 
 ### Tables and approximate row counts (as of 2026-05-16)
@@ -199,7 +216,20 @@ GitHub Pages is the **primary user-facing deployment**. The Azure Container App 
 | `001_init.sql` | Core schema: teams, games, players, player_stats, game_periods, rankings, ingest tables |
 | `002_ingest_post_log.sql` | `ingest_post_log` table |
 | `003_piaa_official_teams.sql` | `piaa_official_teams` table |
-| `004_team_logos.sql` | `teams.logo_url` column |
+| `004_team_logos.sql` | `teams.logo_url`, `teams.maxpreps_slug` |
+| `005_community_corrections.sql` | `community_corrections` table (submitter, entity, field, old/new value, status) |
+| `005_player_aliases.sql` | `player_aliases` table |
+| `006_seasons.sql` | `seasons` table |
+| `007_commits.sql` | Commits table (later dropped in 011) |
+| `008_schedule.sql` | `schedule_games` table |
+| `009_team_branding.sql` | `team_branding` table |
+| `010_post_images.sql` | `post_images` table |
+| `011_drop_commits.sql` | Drops commits table |
+| `012_laxnumbers_provenance.sql` | LaxNumbers game provenance tracking |
+| `013_score_sources.sql` | Score source authority tracking |
+| `014_team_alias_notes.sql` | `team_aliases.notes` column |
+| `015_dedup_candidates.sql` | `dedup_candidates` table |
+| `016_player_jersey_number.sql` | `players.jersey_number` column |
 
 ---
 
@@ -342,6 +372,7 @@ This is additive — it supplements phillylacrosse.com data, not replaces it.
 | `#/game/:id` | Game scrubber | same as game detail (alternate layout) |
 | `#/players/:id` | Player detail | player + season stats + per-game |
 | `#/compare/players` | Compare players | multi-player detail (⚠️ no static export) |
+| `#/top-teams` | Top teams | top 5 teams by win record |
 | `#/data-quality` | Data quality | anomalies + PIAA mismatches (⚠️ partial static) |
 | `#/leaders` | Leaders | player/team leaderboards + sparklines |
 | `#/anomalies` | Anomalies | anomaly list |

@@ -30,34 +30,13 @@ These scripts and categories exist in the codebase but are **not run in `ingest-
 
 ### 1b. `syncLogos.ts` not run nightly
 
-**Current state:** Team logos are downloaded manually via `pnpm --filter @pll/ingest sync:logos`. Logos are stable during a season but go stale when new teams are added or MaxPreps updates images.
-
-**Fix:** Add a monthly logo sync step (not nightly — MaxPreps would rate-limit nightly requests):
-```yaml
-# Could be a separate workflow triggered monthly
-- name: Sync logos
-  if: github.event_name == 'schedule' && ...  # monthly condition
-  run: pnpm --filter @pll/ingest sync:logos
-  env:
-    DB_PATH: ${{ github.workspace }}/data/lacrosse.db
-```
-
-**Priority:** Low — logos rarely change mid-season; do before 2027 season
+**Current state:** ✅ **RESOLVED** — A weekly `sync-logos.yml` workflow now runs logo sync every Sunday.
 
 ---
 
 ### 1c. No anomaly growth threshold — pipeline never fails on data quality
 
-**Current state:** The nightly workflow snapshots the anomaly count before and after ingest, and posts the delta to Discord. But it never **fails** if anomalies spike. A parser regression could silently produce hundreds of anomalies with no CI failure.
-
-**Fix:** Add a step after ingest that fails if delta exceeds a threshold:
-```yaml
-- name: Check anomaly delta
-  run: |
-    DELTA=$(( POST_COUNT - PRE_COUNT ))
-    if [ "$DELTA" -gt 50 ]; then
-      echo "Anomaly spike: $DELTA new anomalies (threshold: 50)"
-      exit 1
+**Current state:** ✅ **RESOLVED** — The nightly workflow now snapshots pre/post anomaly counts and fails if the delta exceeds 50 (step: "Check anomaly spike").
     fi
 ```
 
@@ -232,18 +211,18 @@ When the 2027 season begins, update these hardcoded values:
 
 ## 6. Priority Summary
 
-| Item | Priority | Effort | Section |
-|------|----------|--------|---------|
-| Anomaly growth threshold in CI | Medium | S | §1c |
-| Export `freshness.json` for Sources page | Medium | S | §2a |
-| Dedup scripts in nightly pipeline | Medium | S | §1d |
-| MaxPreps game data wiring | Medium | M | §3d |
-| LaxNumbers historical backfill (one-time) | Medium | S | §3e |
-| Goalie stats parsing | Medium | M | §3b |
-| PIAA playoff bracket scraping | Medium-High | L | §3c |
-| Export PIAA mismatches for Data Quality page | Low | S | §2b |
-| H2H graceful disable in static mode | Low | S | §2c |
-| Rankings crawl step in nightly | Low | S | §1a |
-| Monthly logo sync workflow | Low | S | §1b |
-| Team branding colors in UI | Low | S | §4 |
-| piaaCheckTotals nightly | Low | S | §1e |
+| Item | Priority | Effort | Section | Status |
+|------|----------|--------|---------|--------|
+| Anomaly growth threshold in CI | Medium | S | §1c | ✅ Resolved |
+| Export `freshness.json` for Sources page | Medium | S | §2a | Open |
+| Dedup scripts in nightly pipeline | Medium | S | §1d | Open |
+| MaxPreps game data wiring | Medium | M | §3d | Open |
+| LaxNumbers historical backfill (one-time) | Medium | S | §3e | Open |
+| Goalie stats parsing | Medium | M | §3b | Open |
+| PIAA playoff bracket scraping | Medium-High | L | §3c | Open |
+| Export PIAA mismatches for Data Quality page | Low | S | §2b | Open |
+| H2H graceful disable in static mode | Low | S | §2c | Open |
+| Rankings crawl step in nightly | Low | S | §1a | Open |
+| Monthly logo sync workflow | Low | S | §1b | ✅ Resolved |
+| Team branding colors in UI | Low | S | §4 | Open |
+| piaaCheckTotals nightly | Low | S | §1e | Open |
