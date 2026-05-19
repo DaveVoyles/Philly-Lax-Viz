@@ -1,6 +1,7 @@
 import {
   ApiError,
   getH2HTeams,
+  getLaxNumbersTeamRating,
   getTeamDetail,
   getTeams,
   getTeamTopScorers,
@@ -12,7 +13,7 @@ import {
   type TopScorerEntry,
 } from '../api.js';
 import type { Game } from '@pll/shared';
-import { IS_STATIC } from '../staticLoader.js';
+import { IS_STATIC, staticFetch } from '../staticLoader.js';
 import { formatDate, formatRecord } from '../util/format.js';
 import { renderSeasonRecord, renderTopScorers } from '../charts/index.js';
 import { extractScoreTrend, renderTeamScoreTrend } from '../charts/teamScoreTrend.js';
@@ -232,6 +233,36 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   }
 
   root.appendChild(callouts);
+
+  type TeamRatingEntry = Awaited<ReturnType<typeof getLaxNumbersTeamRating>>[number];
+  void (async () => {
+    try {
+      const ratings: TeamRatingEntry[] = IS_STATIC
+        ? (await Promise.all([
+            staticFetch<Array<TeamRatingEntry & { teamId: number }>>('/data/2026/laxnumbers-ratings-inter-ac.json'),
+            staticFetch<Array<TeamRatingEntry & { teamId: number }>>('/data/2026/laxnumbers-ratings-private-schools.json'),
+          ]))
+            .flat()
+            .filter((entry) => entry.teamId === teamId)
+            .sort((a, b) => b.year - a.year)
+        : await getLaxNumbersTeamRating(teamId);
+      const entry = ratings[0];
+      if (!entry || !callouts.isConnected) return;
+
+      const ratingCard = document.createElement('div');
+      ratingCard.className = 'record-callout';
+      const ratingLabel = document.createElement('span');
+      ratingLabel.className = 'callout-label';
+      ratingLabel.textContent = 'LaxNumbers Rating';
+      const ratingValue = document.createElement('span');
+      ratingValue.className = 'callout-value';
+      ratingValue.textContent = `#${entry.ranking} (${entry.rating.toFixed(1)})`;
+      ratingCard.append(ratingLabel, ratingValue);
+      callouts.appendChild(ratingCard);
+    } catch {
+      // Fail silently so missing ratings never block or break the team detail page.
+    }
+  })();
 
   // PIAA cross-validation panel — replaces the Wave 7 ad-hoc note.
   // Uses the server-computed `piaaValidation` block so the badge here matches
