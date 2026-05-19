@@ -7,6 +7,14 @@ on:
         description: 'Comma-separated list of allowed CORS origins'
         required: false
         default: 'https://davevoyles.github.io,http://localhost:5173'
+      bind_custom_domain:
+        description: 'Bind custom domain + managed TLS (true/false)'
+        required: false
+        default: 'false'
+      custom_hostname:
+        description: 'Custom hostname to bind (e.g. phillylaxstats.com)'
+        required: false
+        default: ''
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
@@ -21,6 +29,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Update CORS_ORIGINS on Container App
+        if: inputs.cors_origins != ''
         run: |
           ORIGINS="${{ github.event.inputs.cors_origins || secrets.CORS_ORIGINS || 'https://davevoyles.github.io,http://localhost:5173' }}"
           echo "Setting CORS_ORIGINS to: $ORIGINS"
@@ -28,6 +37,28 @@ jobs:
             --name ${{ secrets.ACA_NAME }} \
             --resource-group ${{ secrets.ACA_RESOURCE_GROUP }} \
             --set-env-vars "CORS_ORIGINS=$ORIGINS"
+
+      - name: Bind custom domain
+        if: inputs.bind_custom_domain == 'true' && inputs.custom_hostname != ''
+        run: |
+          HOSTNAME="${{ github.event.inputs.custom_hostname }}"
+          ACA_NAME="${{ secrets.ACA_NAME }}"
+          RG="${{ secrets.ACA_RESOURCE_GROUP }}"
+          ACA_ENV="${{ secrets.ACA_ENVIRONMENT }}"
+
+          echo "Adding hostname: $HOSTNAME"
+          az containerapp hostname add \
+            --name "$ACA_NAME" \
+            --resource-group "$RG" \
+            --hostname "$HOSTNAME" || echo "Hostname may already exist, continuing..."
+
+          echo "Binding managed certificate for: $HOSTNAME"
+          az containerapp hostname bind \
+            --name "$ACA_NAME" \
+            --resource-group "$RG" \
+            --hostname "$HOSTNAME" \
+            --environment "$ACA_ENV" \
+            --validation-method CNAME || echo "Binding failed - may need DNS validation time"
 
       - name: Azure logout
         if: always()
