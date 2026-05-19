@@ -1,3 +1,5 @@
+// TODO: This file is 1,000+ lines. Consider extracting hype-card loading,
+// matchup table, and team grid into helper modules under src/components/.
 import {
   ApiError,
   getFreshness,

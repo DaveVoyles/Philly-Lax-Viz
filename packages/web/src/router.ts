@@ -1,5 +1,5 @@
 // Tiny hash-based router. No external deps.
-// Routes: #/, #/teams/:id, #/games/:id, #/players/:id, #/data-quality
+// See route table below for full list of registered paths.
 
 export interface RouteMatch {
   name: 'dashboard' | 'teamDetail' | 'gameDetail' | 'gameScrubber' | 'playerDetail' | 'comparePlayers' | 'dataQuality' | 'leaders' | 'topTeams' | 'anomalies' | 'graph' | 'constellation' | 'h2h' | 'schedule' | 'sources' | 'status' | 'adminCorrections' | 'adminDedup' | 'notFound';

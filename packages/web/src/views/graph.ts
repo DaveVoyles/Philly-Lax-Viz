@@ -222,8 +222,7 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
   const settleStart = performance.now();
   for (let i = 0; i < 400 && sim.alpha() > sim.alphaMin(); i += 1) sim.tick();
   const settleMs = Math.round(performance.now() - settleStart);
-  // eslint-disable-next-line no-console
-  console.log(`[graph] settled ${simNodes.length} nodes / ${simEdges.length} edges in ${settleMs}ms`);
+  void settleMs; // timing available for dev tools profiling if needed
 
   // Build node graphics.
   const nodeGfx = new Map<number, Graphics>();
