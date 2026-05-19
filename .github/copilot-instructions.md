@@ -524,7 +524,6 @@ Code and docs must stay in sync. Doc drift is a form of tech debt.
 **What counts as a doc:**
 
 - `README.md` and any `docs/` files
-- `AGENTS.md` — **must be updated whenever** new scripts, routes, views, migrations, tables, workflows, or architectural patterns are added or changed
 - `.github/docs/` plan or reference files
 - Inline code comments that describe behavior
 - Config file comments
@@ -535,7 +534,6 @@ Code and docs must stay in sync. Doc drift is a form of tech debt.
 - [ ] Did any public-facing behavior change? → update README/docs
 - [ ] Did any config format change? → update config comments and docs
 - [ ] Did any agent instruction change? → verify Instruction Consistency Policy
-- [ ] Were any scripts, routes, views, migrations, DB tables, or workflows added/changed? → update AGENTS.md in the same commit
 
 **Rule:** If you cannot update a doc in the same wave, log it as `⚠️ Doc debt` in the wave summary with a clear description of what is out of sync.
 
@@ -815,8 +813,8 @@ Write operations that are safe to run more than once. A second run should produc
 
 ---
 
-**Version:** 5.20
-**Last Updated:** May 16, 2026
+**Version:** 5.21
+**Last Updated:** May 19, 2026
 **Best For:** Base session behavior — load this always. For fleet/orchestration, also load `.github/agents/autonomous-fleet-agent.md`.
 
 Consumer repos should refresh their copied shared files when the version changes.
