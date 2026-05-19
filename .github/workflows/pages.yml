@@ -17,7 +17,7 @@ concurrency:
 env:
   NODE_VERSION: '20'
   PNPM_VERSION: '10.33.1'
-  VITE_BASE_PATH: /Philly-Lax-Viz/
+  VITE_BASE_PATH: /
   DB_LOCAL_PATH: data/lacrosse.db
   DB_REMOTE_NAME: lacrosse.db
   AZ_FILE_SHARE: pll-data
