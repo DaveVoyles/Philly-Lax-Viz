@@ -51,6 +51,8 @@ jobs:
         run: pnpm -r test
 
       - name: Build web bundle
+        env:
+          VITE_API_BASE_URL: https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io
         run: pnpm --filter @pll/web build
 
       - name: Upload web bundle
