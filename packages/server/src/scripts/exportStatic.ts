@@ -569,7 +569,7 @@ function main(): void {
   addFile('health.json', health);
   addFile('seasons.json', { seasons: [DEFAULT_SEASON], default: DEFAULT_SEASON });
   addFile('empty.json', []);
-  addFile('commitments.json', listCommitments(db));
+  try { addFile('commitments.json', listCommitments(db)); } catch { addFile('commitments.json', []); }
 
   const seasonGameRows = db
     .prepare('SELECT * FROM games WHERE season = ? ORDER BY date DESC, id DESC')
@@ -690,7 +690,8 @@ function main(): void {
   for (const playerRow of playerRows) {
     const detail = buildPlayerDetail(db, playerRow.id);
     if (detail) addFile(`${DEFAULT_SEASON}/players/${playerRow.id}.json`, detail);
-    const commitment = getCommitmentForPlayer(db, playerRow.id);
+    let commitment: unknown = null;
+    try { commitment = getCommitmentForPlayer(db, playerRow.id); } catch { /* table may not exist */ }
     if (commitment) addFile(`commitments/player-${playerRow.id}.json`, commitment);
     const milestones = buildPlayerMilestones(db, playerRow.id);
     if (milestones) addFile(`${DEFAULT_SEASON}/players/${playerRow.id}-milestones.json`, milestones);
