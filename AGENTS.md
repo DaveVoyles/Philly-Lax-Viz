@@ -65,6 +65,8 @@ pnpm --filter @pll/ingest exec tsx src/scripts/applyCorrections.ts --db=data/lac
 pnpm --filter @pll/ingest exec tsx src/scripts/applyCorrections.ts --db=data/lacrosse.db --dry-run
 pnpm --filter @pll/ingest exec tsx src/scripts/seedAliasesFromAnomalies.ts   # auto-seed team aliases from anomalies
 pnpm --filter @pll/ingest exec tsx src/scripts/emitLaxNumbersAliasCsv.ts     # emit CSV of unknown LaxNumbers teams
+pnpm --filter @pll/ingest exec tsx src/scripts/syncLaxNumbersRatings.ts      # sync LaxNumbers team ratings (dry-run)
+pnpm --filter @pll/ingest exec tsx src/scripts/syncLaxNumbersRatings.ts --apply  # sync ratings and write to DB
 pnpm --filter @pll/ingest exec tsx src/scripts/dedupPlayers.ts         # interactive player dedup
 pnpm --filter @pll/ingest exec tsx src/scripts/applyHarritonWorkbook.ts --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db
 pnpm --filter @pll/ingest exec tsx src/scripts/applyHarritonWorkbook.ts --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db --apply
@@ -83,9 +85,9 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 
 ## 4. Database conventions
 
-- **Live DB:** `data/lacrosse.db` (SQLite, `user_version = 22`).
+- **Live DB:** `data/lacrosse.db` (SQLite, `user_version = 23`).
 - **Test DB:** `data/lacrosse.test.db` (auto-seeded by vitest setup). Tests must never touch the live DB.
-- **Migrations:** `packages/ingest/src/migrations/NNN_*.sql`, applied by `user_version` pragma. All 22 migrations:
+- **Migrations:** `packages/ingest/src/migrations/NNN_*.sql`, applied by `user_version` pragma. All 23 migrations:
   - `001_init.sql` — core tables: teams, games, game_periods, players, player_stats, rankings, ingest_anomalies, raw_cache_meta
   - `002_ingest_post_log.sql` — ingest_post_log
   - `003_piaa_official_teams.sql` — piaa_official_teams
@@ -104,6 +106,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
   - `020_commitments.sql` — commitments table for player college commitments and verification state
   - `021_upload_audit_trail.sql` — manual_uploads.preview_plan_json + revert_snapshot_json
   - `022_laxnumbers_game_id.sql` — games.laxnumbers_game_id column + index
+  - `023_laxnumbers_ratings.sql` — laxnumbers_ratings table + teams.laxnumbers_team_id
 
 - **Key tables for agents:**
   - `teams` — id, name, slug, logo_url (bare filename), maxpreps_slug
@@ -113,6 +116,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
   - `games` — id, date, home_team_id, away_team_id, home_score, away_score, source, laxnumbers_game_id
   - `manual_uploads` — coach spreadsheet upload audit trail: submitter, team_id, file_hash, row_count, status, applied_at, reverted_at
   - `hudl_teams` — registered Hudl team links: team_id, hudl_team_url, hudl_team_name, status, last_synced, last_error
+  - `laxnumbers_ratings` — team_id, laxnumbers_team_id, view_id, year, ranking, rating, agd, sched, wins, losses, ties, gf, ga
   - `commitments` — player college commitments: player_id, college, division, commit_date, status, source, verified
   - `community_corrections` — status IN ('pending','approved','rejected','outlier'); nightly `applyCorrections.ts` auto-applies non-outliers
   - `ingest_anomalies` — unresolved ingest rows; source, raw_line, reason
@@ -178,7 +182,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 | CI/CD workflows | `.github/workflows/` |
 
 **Key server routes** (all under `packages/server/src/routes/`):
-`teams.ts`, `games.ts`, `players.ts`, `commitments.ts`, `schedule.ts`, `rankings.ts`, `h2h.ts`, `coachDashboard.ts`, `corrections.ts`, `upload.ts`, `hudl.ts`, `search.ts`, `dataExport.ts`, `sources.ts`
+`teams.ts`, `games.ts`, `players.ts`, `commitments.ts`, `schedule.ts`, `rankings.ts`, `laxnumbersRatings.ts`, `h2h.ts`, `coachDashboard.ts`, `corrections.ts`, `upload.ts`, `hudl.ts`, `search.ts`, `dataExport.ts`, `sources.ts`
 
 **Key web views** (all under `packages/web/src/views/`):
 `dashboard.ts`, `teamDetail.ts`, `gameDetail.ts`, `playerDetail.ts`, `commitments.ts`, `leaders.ts`, `topTeams.ts`, `schedule.ts`, `compare.ts`, `h2h.ts`, `playerCompare.ts`, `constellation.ts`, `dataQuality.ts`, `sources.ts`, `coachDashboard.ts`, `coachUpload.ts`, `adminCorrections.ts`, `adminHudl.ts`

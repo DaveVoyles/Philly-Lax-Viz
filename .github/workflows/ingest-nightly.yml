@@ -175,6 +175,14 @@ jobs:
             --apply
           echo "::endgroup::"
 
+      - name: Sync LaxNumbers team ratings
+        env:
+          DB_PATH: ${{ env.DB_LOCAL_PATH }}
+        run: |
+          echo "::group::LaxNumbers ratings sync"
+          pnpm --filter @pll/ingest exec tsx src/scripts/syncLaxNumbersRatings.ts --apply
+          echo "::endgroup::"
+
       - name: Detect dedup candidates
         env:
           DB_PATH: ${{ env.DB_LOCAL_PATH }}
