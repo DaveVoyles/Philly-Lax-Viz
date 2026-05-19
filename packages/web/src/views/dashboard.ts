@@ -1003,7 +1003,7 @@ function buildRecentGamesTable(
     tdMatch.style.textAlign = 'center';
     const matchupWrap = document.createElement('span');
     matchupWrap.className = 'matchup';
-    matchupWrap.style.cssText = 'display:inline-grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:.4rem; width:100%;';
+    matchupWrap.style.cssText = 'display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:.4rem;';
     const awayBadge = renderTeamBadge({
       name: away?.name ?? `Team #${g.awayTeamId}`,
       logoUrl: away?.logoUrl ?? null,
@@ -1014,6 +1014,7 @@ function buildRecentGamesTable(
     const at = document.createElement('span');
     at.className = 'muted';
     at.textContent = '@';
+    at.style.justifySelf = 'center';
     matchupWrap.appendChild(at);
     const homeBadge = renderTeamBadge({
       name: home?.name ?? `Team #${g.homeTeamId}`,
