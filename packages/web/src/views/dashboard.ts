@@ -145,7 +145,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
 
   // Hype cards row — Team of the Week + Player of the Week, side by side
   const hypeRow = document.createElement('div');
-  hypeRow.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0;';
+  hypeRow.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0; align-items:stretch;';
   const teamHypeHost = document.createElement('div');
   teamHypeHost.id = 'team-hype-host';
   const hypeHost = document.createElement('div');

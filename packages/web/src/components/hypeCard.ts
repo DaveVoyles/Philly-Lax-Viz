@@ -172,6 +172,8 @@ function applyWrapperStyles(anchor: HTMLAnchorElement, accent: string): void {
   anchor.style.borderRadius = '12px';
   anchor.style.padding = '1rem 1.25rem';
   anchor.style.minHeight = '120px';
+  anchor.style.height = '100%';
+  anchor.style.boxSizing = 'border-box';
   anchor.style.background = CARD_BG;
   anchor.style.textDecoration = 'none';
   anchor.style.boxShadow = '0 12px 30px rgba(0, 0, 0, 0.3)';
