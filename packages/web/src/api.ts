@@ -517,6 +517,9 @@ export interface PlayerSeasonStats {
 
 export interface PlayerPerGameStat extends PlayerStat {
   date: string; // YYYY-MM-DD of the game
+  opponentName: string | null;
+  opponentLogoUrl: string | null;
+  opponentId: number | null;
 }
 
 export interface PlayerDetail {

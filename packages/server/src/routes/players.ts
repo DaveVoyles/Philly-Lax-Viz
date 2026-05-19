@@ -63,11 +63,14 @@ export function buildPlayerDetail(db: Database, id: number): {
   };
 
   const perGameRows = s.perGameStatsForPlayer.all(id) as Array<
-    PlayerStatRow & { game_date: string }
+    PlayerStatRow & { game_date: string; opponent_name: string | null; opponent_logo_url: string | null; opponent_id: number | null }
   >;
   const perGame = perGameRows.map((row) => ({
     ...mapPlayerStat(row),
     date: row.game_date,
+    opponentName: row.opponent_name ?? null,
+    opponentLogoUrl: row.opponent_logo_url ? `/logos/${row.opponent_logo_url}` : null,
+    opponentId: row.opponent_id ?? null,
   }));
 
   return {

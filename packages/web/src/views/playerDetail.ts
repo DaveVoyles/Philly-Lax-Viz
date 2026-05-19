@@ -167,7 +167,7 @@ function buildPerGameTable(stats: PlayerPerGameStat[], playerName: string): HTML
 
   const thead = document.createElement('thead');
   const trh = document.createElement('tr');
-  for (const label of ['Date', 'G', 'A', 'Pts', 'GB', 'CT', 'Saves', 'FO']) {
+  for (const label of ['Date', 'Opponent', 'G', 'A', 'Pts', 'GB', 'CT', 'Saves', 'FO']) {
     const th = document.createElement('th');
     th.textContent = label;
     trh.appendChild(th);
@@ -212,6 +212,33 @@ function buildPerGameTable(stats: PlayerPerGameStat[], playerName: string): HTML
     const badge = renderConfidenceBadge(ps.confidence);
     if (badge) dateTd.appendChild(badge);
     tr.appendChild(dateTd);
+
+    // Opponent column
+    const oppTd = document.createElement('td');
+    if (ps.opponentName) {
+      const oppLink = document.createElement('a');
+      oppLink.href = ps.opponentId ? `#/teams/${ps.opponentId}` : '#';
+      oppLink.style.cssText = 'display:inline-flex; align-items:center; gap:0.35rem; text-decoration:none; color:inherit;';
+      if (ps.opponentLogoUrl) {
+        const oppImg = document.createElement('img');
+        oppImg.src = ps.opponentLogoUrl;
+        oppImg.alt = `${ps.opponentName} logo`;
+        oppImg.width = 18;
+        oppImg.height = 18;
+        oppImg.loading = 'lazy';
+        oppImg.style.cssText = 'width:18px;height:18px;object-fit:contain;border-radius:50%;';
+        oppLink.appendChild(oppImg);
+      }
+      const oppName = document.createElement('span');
+      oppName.textContent = ps.opponentName;
+      oppName.style.fontSize = '0.85rem';
+      oppLink.appendChild(oppName);
+      oppTd.appendChild(oppLink);
+    } else {
+      oppTd.textContent = '-';
+      oppTd.className = 'muted';
+    }
+    tr.appendChild(oppTd);
 
     tr.appendChild(createPlayerStatCell(ps, playerName, 'goals', 'Goals', ps.goals));
     tr.appendChild(createPlayerStatCell(ps, playerName, 'assists', 'Assists', ps.assists));

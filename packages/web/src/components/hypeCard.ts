@@ -119,7 +119,7 @@ function buildStatCounter(data: HypePlayerData): { row: HTMLElement; counter: Re
     duration: 1500,
   };
   const counter = createAnimatedCounter(counterOptions);
-  counter.el.style.fontSize = '2rem';
+  counter.el.style.fontSize = '1.5rem';
   counter.el.style.fontWeight = '800';
   counter.el.style.lineHeight = '1';
   counter.el.style.color = '#ffd166';
@@ -144,7 +144,8 @@ function buildTeamLine(data: HypePlayerData): HTMLElement {
 
   if (data.teamLogoUrl) {
     const logo = document.createElement('img');
-    logo.src = `/logos/${data.teamLogoUrl}`;
+    // teamLogoUrl may already be prefixed with /logos/ from the API
+    logo.src = data.teamLogoUrl.startsWith('/') ? data.teamLogoUrl : `/logos/${data.teamLogoUrl}`;
     logo.alt = `${data.teamName} logo`;
     logo.width = 24;
     logo.height = 24;
@@ -169,12 +170,11 @@ function applyWrapperStyles(anchor: HTMLAnchorElement): void {
   anchor.style.display = 'block';
   anchor.style.overflow = 'hidden';
   anchor.style.borderRadius = '12px';
-  anchor.style.padding = '1.5rem 2rem';
-  anchor.style.marginBottom = '1.5rem';
-  anchor.style.minHeight = '160px';
+  anchor.style.padding = '1rem 1.25rem';
+  anchor.style.minHeight = '120px';
   anchor.style.background = CARD_BG;
   anchor.style.textDecoration = 'none';
-  anchor.style.boxShadow = '0 18px 40px rgba(0, 0, 0, 0.35)';
+  anchor.style.boxShadow = '0 12px 30px rgba(0, 0, 0, 0.3)';
   anchor.style.border = '1px solid rgba(255, 209, 102, 0.18)';
 }
 
@@ -201,13 +201,13 @@ function buildContent(data: HypePlayerData): { content: HTMLDivElement; counter:
   kicker.textContent = '🔥 Player of the Week';
   kicker.style.color = '#ffd166';
   kicker.style.fontWeight = '700';
-  kicker.style.fontSize = '0.75rem';
+  kicker.style.fontSize = '0.7rem';
   kicker.style.textTransform = 'uppercase';
   kicker.style.letterSpacing = '0.05em';
 
   const playerName = document.createElement('div');
   playerName.textContent = data.playerName;
-  playerName.style.fontSize = '1.4rem';
+  playerName.style.fontSize = '1.1rem';
   playerName.style.fontWeight = '800';
   playerName.style.color = '#e5e7eb';
   playerName.style.lineHeight = '1.2';

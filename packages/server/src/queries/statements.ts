@@ -208,9 +208,15 @@ export function getStatements(db: Database): Statements {
        WHERE player_id = ?`,
     ),
     perGameStatsForPlayer: db.prepare(
-      `SELECT ps.*, g.date AS game_date
+      `SELECT ps.*, g.date AS game_date,
+              CASE WHEN p.team_id = g.home_team_id THEN at.name ELSE ht.name END AS opponent_name,
+              CASE WHEN p.team_id = g.home_team_id THEN at.logo_url ELSE ht.logo_url END AS opponent_logo_url,
+              CASE WHEN p.team_id = g.home_team_id THEN g.away_team_id ELSE g.home_team_id END AS opponent_id
        FROM player_stats ps
        JOIN games g ON g.id = ps.game_id
+       JOIN players p ON p.id = ps.player_id
+       LEFT JOIN teams ht ON ht.id = g.home_team_id
+       LEFT JOIN teams at ON at.id = g.away_team_id
        WHERE ps.player_id = ?
        ORDER BY g.date DESC, ps.id DESC`,
     ),

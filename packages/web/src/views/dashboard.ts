@@ -18,7 +18,6 @@ import { renderMarginHistogram } from '../charts/marginHistogram.js';
 import type { ChartHandle } from '../charts/types.js';
 import { renderEmptyState } from '../components/emptyState.js';
 import { renderGameThumb } from '../components/postImage.js';
-import { renderPiaaBadge } from '../components/piaaBadge.js';
 import { mountParticleHero, type ParticleHeroHandle } from '../components/particleHero.js';
 import { mountTeamCardGlow, type GlowHandle } from '../components/teamCardGlow.js';
 import { mountHypeCard, type HypeCardHandle, type HypePlayerData } from '../components/hypeCard.js';
@@ -153,10 +152,15 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
     particleHeroHandle = mountParticleHero(heroHost);
   }
 
-  // Hype card placeholder — filled async after leader data loads
+  // Hype cards row — Team of the Week + Player of the Week, side by side
+  const hypeRow = document.createElement('div');
+  hypeRow.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0;';
+  const teamHypeHost = document.createElement('div');
+  teamHypeHost.id = 'team-hype-host';
   const hypeHost = document.createElement('div');
   hypeHost.id = 'hype-card-host';
-  root.appendChild(hypeHost);
+  hypeRow.append(teamHypeHost, hypeHost);
+  root.appendChild(hypeRow);
 
   const teamsSection = document.createElement('section');
   const teamsHeader = document.createElement('h2');
@@ -302,6 +306,8 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
 
   // Hype card — show the week's top goal scorer
   void loadHypeCard(hypeHost);
+  // Team of the Week — top team by wins
+  void loadTeamHypeCard(teamHypeHost);
 
   // Scroll-reveal for leader panels
   if (shouldAnimate()) {
@@ -375,18 +381,51 @@ async function loadHypeCard(host: HTMLElement): Promise<void> {
     if (shouldMountWebGL()) {
       hypeCardHandle = mountHypeCard(host, data);
     } else {
-      // Fallback: simple styled card without WebGL
       const card = document.createElement('a');
       card.href = data.playerHref;
-      card.style.cssText = 'display:block; padding:1.25rem 1.5rem; border-radius:12px; background:#0e1119; border:2px solid #ffd166; margin-bottom:1.5rem; text-decoration:none; color:inherit;';
-      card.innerHTML = `<span style="color:#ffd166;font-weight:700;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">&#128293; Player of the Week</span>
-        <div style="font-size:1.4rem;font-weight:700;color:#e5e7eb;margin-top:0.25rem;">${data.playerName}</div>
-        <div style="font-size:0.85rem;color:#9ca3af;">${data.teamName}</div>
-        <div style="font-size:2rem;font-weight:700;color:#ffd166;margin-top:0.5rem;">${Math.round(data.statValue)} <span style="font-size:0.85rem;font-weight:400;color:#9ca3af;">${data.statLabel}</span></div>`;
+      card.style.cssText = 'display:block; padding:1rem 1.25rem; border-radius:12px; background:#0e1119; border:2px solid #ffd166; text-decoration:none; color:inherit;';
+      card.innerHTML = `<span style="color:#ffd166;font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">&#128293; Player of the Week</span>
+        <div style="font-size:1.1rem;font-weight:700;color:#e5e7eb;margin-top:0.25rem;">${data.playerName}</div>
+        <div style="font-size:0.8rem;color:#9ca3af;">${data.teamName}</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#ffd166;margin-top:0.4rem;">${Math.round(data.statValue)} <span style="font-size:0.8rem;font-weight:400;color:#9ca3af;">${data.statLabel}</span></div>`;
       host.appendChild(card);
     }
   } catch {
     // Silent — hype card is optional enhancement
+  }
+}
+
+async function loadTeamHypeCard(host: HTMLElement): Promise<void> {
+  try {
+    const teams = await getTeams();
+    if (!teams.length) return;
+    // Find the team with the best win record (most wins, fewest losses as tiebreak)
+    const ranked = teams
+      .filter((t) => (t.wins ?? 0) + (t.losses ?? 0) >= 3)
+      .sort((a, b) => {
+        const aWins = a.wins ?? 0;
+        const bWins = b.wins ?? 0;
+        if (bWins !== aWins) return bWins - aWins;
+        return (a.losses ?? 0) - (b.losses ?? 0);
+      });
+    const top = ranked[0];
+    if (!top) return;
+    const wins = top.wins ?? 0;
+    const losses = top.losses ?? 0;
+    const logoSrc = top.logoUrl ? top.logoUrl : '';
+    const card = document.createElement('a');
+    card.href = `#/teams/${top.id}`;
+    card.style.cssText = 'display:block; padding:1rem 1.25rem; border-radius:12px; background:#0e1119; border:2px solid #4ea1ff; text-decoration:none; color:inherit;';
+    card.innerHTML = `
+      <span style="color:#4ea1ff;font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">&#127942; Team of the Week</span>
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.25rem;">
+        ${logoSrc ? `<img src="${logoSrc}" alt="${top.name} logo" style="width:28px;height:28px;object-fit:contain;border-radius:50%;" />` : ''}
+        <span style="font-size:1.1rem;font-weight:700;color:#e5e7eb;">${top.name}</span>
+      </div>
+      <div style="font-size:1.5rem;font-weight:700;color:#4ea1ff;margin-top:0.4rem;">${wins}-${losses} <span style="font-size:0.8rem;font-weight:400;color:#9ca3af;">Record</span></div>`;
+    host.appendChild(card);
+  } catch {
+    // Silent — team hype card is optional
   }
 }
 
@@ -771,16 +810,6 @@ function buildTeamsGrid(
       rec.title = `${t.wins ?? 0} wins, ${t.losses ?? 0} losses`;
       a.appendChild(rec);
     }
-    if (t.piaaValidation) {
-      const badge = renderPiaaBadge({
-        validation: t.piaaValidation,
-        derived: t.derivedRecord ?? null,
-        piaa: t.piaa ?? null,
-        hideUnmapped: true,
-        variant: 'label',
-      });
-      if (badge) a.appendChild(badge);
-    }
     const streakChip = buildStreakChip(t.streak);
     if (streakChip) a.appendChild(streakChip);
     li.appendChild(a);
@@ -960,25 +989,25 @@ function buildRecentGamesTable(
     const tdMatch = document.createElement('td');
     const matchupWrap = document.createElement('span');
     matchupWrap.className = 'matchup';
-    matchupWrap.style.cssText = 'display:inline-flex; align-items:center; gap:.4rem; flex-wrap:wrap;';
-    matchupWrap.appendChild(
-      renderTeamBadge({
-        name: away?.name ?? `Team #${g.awayTeamId}`,
-        logoUrl: away?.logoUrl ?? null,
-        size: 'md',
-      }),
-    );
+    matchupWrap.style.cssText = 'display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:.4rem; min-width:0;';
+    const awayBadge = renderTeamBadge({
+      name: away?.name ?? `Team #${g.awayTeamId}`,
+      logoUrl: away?.logoUrl ?? null,
+      size: 'md',
+    });
+    awayBadge.style.justifySelf = 'end';
+    matchupWrap.appendChild(awayBadge);
     const at = document.createElement('span');
     at.className = 'muted';
     at.textContent = '@';
     matchupWrap.appendChild(at);
-    matchupWrap.appendChild(
-      renderTeamBadge({
-        name: home?.name ?? `Team #${g.homeTeamId}`,
-        logoUrl: home?.logoUrl ?? null,
-        size: 'md',
-      }),
-    );
+    const homeBadge = renderTeamBadge({
+      name: home?.name ?? `Team #${g.homeTeamId}`,
+      logoUrl: home?.logoUrl ?? null,
+      size: 'md',
+    });
+    homeBadge.style.justifySelf = 'start';
+    matchupWrap.appendChild(homeBadge);
     tdMatch.appendChild(matchupWrap);
     if (g.postponed || g.otPeriods > 0) {
       const note = document.createElement('span');
