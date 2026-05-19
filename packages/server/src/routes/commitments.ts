@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type { Database } from 'better-sqlite3';
-import type { Commitment, CommitmentSubmission } from '@pll/shared';
+import type { Commitment, CommitmentSubmission, CommitmentSelfSubmission } from '@pll/shared';
 
 interface CommitmentRow {
   id: string;
@@ -286,5 +286,88 @@ export async function commitmentsRoutes(app: FastifyInstance, db: Database): Pro
     }
 
     return { ok: true };
+  });
+
+  // Self-service commitment submission (no existing player ID required)
+  app.post<{ Body: CommitmentSelfSubmission }>('/api/commitments/submit', async (req, reply) => {
+    const firstName = getNonEmptyString(req.body?.firstName);
+    const lastName = getNonEmptyString(req.body?.lastName);
+    if (!firstName || !lastName) {
+      reply.code(400);
+      return { error: 'BadRequest', message: 'firstName and lastName are required' };
+    }
+
+    const position = getNonEmptyString(req.body?.position);
+    const validPositions = new Set(['Attack', 'Midfield', 'LSM', 'Defense', 'Goalie']);
+    if (!position || !validPositions.has(position)) {
+      reply.code(400);
+      return { error: 'BadRequest', message: 'position must be Attack, Midfield, LSM, Defense, or Goalie' };
+    }
+
+    const highSchool = getNonEmptyString(req.body?.highSchool);
+    if (!highSchool) {
+      reply.code(400);
+      return { error: 'BadRequest', message: 'highSchool is required' };
+    }
+
+    const college = getNonEmptyString(req.body?.college);
+    if (!college) {
+      reply.code(400);
+      return { error: 'BadRequest', message: 'college is required' };
+    }
+
+    const division = getNonEmptyString(req.body?.division);
+    const validDivisions = new Set(['D1', 'D2', 'D3', 'JUCO', 'MCLA']);
+    if (!division || !validDivisions.has(division)) {
+      reply.code(400);
+      return { error: 'BadRequest', message: 'division must be D1, D2, D3, JUCO, or MCLA' };
+    }
+
+    const status = req.body?.status ?? 'committed';
+    if (!SUBMISSION_STATUSES.has(status)) {
+      reply.code(400);
+      return { error: 'BadRequest', message: 'status must be verbal, committed, or signed' };
+    }
+
+    const fullName = `${firstName} ${lastName}`;
+
+    // Find or create the player
+    let playerRow = db.prepare(
+      'SELECT id FROM players WHERE name = ? COLLATE NOCASE LIMIT 1',
+    ).get(fullName) as { id: number } | undefined;
+
+    if (!playerRow) {
+      // Try to find team by high school name
+      const teamRow = db.prepare(
+        'SELECT id FROM teams WHERE name LIKE ? COLLATE NOCASE LIMIT 1',
+      ).get(`%${highSchool}%`) as { id: number } | undefined;
+
+      const insertPlayer = db.prepare(
+        'INSERT INTO players (name, team_id) VALUES (?, ?)',
+      );
+      const result = insertPlayer.run(fullName, teamRow?.id ?? null);
+      playerRow = { id: Number(result.lastInsertRowid) };
+    }
+
+    const id = randomUUID();
+    db.prepare(
+      `INSERT INTO commitments (
+        id, player_id, college, division, commit_date, status, source, verified
+      ) VALUES (?, ?, ?, ?, datetime('now'), ?, 'player', 0)`,
+    ).run(id, playerRow.id, college, division, status);
+
+    const commitment = getCommitmentById(db, id);
+    reply.code(201);
+    return commitment ?? {
+      id,
+      playerId: String(playerRow.id),
+      playerName: fullName,
+      college,
+      division,
+      status,
+      source: 'player' as const,
+      verified: false,
+      createdAt: new Date().toISOString(),
+    };
   });
 }

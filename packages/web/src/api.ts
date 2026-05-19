@@ -4,6 +4,7 @@
 import type {
   CoachDashboardResponse,
   Commitment,
+  CommitmentSelfSubmission,
   CommitmentSubmission,
   Game,
   GamePeriod,
@@ -565,6 +566,14 @@ export function getCommitmentForPlayer(playerId: string | number): Promise<Commi
 
 export function submitCommitment(payload: CommitmentSubmission): Promise<Commitment> {
   return request<Commitment>('/commitments', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function submitSelfCommitment(payload: CommitmentSelfSubmission): Promise<Commitment> {
+  return request<Commitment>('/commitments/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

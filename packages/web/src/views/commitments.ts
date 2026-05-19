@@ -1,5 +1,6 @@
 import type { Commitment } from '@pll/shared';
 import { ApiError, getCommitments } from '../api.js';
+import { renderCommitmentForm } from '../components/commitmentForm.js';
 import { IS_STATIC, staticFetch, staticUnavailableNode } from '../staticLoader.js';
 import { formatDate } from '../util/format.js';
 import { setOgMeta } from '../util/ogMeta.js';
@@ -36,6 +37,9 @@ export function render(root: HTMLElement): void {
   intro.className = 'muted';
   intro.textContent = 'Track Philly-area players as they commit to the next level.';
   root.appendChild(intro);
+
+  // Self-service commitment submission form with WebGL particle background
+  renderCommitmentForm(root);
 
   const controls = document.createElement('div');
   controls.style.cssText = 'display:flex;gap:0.75rem;flex-wrap:wrap;align-items:end;margin:1rem 0 1.25rem;';

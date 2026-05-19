@@ -197,6 +197,17 @@ export interface CommitmentSubmission {
   source?: 'player' | 'coach';
 }
 
+/** Self-service commitment form — does not require an existing player ID. */
+export interface CommitmentSelfSubmission {
+  firstName: string;
+  lastName: string;
+  position: 'Attack' | 'Midfield' | 'LSM' | 'Defense' | 'Goalie';
+  highSchool: string;
+  college: string;
+  division: 'D1' | 'D2' | 'D3' | 'JUCO' | 'MCLA';
+  status?: 'verbal' | 'committed' | 'signed';
+}
+
 export interface TeamAlias {
   id: number;
   alias: string;
