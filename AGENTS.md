@@ -83,9 +83,9 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 
 ## 4. Database conventions
 
-- **Live DB:** `data/lacrosse.db` (SQLite, `user_version = 19`).
+- **Live DB:** `data/lacrosse.db` (SQLite, `user_version = 20`).
 - **Test DB:** `data/lacrosse.test.db` (auto-seeded by vitest setup). Tests must never touch the live DB.
-- **Migrations:** `packages/ingest/src/migrations/NNN_*.sql`, applied by `user_version` pragma. All 19 migrations:
+- **Migrations:** `packages/ingest/src/migrations/NNN_*.sql`, applied by `user_version` pragma. All 20 migrations:
   - `001_init.sql` — core tables: teams, games, game_periods, players, player_stats, rankings, ingest_anomalies, raw_cache_meta
   - `002_ingest_post_log.sql` — ingest_post_log
   - `003_piaa_official_teams.sql` — piaa_official_teams
@@ -101,6 +101,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
   - `017_manual_uploads.sql` — manual_uploads audit log for coach spreadsheet imports
   - `018_stat_source_tracking.sql` — player_stats.upload_id provenance for coach uploads
   - `019_hudl_teams.sql` — hudl_teams managed scraper targets and sync status
+  - `020_commitments.sql` — commitments table for player college commitments and verification state
 
 - **Key tables for agents:**
   - `teams` — id, name, slug, logo_url (bare filename), maxpreps_slug
@@ -109,6 +110,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
   - `player_stats` — per-game stats: goals, assists, ground_balls, caused_turnovers, saves, fo_won, fo_taken, source, upload_id
   - `manual_uploads` — coach spreadsheet upload audit trail: submitter, team_id, file_hash, row_count, status, applied_at, reverted_at
   - `hudl_teams` — registered Hudl team links: team_id, hudl_team_url, hudl_team_name, status, last_synced, last_error
+  - `commitments` — player college commitments: player_id, college, division, commit_date, status, source, verified
   - `community_corrections` — status IN ('pending','approved','rejected','outlier'); nightly `applyCorrections.ts` auto-applies non-outliers
   - `ingest_anomalies` — unresolved ingest rows; source, raw_line, reason
 
@@ -173,10 +175,10 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 | CI/CD workflows | `.github/workflows/` |
 
 **Key server routes** (all under `packages/server/src/routes/`):
-`teams.ts`, `games.ts`, `players.ts`, `schedule.ts`, `rankings.ts`, `h2h.ts`, `coachDashboard.ts`, `corrections.ts`, `upload.ts`, `hudl.ts`, `search.ts`, `dataExport.ts`, `sources.ts`
+`teams.ts`, `games.ts`, `players.ts`, `commitments.ts`, `schedule.ts`, `rankings.ts`, `h2h.ts`, `coachDashboard.ts`, `corrections.ts`, `upload.ts`, `hudl.ts`, `search.ts`, `dataExport.ts`, `sources.ts`
 
 **Key web views** (all under `packages/web/src/views/`):
-`dashboard.ts`, `teamDetail.ts`, `gameDetail.ts`, `playerDetail.ts`, `leaders.ts`, `topTeams.ts`, `schedule.ts`, `compare.ts`, `h2h.ts`, `playerCompare.ts`, `constellation.ts`, `dataQuality.ts`, `sources.ts`, `coachDashboard.ts`, `coachUpload.ts`, `adminCorrections.ts`, `adminHudl.ts`
+`dashboard.ts`, `teamDetail.ts`, `gameDetail.ts`, `playerDetail.ts`, `commitments.ts`, `leaders.ts`, `topTeams.ts`, `schedule.ts`, `compare.ts`, `h2h.ts`, `playerCompare.ts`, `constellation.ts`, `dataQuality.ts`, `sources.ts`, `coachDashboard.ts`, `coachUpload.ts`, `adminCorrections.ts`, `adminHudl.ts`
 
 **Key CI workflows** (all under `.github/workflows/`):
 - `ingest-nightly.yml` — crawl + parse + ingest + applyCorrections + export static + deploy

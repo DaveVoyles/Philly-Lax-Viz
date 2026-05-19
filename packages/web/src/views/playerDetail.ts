@@ -112,6 +112,10 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     root.appendChild(teamP);
   }
 
+  if (detail.commitment) {
+    root.appendChild(buildCommitmentSection(detail.commitment));
+  }
+
   root.appendChild(buildSeasonCallouts(detail));
 
   // Per-game trend chart slot. Points = goals + assists per game (documented choice).
@@ -160,6 +164,60 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   correctionNote.style.cssText = 'font-size:0.75em;color:#888;margin-top:8px;';
   correctionNote.textContent = 'See an error? Click ✏️ to suggest a correction.';
   root.appendChild(correctionNote);
+}
+
+function buildCommitmentSection(commitment: NonNullable<PlayerDetail['commitment']>): HTMLElement {
+  const section = document.createElement('section');
+  section.style.cssText = 'margin:1rem 0 1.25rem;padding:1rem 1.1rem;border:1px solid var(--border);border-radius:12px;background:var(--bg-elev, rgba(255,255,255,0.02));';
+
+  const heading = document.createElement('h2');
+  heading.textContent = 'College Commitment';
+  heading.style.cssText = 'margin:0 0 .65rem;font-size:1.05rem;';
+  section.appendChild(heading);
+
+  const line = document.createElement('div');
+  line.style.cssText = 'display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;';
+  const college = document.createElement('strong');
+  college.textContent = commitment.college;
+  line.appendChild(college);
+  if (commitment.division) {
+    line.appendChild(renderCommitmentPill(commitment.division, 'background:rgba(255,255,255,0.08);color:inherit;'));
+  }
+  line.appendChild(renderCommitmentPill(commitment.status, statusPillStyle(commitment.status)));
+  if (commitment.verified) {
+    line.appendChild(renderCommitmentPill('✓ Verified', 'background:#183a21;color:#d9ffe5;'));
+  }
+  section.appendChild(line);
+
+  if (commitment.commitDate) {
+    const date = document.createElement('p');
+    date.className = 'muted';
+    date.style.margin = '.55rem 0 0';
+    date.textContent = `Committed on ${formatDate(commitment.commitDate)}`;
+    section.appendChild(date);
+  }
+
+  return section;
+}
+
+function renderCommitmentPill(text: string, style: string): HTMLElement {
+  const pill = document.createElement('span');
+  pill.textContent = text;
+  pill.style.cssText = `display:inline-flex;align-items:center;padding:0.25rem 0.55rem;border-radius:999px;font-size:0.76rem;font-weight:700;text-transform:capitalize;${style}`;
+  return pill;
+}
+
+function statusPillStyle(status: NonNullable<PlayerDetail['commitment']>['status']): string {
+  switch (status) {
+    case 'verbal':
+      return 'background:#8a6b14;color:#fff4cc;';
+    case 'committed':
+      return 'background:#1f7a37;color:#e9ffef;';
+    case 'signed':
+      return 'background:#1d5fbf;color:#eef5ff;';
+    case 'decommitted':
+      return 'background:#8a2432;color:#ffe9ec;';
+  }
 }
 
 function buildSeasonCallouts(detail: PlayerDetail): HTMLElement {

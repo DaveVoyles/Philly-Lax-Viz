@@ -28,6 +28,7 @@ import { postImagesRoutes } from './routes/postImages.js';
 import { searchRoutes } from './routes/search.js';
 import { comparePlayersRoutes } from './routes/comparePlayers.js';
 import { coachDashboardRoutes } from './routes/coachDashboard.js';
+import { commitmentsRoutes } from './routes/commitments.js';
 import correctionsRoutes from './routes/corrections.js';
 import uploadRoutes from './routes/upload.js';
 import adminDedupRoutes from './routes/adminDedup.js';
@@ -145,6 +146,7 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   await searchRoutes(app, db);
   await comparePlayersRoutes(app, db);
   await coachDashboardRoutes(app, db);
+  await commitmentsRoutes(app, db);
   await app.register(correctionsRoutes, { prefix: '/api' });
   await app.register(uploadRoutes);
   await app.register(adminDedupRoutes, { db });

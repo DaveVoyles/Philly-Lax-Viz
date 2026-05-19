@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import type { Database } from 'better-sqlite3';
-import type { PlayerMilestones } from '@pll/shared';
+import type { Commitment, PlayerMilestones } from '@pll/shared';
 import { getStatements } from '../queries/statements.js';
 import { listPlayersBySeason } from '../queries/playerList.js';
+import { getCommitmentForPlayer } from './commitments.js';
 import {
   mapPlayer,
   mapPlayerStat,
@@ -27,6 +28,7 @@ interface SeasonStatsRow {
 interface PlayerDetailResult {
   player: ReturnType<typeof mapPlayer>;
   team: ReturnType<typeof mapTeam> | null;
+  commitment: Commitment | null;
   seasonStats: {
     games: number;
     goals: number;
@@ -127,6 +129,7 @@ export function buildPlayerDetail(db: Database, id: number): PlayerDetailResult 
   return {
     player: mapPlayer(playerRow),
     team: teamRow ? mapTeam(teamRow) : null,
+    commitment: getCommitmentForPlayer(db, id),
     seasonStats,
     perGame,
   };

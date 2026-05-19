@@ -174,6 +174,29 @@ export interface PlayerMilestones {
   careerTotals: { goals: number; assists: number; groundBalls: number; games: number };
 }
 
+export interface Commitment {
+  id: string;
+  playerId: string;
+  playerName?: string;
+  teamName?: string;
+  college: string;
+  division?: string;
+  commitDate?: string;
+  status: 'verbal' | 'committed' | 'signed' | 'decommitted';
+  source: 'player' | 'coach' | 'admin';
+  verified: boolean;
+  createdAt: string;
+}
+
+export interface CommitmentSubmission {
+  playerId: string;
+  college: string;
+  division?: string;
+  commitDate?: string;
+  status?: 'verbal' | 'committed' | 'signed';
+  source?: 'player' | 'coach';
+}
+
 export interface TeamAlias {
   id: number;
   alias: string;

@@ -3,6 +3,8 @@
 
 import type {
   CoachDashboardResponse,
+  Commitment,
+  CommitmentSubmission,
   Game,
   GamePeriod,
   HudlTeam,
@@ -29,7 +31,7 @@ export { currentSeason } from './components/seasonPicker.js';
 
 // Endpoints that must NOT be season-scoped (their response is the source of
 // truth for season metadata, or they're global health probes).
-const SEASON_EXEMPT = new Set<string>(['/seasons', '/health', '/players']);
+const SEASON_EXEMPT = new Set<string>(['/seasons', '/health', '/players', '/commitments']);
 
 function shouldAttachSeason(path: string): boolean {
   const pathname = path.split('?', 1)[0] ?? path;
@@ -533,6 +535,7 @@ export interface PlayerPerGameStat extends PlayerStat {
 export interface PlayerDetail {
   player: Player;
   team: Team | null;
+  commitment: Commitment | null;
   seasonStats: PlayerSeasonStats;
   perGame: PlayerPerGameStat[];
 }
@@ -544,6 +547,28 @@ export interface TopScorerEntry {
   playerName: string;
   goals: number;
   assists: number;
+}
+
+export interface CommitmentsQuery {
+  teamId?: string | number;
+  division?: string;
+  status?: Commitment['status'];
+}
+
+export function getCommitments(params?: CommitmentsQuery): Promise<Commitment[]> {
+  return request<Commitment[]>(`/commitments${buildQuery(params)}`);
+}
+
+export function getCommitmentForPlayer(playerId: string | number): Promise<Commitment> {
+  return request<Commitment>(`/commitments/${encodeURIComponent(String(playerId))}`);
+}
+
+export function submitCommitment(payload: CommitmentSubmission): Promise<Commitment> {
+  return request<Commitment>('/commitments', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
 }
 
 export function getPlayerDetail(id: string | number): Promise<PlayerDetail> {

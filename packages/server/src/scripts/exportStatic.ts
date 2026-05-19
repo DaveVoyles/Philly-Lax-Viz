@@ -34,6 +34,7 @@ import { getRivalryGraph } from '../queries/rivalries.js';
 import { groupByDate, listScheduleGames, listUpcomingForTeam } from '../queries/schedule.js';
 import { getStatements } from '../queries/statements.js';
 import { computeStreaks } from '../queries/teamStreak.js';
+import { listCommitments, getCommitmentForPlayer } from '../routes/commitments.js';
 import { buildPlayerDetail, buildPlayerMilestones } from '../routes/players.js';
 import { generateSitemap } from './generateSitemap.js';
 
@@ -568,6 +569,7 @@ function main(): void {
   addFile('health.json', health);
   addFile('seasons.json', { seasons: [DEFAULT_SEASON], default: DEFAULT_SEASON });
   addFile('empty.json', []);
+  addFile('commitments.json', listCommitments(db));
 
   const seasonGameRows = db
     .prepare('SELECT * FROM games WHERE season = ? ORDER BY date DESC, id DESC')
@@ -688,6 +690,8 @@ function main(): void {
   for (const playerRow of playerRows) {
     const detail = buildPlayerDetail(db, playerRow.id);
     if (detail) addFile(`${DEFAULT_SEASON}/players/${playerRow.id}.json`, detail);
+    const commitment = getCommitmentForPlayer(db, playerRow.id);
+    if (commitment) addFile(`commitments/player-${playerRow.id}.json`, commitment);
     const milestones = buildPlayerMilestones(db, playerRow.id);
     if (milestones) addFile(`${DEFAULT_SEASON}/players/${playerRow.id}-milestones.json`, milestones);
   }

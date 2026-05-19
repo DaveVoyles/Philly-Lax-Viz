@@ -36,6 +36,7 @@ const loaders: Record<Exclude<RouteName, 'notFound'>, () => Promise<ViewModule>>
   constellation: () => import('./views/constellation.js'),
   h2h: () => import('./views/h2h.js'),
   schedule: () => import('./views/schedule.js'),
+  commitments: () => import('./views/commitments.js'),
   sources: () => import('./views/sources.js'),
   status: () => import('./views/status.js'),
   coachDashboard: () => import('./views/coachDashboard.js'),
@@ -57,6 +58,7 @@ const NAV: NavLink[] = [
   { href: '#/h2h', label: 'Compare', match: 'h2h' },
   { href: '#/graph', label: 'Team Connections', match: 'graph' },
   { href: '#/schedule', label: 'Schedule', match: 'schedule' },
+  { href: '#/commitments', label: 'Commitments', match: 'commitments' },
   { href: '#/constellation', label: 'Player Map', match: 'constellation' },
 ];
 
@@ -212,6 +214,7 @@ const ROUTE_TITLES: Partial<Record<RouteName, string>> = {
   constellation: 'Player Map',
   h2h: 'Compare Teams',
   schedule: 'Schedule',
+  commitments: 'College Commitments',
   sources: 'Sources',
   status: 'Site Status',
   coachDashboard: 'Coach Dashboard',

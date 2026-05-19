@@ -87,6 +87,10 @@ export function toStaticUrl(apiPath: string): string {
   if (pathname.startsWith('/data/')) return joinUrl(ENV.BASE_URL ?? '/', pathname);
   if (pathname === '/health') return joinUrl(root, 'health.json');
   if (pathname === '/seasons') return joinUrl(root, 'seasons.json');
+  if (pathname === '/commitments') return joinUrl(root, 'commitments.json');
+  if (segments[0] === 'commitments' && segments[1]) {
+    return joinUrl(root, 'commitments', `player-${segments[1]}.json`);
+  }
   if (pathname === '/search') return joinUrl(root, String(season), 'search-index.json');
   if (pathname === '/data-quality/piaa-mismatches') {
     return joinUrl(root, String(season), 'data-quality', 'piaa-mismatches.json');
@@ -179,6 +183,15 @@ export async function staticFetch<T>(apiPath: string): Promise<T> {
   }
 
   const data = await fetchJson<unknown>(toStaticUrl(apiPath));
+
+  if (pathname === '/commitments' && Array.isArray(data)) {
+    let commitments = data as Array<Record<string, unknown>>;
+    const division = url.searchParams.get('division');
+    const status = url.searchParams.get('status');
+    if (division) commitments = commitments.filter((entry) => entry['division'] === division);
+    if (status) commitments = commitments.filter((entry) => entry['status'] === status);
+    return commitments as T;
+  }
 
   if (pathname === '/games' && Array.isArray(data)) {
     let games = sortGames(data as Game[]);
