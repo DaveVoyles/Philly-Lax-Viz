@@ -329,14 +329,13 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       radarWrap.appendChild(radarHeader);
       const radarHost = document.createElement('div');
       radarHost.className = 'team-radar-host';
-      radarHost.style.cssText = 'max-height:220px;';
       radarWrap.appendChild(radarHost);
       chartsRow.appendChild(radarWrap);
       renderTeamRadarChart(radarHost, {
         team: toTeamLike(focalRow),
         population,
         opponents,
-      }, { width: 300, height: 300 });
+      }, { width: 220, height: 220 });
     }
   }
 

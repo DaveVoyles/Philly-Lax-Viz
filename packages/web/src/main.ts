@@ -61,9 +61,7 @@ const NAV: NavLink[] = [
   { href: '#/schedule', label: 'Schedule', match: 'schedule' },
   { href: '#/commitments', label: 'Commitments', match: 'commitments' },
   { href: '#/constellation', label: 'Player Map', match: 'constellation' },
-  ...(IS_STATIC
-    ? []
-    : [{ href: '#/coach/upload', label: 'Coach Upload', match: 'coachUpload' as const }]),
+  { href: '#/coach/upload', label: 'Coach Upload', match: 'coachUpload' },
 ];
 
 const MORE_NAV: NavLink[] = [
