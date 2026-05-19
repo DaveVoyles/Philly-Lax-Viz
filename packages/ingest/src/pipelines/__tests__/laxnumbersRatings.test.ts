@@ -186,8 +186,8 @@ describe('laxnumbersRatings pipeline', () => {
     });
 
     expect(result.unresolved).toBe(1);
-    expect(result.anomalies[0].kind).toBe('unresolved_team');
-    expect(result.anomalies[0].detail).toContain('Unknown Academy');
+    expect(result.anomalies[0]!.kind).toBe('unresolved_team');
+    expect(result.anomalies[0]!.detail).toContain('Unknown Academy');
   });
 
   it('handles fetch errors gracefully', async () => {
@@ -201,6 +201,6 @@ describe('laxnumbersRatings pipeline', () => {
     });
 
     expect(result.fetched).toBe(0);
-    expect(result.anomalies[0].kind).toBe('fetch_error');
+    expect(result.anomalies[0]!.kind).toBe('fetch_error');
   });
 });

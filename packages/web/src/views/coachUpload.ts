@@ -1,6 +1,5 @@
 import { getTeams, type TeamSeasonRecord } from '../api.js';
 import { apiUrl } from '../apiBase.js';
-import { IS_STATIC, staticUnavailableNode } from '../staticLoader.js';
 
 const ACCEPTED_UPLOAD_TYPES = '.xlsx,.csv';
 const COACH_TEAM_STORAGE_KEY = 'pll-coach-team';
@@ -43,25 +42,6 @@ interface UploadConfirmResponse {
 
 export function render(root: HTMLElement, _params: Record<string, string>): void {
   root.replaceChildren();
-
-  if (IS_STATIC) {
-    const notice = document.createElement('div');
-    notice.style.cssText = 'max-width:600px;margin:2rem auto;padding:1.5rem;border-radius:12px;border:1px solid var(--border);text-align:center;';
-    const h = document.createElement('h2');
-    h.textContent = 'Coach Upload';
-    notice.appendChild(h);
-    const p = document.createElement('p');
-    p.className = 'muted';
-    p.innerHTML = 'Spreadsheet uploads require the live API.<br>Visit <a href="https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io" style="color:var(--accent)">the live server</a> or contact your league admin for upload access.';
-    notice.appendChild(p);
-    const fmt = document.createElement('p');
-    fmt.className = 'muted';
-    fmt.style.marginTop = '1rem';
-    fmt.textContent = 'Accepted formats: .xlsx or .csv with columns for player name, game date, opponent, goals, assists, ground balls, caused turnovers, saves, faceoffs won/taken.';
-    notice.appendChild(fmt);
-    root.appendChild(notice);
-    return;
-  }
 
   const back = document.createElement('p');
   back.className = 'muted';

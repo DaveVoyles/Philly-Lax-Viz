@@ -6,7 +6,6 @@
 
 import type { CommitmentSelfSubmission } from '@pll/shared';
 import { submitSelfCommitment } from '../api.js';
-import { IS_STATIC } from '../staticLoader.js';
 
 const POSITIONS: CommitmentSelfSubmission['position'][] = [
   'Attack',
@@ -153,15 +152,6 @@ export function renderCommitmentForm(root: HTMLElement): HTMLElement {
   subtitle.style.cssText = 'position:relative;z-index:1;margin:0 0 1.5rem;';
   subtitle.textContent = 'Congrats on committing! Share the news with the Philly lacrosse community.';
   wrapper.appendChild(subtitle);
-
-  if (IS_STATIC) {
-    const note = document.createElement('p');
-    note.style.cssText = 'position:relative;z-index:1;padding:0.75rem 1rem;border-radius:8px;background:rgba(255,180,0,0.12);color:#f0c040;';
-    note.textContent = 'Commitment submissions require the live API. Visit phillylaxstats.com to submit.';
-    wrapper.appendChild(note);
-    root.appendChild(wrapper);
-    return wrapper;
-  }
 
   const form = document.createElement('form');
   form.style.cssText = `

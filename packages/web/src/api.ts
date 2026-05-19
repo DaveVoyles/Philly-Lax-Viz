@@ -591,12 +591,19 @@ export function submitCommitment(payload: CommitmentSubmission): Promise<Commitm
   });
 }
 
-export function submitSelfCommitment(payload: CommitmentSelfSubmission): Promise<Commitment> {
-  return request<Commitment>('/commitments/submit', {
+export async function submitSelfCommitment(payload: CommitmentSelfSubmission): Promise<Commitment> {
+  // Bypass IS_STATIC guard — submissions always hit the live API
+  const url = apiUrl('/api/commitments/submit');
+  const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new ApiError(body || res.statusText, res.status, url);
+  }
+  return res.json() as Promise<Commitment>;
 }
 
 export function getPlayerDetail(id: string | number): Promise<PlayerDetail> {
