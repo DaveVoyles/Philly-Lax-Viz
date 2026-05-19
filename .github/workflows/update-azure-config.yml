@@ -29,7 +29,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Update CORS_ORIGINS on Container App
-        if: inputs.cors_origins != ''
+        if: github.event.inputs.cors_origins != '' && github.event.inputs.bind_custom_domain != 'true'
         run: |
           ORIGINS="${{ github.event.inputs.cors_origins || secrets.CORS_ORIGINS || 'https://davevoyles.github.io,http://localhost:5173' }}"
           echo "Setting CORS_ORIGINS to: $ORIGINS"
@@ -39,7 +39,7 @@ jobs:
             --set-env-vars "CORS_ORIGINS=$ORIGINS"
 
       - name: Bind custom domain
-        if: inputs.bind_custom_domain == 'true' && inputs.custom_hostname != ''
+        if: github.event.inputs.bind_custom_domain == 'true' && github.event.inputs.custom_hostname != ''
         run: |
           HOSTNAME="${{ github.event.inputs.custom_hostname }}"
           ACA_NAME="${{ secrets.ACA_NAME }}"
