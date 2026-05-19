@@ -29,6 +29,7 @@ import { createPoller, isActiveSeason } from '../util/livePoller.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
 import { buildStreakChip, ensureStreakChipStyles } from '../util/streakChip.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
+import { createSeasonSelector, getSelectedSeason } from '../components/seasonSelector.js';
 
 type SortKey = 'name' | 'gap' | 'wins';
 type SortDir = 'asc' | 'desc';
@@ -65,8 +66,8 @@ function ensureDashboardLiveStyles(): void {
   document.head.appendChild(style);
 }
 
-function shouldAutoRefreshRecentGames(): boolean {
-  return !IS_STATIC && isActiveSeason();
+function shouldAutoRefreshRecentGames(season: string): boolean {
+  return !IS_STATIC && isActiveSeason() && season === String(new Date().getFullYear());
 }
 
 function stopRefresh(): void {
@@ -74,8 +75,8 @@ function stopRefresh(): void {
   recentGamesPoller = null;
 }
 
-function updateLastUpdated(timestampEl: HTMLElement): void {
-  if (!shouldAutoRefreshRecentGames() || recentGamesLastUpdated === null) {
+function updateLastUpdated(timestampEl: HTMLElement, season: string): void {
+  if (!shouldAutoRefreshRecentGames(season) || recentGamesLastUpdated === null) {
     timestampEl.textContent = '';
     return;
   }
@@ -86,13 +87,14 @@ function startRefresh(
   gamesTarget: HTMLElement,
   teamById: Map<number, Team>,
   timestampEl: HTMLElement,
+  season: string,
 ): void {
   stopRefresh();
-  if (!shouldAutoRefreshRecentGames()) {
-    updateLastUpdated(timestampEl);
+  if (!shouldAutoRefreshRecentGames(season)) {
+    updateLastUpdated(timestampEl, season);
     return;
   }
-  recentGamesPoller = createPoller(() => refreshGames(gamesTarget, teamById, timestampEl), REFRESH_INTERVAL_MS);
+  recentGamesPoller = createPoller(() => refreshGames(gamesTarget, teamById, timestampEl, season), REFRESH_INTERVAL_MS);
 }
 
 function destroyDashboardCharts(): void {
@@ -117,6 +119,10 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   ensureDashboardLiveStyles();
   root.replaceChildren();
 
+  let selectedSeason = getSelectedSeason();
+  const selectorHost = document.createElement('div');
+  root.appendChild(selectorHost);
+
   const h1 = document.createElement('h1');
   h1.textContent = 'Philly Lacrosse — Boys HS';
   h1.style.margin = '0.32em 0 0.4em';
@@ -126,6 +132,12 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   sub.className = 'muted';
   sub.textContent = 'Season scoreboard, team records, and recent games.';
   root.appendChild(sub);
+
+  createSeasonSelector(selectorHost, (season) => {
+    selectedSeason = season;
+    stopRefresh();
+    void loadSeasonData(season);
+  });
 
   const disclaimer = document.createElement('div');
   disclaimer.style.cssText =
@@ -249,59 +261,71 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   panelsGrid.appendChild(gbPanel.wrap);
   root.appendChild(leadersSection);
 
-  void loadTeamsAndGames(teamsBody, gamesBody, marginChartDiv, lastUpdated, (teamById) => {
-    if (!shouldAutoRefreshRecentGames()) {
-      liveIndicator.style.display = 'none';
-      lastUpdated.textContent = '';
-    } else {
-      liveIndicator.style.display = 'inline';
-      startRefresh(gamesBody, teamById, lastUpdated);
-    }
-    // Stagger card fade-in animations
-    if (shouldAnimate()) {
-      const cards = teamsBody.querySelectorAll('.team-grid li');
-      cards.forEach((li, i) => {
-        (li as HTMLElement).classList.add('card-animate');
-        (li as HTMLElement).style.animationDelay = `${i * 30}ms`;
-      });
-    }
-    // Mount WebGL glow strips behind team cards
-    if (shouldMountWebGL()) {
-      const grid = teamsBody.querySelector('.team-grid');
-      if (grid) {
-        const colorMap = new Map<number, string>();
-        const items = grid.querySelectorAll('li');
-        items.forEach((li, i) => {
-          const borderColor = (li.querySelector('a') as HTMLElement | null)?.style.borderLeftColor;
-          if (borderColor) colorMap.set(i, borderColor);
+  async function loadSeasonData(season: string): Promise<void> {
+    for (const chart of dashboardCharts) chart.destroy();
+    dashboardCharts = [];
+    if (glowHandle) { glowHandle.destroy(); glowHandle = null; }
+    if (hypeCardHandle) { hypeCardHandle.destroy(); hypeCardHandle = null; }
+    if (teamHypeCardHandle) { teamHypeCardHandle.destroy(); teamHypeCardHandle = null; }
+    hypeHost.replaceChildren();
+    teamHypeHost.replaceChildren();
+    marginChartDiv.replaceChildren();
+    calDiv.replaceChildren();
+    savesPanel.body.textContent = 'Loading…';
+    foPctPanel.body.textContent = 'Loading…';
+    gbPanel.body.textContent = 'Loading…';
+
+    await loadTeamsAndGames(teamsBody, gamesBody, marginChartDiv, lastUpdated, season, (teamById) => {
+      if (!shouldAutoRefreshRecentGames(season)) {
+        liveIndicator.style.display = 'none';
+        lastUpdated.textContent = '';
+      } else {
+        liveIndicator.style.display = 'inline';
+        startRefresh(gamesBody, teamById, lastUpdated, season);
+      }
+      if (shouldAnimate()) {
+        const cards = teamsBody.querySelectorAll('.team-grid li');
+        cards.forEach((li, i) => {
+          (li as HTMLElement).classList.add('card-animate');
+          (li as HTMLElement).style.animationDelay = `${i * 30}ms`;
         });
-        if (colorMap.size > 0) {
-          glowHandle = mountTeamCardGlow(grid as HTMLElement, colorMap);
+      }
+      if (shouldMountWebGL()) {
+        const grid = teamsBody.querySelector('.team-grid');
+        if (grid) {
+          const colorMap = new Map<number, string>();
+          const items = grid.querySelectorAll('li');
+          items.forEach((li, i) => {
+            const borderColor = (li.querySelector('a') as HTMLElement | null)?.style.borderLeftColor;
+            if (borderColor) colorMap.set(i, borderColor);
+          });
+          if (colorMap.size > 0) {
+            glowHandle = mountTeamCardGlow(grid as HTMLElement, colorMap);
+          }
         }
       }
-    }
-  });
-
-  void getGameCalendar()
-    .then((calDays) => {
-      if (calDays.length > 0) {
-        const handle = renderCalendarHeatmap(calDiv, calDays);
-        dashboardCharts.push(handle);
-      } else {
-        calDiv.textContent = 'No games recorded yet.';
-      }
-    })
-    .catch(() => {
-      calDiv.textContent = '';
     });
-  void loadLeaderPanel(savesPanel.body, 'saves', { minGames: 3 }, intFmt, 'Saves');
-  void loadLeaderPanel(foPctPanel.body, 'fo_pct', { minAttempts: 20 }, pctFmt, 'FO %');
-  void loadLeaderPanel(gbPanel.body, 'ground_balls', { minGames: 3 }, intFmt, 'Ground balls');
 
-  // Hype card — show the week's top goal scorer
-  void loadHypeCard(hypeHost);
-  // Team of the Week — top team by wins
-  void loadTeamHypeCard(teamHypeHost);
+    void getGameCalendar({ season })
+      .then((calDays) => {
+        if (calDays.length > 0) {
+          const handle = renderCalendarHeatmap(calDiv, calDays);
+          dashboardCharts.push(handle);
+        } else {
+          calDiv.textContent = 'No games recorded yet.';
+        }
+      })
+      .catch(() => {
+        calDiv.textContent = '';
+      });
+    void loadLeaderPanel(savesPanel.body, 'saves', { minGames: 3 }, intFmt, 'Saves', season);
+    void loadLeaderPanel(foPctPanel.body, 'fo_pct', { minAttempts: 20 }, pctFmt, 'FO %', season);
+    void loadLeaderPanel(gbPanel.body, 'ground_balls', { minGames: 3 }, intFmt, 'Ground balls', season);
+    void loadHypeCard(hypeHost, season);
+    void loadTeamHypeCard(teamHypeHost, season);
+  }
+
+  void loadSeasonData(selectedSeason);
 
   // Scroll-reveal for leader panels
   if (shouldAnimate()) {
@@ -358,9 +382,9 @@ async function loadDashboardFreshness(target: HTMLElement): Promise<void> {
   }
 }
 
-async function loadHypeCard(host: HTMLElement): Promise<void> {
+async function loadHypeCard(host: HTMLElement, season: string): Promise<void> {
   try {
-    const resp = await getPlayerLeaders({ metric: 'goals', limit: 1, minGames: 3 });
+    const resp = await getPlayerLeaders({ metric: 'goals', limit: 1, minGames: 3, season });
     const top = resp.rows[0];
     if (!top) return;
     const data: HypePlayerData = {
@@ -401,9 +425,9 @@ function teamLosses(t: TeamSeasonRecord): number {
   return dr?.losses ?? 0;
 }
 
-async function loadTeamHypeCard(host: HTMLElement): Promise<void> {
+async function loadTeamHypeCard(host: HTMLElement, season: string): Promise<void> {
   try {
-    const teams = await getTeams();
+    const teams = await getTeams({ season });
     if (!teams.length) return;
     // Find the team with the best win record (most wins, fewest losses as tiebreak)
     const ranked = teams
@@ -481,9 +505,10 @@ async function loadLeaderPanel(
   extra: { minGames?: number; minAttempts?: number },
   format: (n: number) => string,
   axisLabel: string,
+  season: string,
 ): Promise<void> {
   try {
-    const resp = await getPlayerLeaders({ metric, limit: LEADER_PANEL_LIMIT, ...extra });
+    const resp = await getPlayerLeaders({ metric, limit: LEADER_PANEL_LIMIT, ...extra, season });
     el.replaceChildren();
     const top = resp.rows.slice(0, LEADER_PANEL_LIMIT);
     if (top.length === 0) {
@@ -607,11 +632,12 @@ async function loadTeamsAndGames(
   gamesTarget: HTMLElement,
   marginTarget: HTMLElement,
   lastUpdated: HTMLElement,
+  season: string,
   onTeamsReady: (teamById: Map<number, Team>) => void,
 ): Promise<void> {
   let teams: TeamSeasonRecord[];
   try {
-    teams = await getTeams();
+    teams = await getTeams({ season });
   } catch (err) {
     teamsTarget.replaceChildren(errorBlock(err));
     gamesTarget.replaceChildren(errorBlock(err));
@@ -643,8 +669,8 @@ async function loadTeamsAndGames(
   const teamById = new Map<number, Team>(teams.map((t) => [t.id, t]));
 
   const [recentGamesResult, allGamesResult] = await Promise.allSettled([
-    getGames(recentGamesQueryWindow()),
-    getGames(),
+    getGames({ ...recentGamesQueryWindow(), season }),
+    getGames({ season }),
   ]);
 
   if (recentGamesResult.status === 'fulfilled') {
@@ -652,7 +678,7 @@ async function loadTeamsAndGames(
     await renderGamesList(gamesTarget, games, teamById);
     recentGamesSignature = buildGameSignature(games);
     recentGamesLastUpdated = new Date();
-    updateLastUpdated(lastUpdated);
+    updateLastUpdated(lastUpdated, season);
   } else {
     gamesTarget.replaceChildren(errorBlock(recentGamesResult.reason));
   }
@@ -918,16 +944,17 @@ async function refreshGames(
   container: HTMLElement,
   teamById: Map<number, Team>,
   timestampEl: HTMLElement,
+  season: string,
 ): Promise<void> {
   try {
-    const games = recentGamesWithinDays(await getGames(recentGamesQueryWindow()), RECENT_GAME_DAYS);
+    const games = recentGamesWithinDays(await getGames({ ...recentGamesQueryWindow(), season }), RECENT_GAME_DAYS);
     const nextSignature = buildGameSignature(games);
     if (nextSignature !== recentGamesSignature) {
       await renderGamesList(container, games, teamById);
       recentGamesSignature = nextSignature;
     }
     recentGamesLastUpdated = new Date();
-    updateLastUpdated(timestampEl);
+    updateLastUpdated(timestampEl, season);
   } catch {
     // Silent by design so a polling miss never breaks the dashboard.
   }

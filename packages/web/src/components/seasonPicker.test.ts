@@ -4,8 +4,10 @@ import {
   withSeasonInHash,
   readSeasonFromHash,
   pickInitialSeason,
+  setKnownSeasons,
   setSeason,
   currentSeason,
+  defaultSeason,
   __resetForTests,
   ALL_SEASONS,
 } from './seasonPicker.js';
@@ -18,7 +20,7 @@ describe('seasonPicker pure helpers', () => {
     expect(parseSeasonValue('all')).toBe(ALL_SEASONS);
     expect(parseSeasonValue('')).toBeNull();
     expect(parseSeasonValue(null)).toBeNull();
-    expect(parseSeasonValue('1999')).toBeNull(); // out of range
+    expect(parseSeasonValue('1999')).toBeNull();
     expect(parseSeasonValue('20xx')).toBeNull();
   });
 
@@ -45,18 +47,19 @@ describe('seasonPicker pure helpers', () => {
     expect(pickInitialSeason(undefined, null, 2026)).toBe(2026);
     expect(pickInitialSeason(undefined, null, null)).toBeNull();
     expect(pickInitialSeason('all', '2025', 2026)).toBe(ALL_SEASONS);
-    // Garbage URL falls through to storage
     expect(pickInitialSeason('garbage', '2025', 2026)).toBe(2025);
   });
 
-  it('currentSeason() is always locked to 2026', () => {
-    // setSeason is a no-op in locked mode; currentSeason always returns 2026
+  it('tracks known seasons and selected season state', () => {
+    expect(defaultSeason()).toBe(2026);
+    setKnownSeasons([2026, 2025, 2024]);
+    expect(defaultSeason()).toBe(2026);
     expect(currentSeason()).toBe(2026);
     setSeason(2025, { persist: false });
-    expect(currentSeason()).toBe(2026);
+    expect(currentSeason()).toBe(2025);
     setSeason(ALL_SEASONS, { persist: false });
-    expect(currentSeason()).toBe(2026);
+    expect(currentSeason()).toBe(ALL_SEASONS);
     setSeason(null, { persist: false });
-    expect(currentSeason()).toBe(2026);
+    expect(currentSeason()).toBeNull();
   });
 });

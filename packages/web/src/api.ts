@@ -2,12 +2,14 @@
 // All requests hit /api/* (proxied to Leia's server in dev).
 
 import type {
+  CoachDashboardResponse,
   Game,
   GamePeriod,
+  HudlTeam,
   IngestAnomaly,
   PiaaRecord,
-  HudlTeam,
   Player,
+  PlayerMilestones,
   PlayerStat,
   Ranking,
   RankingSource,
@@ -182,6 +184,7 @@ export interface GamesQuery {
   from?: string;
   to?: string;
   team?: string | number;
+  season?: string | number | null;
 }
 
 export interface RankingsQuery {
@@ -199,8 +202,8 @@ export function getFreshness(): Promise<FreshnessResponse> {
   return request<FreshnessResponse>('/freshness');
 }
 
-export function getTeams(): Promise<TeamSeasonRecord[]> {
-  return request<TeamSeasonRecord[]>('/teams');
+export function getTeams(params?: { season?: string | number | null }): Promise<TeamSeasonRecord[]> {
+  return request<TeamSeasonRecord[]>(`/teams${buildQuery(params)}`);
 }
 
 export function getTeam(id: string | number): Promise<TeamDetailResponse> {
@@ -222,8 +225,8 @@ interface CalendarDayResponse {
   gameCount: number;
 }
 
-export async function getGameCalendar(): Promise<CalendarDay[]> {
-  const days = await request<CalendarDayResponse[]>('/games/calendar');
+export async function getGameCalendar(params?: { season?: string | number | null }): Promise<CalendarDay[]> {
+  const days = await request<CalendarDayResponse[]>(`/games/calendar${buildQuery(params)}`);
   return days.map((day) => ({
     date: day.date,
     count: day.gameCount,
@@ -420,6 +423,10 @@ export function getTeamDetail(id: string | number): Promise<TeamDetail> {
   return request<TeamDetail>(`/teams/${encodeURIComponent(String(id))}`);
 }
 
+export function getCoachDashboard(teamId: string | number): Promise<CoachDashboardResponse> {
+  return request<CoachDashboardResponse>(`/coach/dashboard${buildQuery({ teamId })}`);
+}
+
 export function getGameDetail(id: string | number): Promise<GameDetail> {
   return request<GameDetail>(`/games/${encodeURIComponent(String(id))}`);
 }
@@ -530,6 +537,8 @@ export interface PlayerDetail {
   perGame: PlayerPerGameStat[];
 }
 
+export type { PlayerMilestones };
+
 export interface TopScorerEntry {
   playerId: number;
   playerName: string;
@@ -539,6 +548,10 @@ export interface TopScorerEntry {
 
 export function getPlayerDetail(id: string | number): Promise<PlayerDetail> {
   return request<PlayerDetail>(`/players/${encodeURIComponent(String(id))}`);
+}
+
+export function getPlayerMilestones(id: string | number): Promise<PlayerMilestones> {
+  return request<PlayerMilestones>(`/players/${encodeURIComponent(String(id))}/milestones`);
 }
 
 // ---- Wave H8 L1 (Han) — batch player detail for the compare view ----
@@ -631,6 +644,7 @@ export interface TeamLeaderRow {
 
 export interface TeamLeadersResponse {
   metric: TeamLeaderMetric | string;
+  season?: number | null;
   rows: TeamLeaderRow[];
 }
 
@@ -640,11 +654,13 @@ export interface PlayerLeadersQuery {
   minGames?: number;
   minAttempts?: number;
   teamId?: string | number;
+  season?: string | number | null;
 }
 
 export interface TeamLeadersQuery {
   metric?: TeamLeaderMetric;
   limit?: number;
+  season?: string | number | null;
 }
 
 export function getPlayerLeaders(
@@ -687,9 +703,10 @@ export type LeaderSparklineMetric =
 export function getLeaderSparklines(
   metric: LeaderSparklineMetric,
   limit = 10,
+  season?: string | number | null,
 ): Promise<LeaderSparklinesResponse> {
   return request<LeaderSparklinesResponse>(
-    `/leaders/players/sparklines${buildQuery({ metric, limit })}`,
+    `/leaders/players/sparklines${buildQuery({ metric, limit, season })}`,
   );
 }
 

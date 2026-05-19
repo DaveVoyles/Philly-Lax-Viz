@@ -34,7 +34,7 @@ import { getRivalryGraph } from '../queries/rivalries.js';
 import { groupByDate, listScheduleGames, listUpcomingForTeam } from '../queries/schedule.js';
 import { getStatements } from '../queries/statements.js';
 import { computeStreaks } from '../queries/teamStreak.js';
-import { buildPlayerDetail } from '../routes/players.js';
+import { buildPlayerDetail, buildPlayerMilestones } from '../routes/players.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../');
 const DEFAULT_OUT_DIR = path.join(REPO_ROOT, 'packages', 'web', 'public', 'data');
@@ -118,6 +118,47 @@ interface OurTeamAgg {
   games: number;
   wins: number;
   losses: number;
+}
+
+interface TeamAggregate {
+  games: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  goalsFor: number;
+  goalsAgainst: number;
+}
+
+function emptyTeamAggregate(): TeamAggregate {
+  return { games: 0, wins: 0, losses: 0, ties: 0, goalsFor: 0, goalsAgainst: 0 };
+}
+
+function aggregateGamesForTeams(gameRows: GameRow[]): Map<number, TeamAggregate> {
+  const aggregates = new Map<number, TeamAggregate>();
+  for (const row of gameRows) {
+    const home = aggregates.get(row.home_team_id) ?? emptyTeamAggregate();
+    home.games += 1;
+    home.goalsFor += row.home_score;
+    home.goalsAgainst += row.away_score;
+    if (!row.postponed) {
+      if (row.home_score > row.away_score) home.wins += 1;
+      else if (row.home_score < row.away_score) home.losses += 1;
+      else home.ties += 1;
+    }
+    aggregates.set(row.home_team_id, home);
+
+    const away = aggregates.get(row.away_team_id) ?? emptyTeamAggregate();
+    away.games += 1;
+    away.goalsFor += row.away_score;
+    away.goalsAgainst += row.home_score;
+    if (!row.postponed) {
+      if (row.away_score > row.home_score) away.wins += 1;
+      else if (row.away_score < row.home_score) away.losses += 1;
+      else away.ties += 1;
+    }
+    aggregates.set(row.away_team_id, away);
+  }
+  return aggregates;
 }
 
 function normalizePiaaName(raw: string): string {
@@ -527,21 +568,33 @@ function main(): void {
   addFile('seasons.json', { seasons: [DEFAULT_SEASON], default: DEFAULT_SEASON });
   addFile('empty.json', []);
 
+  const seasonGameRows = db
+    .prepare('SELECT * FROM games WHERE season = ? ORDER BY date DESC, id DESC')
+    .all(DEFAULT_SEASON) as GameRow[];
   const teamRows = s.listTeams.all() as TeamRow[];
-  const streaks = computeStreaks(db, teamRows.map((row) => row.id));
+  const teamAggregates = aggregateGamesForTeams(seasonGameRows);
+  const streaks = computeStreaks(db, teamRows.map((row) => row.id), DEFAULT_SEASON);
   const teams = teamRows.map((row) => {
-    const team = mapTeam(row);
+    const aggregate = teamAggregates.get(row.id) ?? emptyTeamAggregate();
+    const team = mapTeam({
+      ...row,
+      our_games_count: aggregate.games,
+      derived_wins: aggregate.wins,
+      derived_losses: aggregate.losses,
+      derived_ties: aggregate.ties,
+    });
     return {
       ...team,
+      wins: team.piaa?.wins ?? aggregate.wins,
+      losses: team.piaa?.losses ?? aggregate.losses,
+      goalsFor: aggregate.goalsFor,
+      goalsAgainst: aggregate.goalsAgainst,
       streak: streaks.get(team.id) ?? null,
     };
   });
   const teamById = new Map(teams.map((team) => [team.id, team]));
   addFile(`${DEFAULT_SEASON}/teams.json`, teams);
 
-  const seasonGameRows = db
-    .prepare('SELECT * FROM games WHERE season = ? ORDER BY date DESC, id DESC')
-    .all(DEFAULT_SEASON) as GameRow[];
   const seasonGames = seasonGameRows.map(mapGame);
   addFile(`${DEFAULT_SEASON}/games.json`, seasonGames);
 
@@ -634,6 +687,8 @@ function main(): void {
   for (const playerRow of playerRows) {
     const detail = buildPlayerDetail(db, playerRow.id);
     if (detail) addFile(`${DEFAULT_SEASON}/players/${playerRow.id}.json`, detail);
+    const milestones = buildPlayerMilestones(db, playerRow.id);
+    if (milestones) addFile(`${DEFAULT_SEASON}/players/${playerRow.id}-milestones.json`, milestones);
   }
 
   const latestRankingWeek = s.latestRankingWeekAnySource.get() as { week_start: string } | undefined;

@@ -8,9 +8,10 @@
 <summary>Developer / admin deployment (not user-facing)</summary>
 
 An Azure Container App hosts a live Fastify API server with the SQLite DB mounted via Azure Files.
-This powers admin-only features: player dedup (`#/admin/dedup`), coach spreadsheet upload
-(`#/coach/upload`), community corrections review (`#/admin/corrections`), Hudl team management
-(`#/admin/hudl`), and live data-quality diagnostics. It is **not** the primary user-facing site.
+This powers admin-only features: coach dashboard (`#/coach/dashboard`), player dedup (`#/admin/dedup`),
+coach spreadsheet upload (`#/coach/upload`), community corrections review (`#/admin/corrections`),
+Hudl team management (`#/admin/hudl`), and live data-quality diagnostics. It is **not** the primary
+user-facing site.
 
 The primary user-facing deployment is **GitHub Pages** (linked above). It uses pre-exported static JSON
 and requires no live server.
@@ -26,10 +27,11 @@ updated nightly.
 ## What you can explore
 
 - **Teams** — season record (wins/losses), top scorers, and every game played
-- **Players** — season totals and a per-game trend chart for goals, assists, and points
+- **Dashboard** — recent results, leader cards, and standings snapshots with season selection
+- **Players** — season totals, career-high milestone callouts, and a per-game trend chart for goals, assists, and points
 - **Games** — full scoreboard with quarter-by-quarter breakdown and player stat tables
-- **League Leaders** — ranked leaderboards for goals, assists, saves, faceoff %, and more
-- **Top 5 Teams** — a podium-style view of the best records in the league right now
+- **League Leaders** — ranked leaderboards for goals, assists, saves, faceoff %, and more, with season selection
+- **Top 5 Teams** — a podium-style view of the best records in the league right now, with season selection
 - **Rankings** — PIAA District 1 official standings
 - **Rivalries** — a force-directed graph showing head-to-head matchup history
 - **Schedule** — upcoming games
@@ -157,8 +159,8 @@ pnpm --filter @pll/ingest exec tsx src/scripts/generateUploadTemplate.ts  # crea
 | -------------- | -------------------------------------------------------------------- |
 | `@pll/shared`  | Domain types (`Team`, `Game`, `PlayerStat`, …) shared across packages. |
 | `@pll/ingest`  | Crawler, HTML parsers, ingest pipelines, SQLite migration & schema, CLIs (`crawl`, `ingest`). |
-| `@pll/server`  | Fastify HTTP API over the SQLite DB. CORS-locked to `localhost:5173`, with a 60s in-memory response cache + ETag headers on selected read-only `/api/*` routes plus coach upload preview/confirm/revert endpoints. |
-| `@pll/web`     | Vite + TypeScript SPA. Hash router, D3 charts, no framework runtime. |
+| `@pll/server`  | Fastify HTTP API over the SQLite DB. CORS-locked to `localhost:5173`, with a 60s in-memory response cache + ETag headers on selected read-only `/api/*` routes plus coach dashboard and coach upload endpoints. |
+| `@pll/web`     | Vite + TypeScript SPA. Hash router, D3 charts, no framework runtime, plus coach dashboard/upload tools on the live API deployment. |
 
 Full package entry points, key files, and path map → **[AGENTS.md §2 & §7](./AGENTS.md)**.
 

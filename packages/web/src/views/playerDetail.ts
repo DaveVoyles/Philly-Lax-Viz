@@ -1,16 +1,29 @@
 // Player detail view: header, season totals, per-game trend chart, per-game table.
 
-import { ApiError, getPlayerDetail, type PlayerDetail, type PlayerPerGameStat } from '../api.js';
+import {
+  ApiError,
+  getPlayerDetail,
+  getPlayerMilestones,
+  type PlayerDetail,
+  type PlayerMilestones,
+  type PlayerPerGameStat,
+} from '../api.js';
 import { formatDate } from '../util/format.js';
 import { renderConfidenceBadge } from '../util/confidence.js';
 import { isOutlier } from '../util/zscore.js';
 import { renderPerGameTrend } from '../charts/index.js';
 import type { PerGameTrendDatum } from '../charts/index.js';
-import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 import { openCorrectionModal, type CorrectionTarget } from '../components/correctionModal.js';
+import { setOgMeta } from '../util/ogMeta.js';
+import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   ensureShareCss();
+  setOgMeta({
+    title: 'Player Stats | PhillyLaxStats',
+    description: 'Season totals and per-game stats for Philly-area lacrosse players.',
+    url: window.location.href,
+  });
   root.replaceChildren();
 
   const back = document.createElement('p');
@@ -39,8 +52,12 @@ export function render(root: HTMLElement, params: Record<string, string>): void 
 
 async function load(root: HTMLElement, status: HTMLElement, id: string): Promise<void> {
   let detail: PlayerDetail;
+  let milestones: PlayerMilestones | null = null;
   try {
-    detail = await getPlayerDetail(id);
+    [detail, milestones] = await Promise.all([
+      getPlayerDetail(id),
+      getPlayerMilestones(id).catch(() => null),
+    ]);
   } catch (err) {
     const msg = err instanceof ApiError ? `${err.message} (${err.url})` : String(err);
     status.className = 'error';
@@ -48,6 +65,13 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     return;
   }
   status.remove();
+
+  setOgMeta({
+    title: `${detail.player.name} - ${detail.team?.name ?? 'Unknown Team'} | PhillyLaxStats`,
+    description: `Season stats for ${detail.player.name}${detail.team ? ` from ${detail.team.name}` : ''}.`,
+    image: detail.team?.logoUrl ?? undefined,
+    url: window.location.href,
+  });
 
   const headingWrap = document.createElement('div');
   headingWrap.style.cssText = 'display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;';
@@ -102,6 +126,10 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     root.appendChild(empty);
   }
 
+  if (milestones) {
+    root.appendChild(buildCareerHighlights(milestones));
+  }
+
   const tableHeader = document.createElement('h2');
   tableHeader.textContent = 'Per-Game Stats';
   root.appendChild(tableHeader);
@@ -147,6 +175,54 @@ function buildSeasonCallouts(detail: PlayerDetail): HTMLElement {
     wrap.appendChild(c);
   }
   return wrap;
+}
+
+function buildCareerHighlights(milestones: PlayerMilestones): HTMLElement {
+  const section = document.createElement('section');
+  section.style.cssText = 'margin:1rem 0 1.5rem; padding:1rem 1.1rem; border:1px solid var(--border); border-radius:12px; background:var(--bg-elev, rgba(255,255,255,0.02));';
+
+  const heading = document.createElement('h2');
+  heading.textContent = 'Career Highlights';
+  heading.style.cssText = 'margin:0 0 .75rem; font-size:1.05rem;';
+  section.appendChild(heading);
+
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:.75rem;';
+
+  const cards: Array<{ label: string; value: { value: number; opponent: string; date: string } | null }> = [
+    { label: 'Career high goals', value: milestones.careerHighGoals },
+    { label: 'Career high assists', value: milestones.careerHighAssists },
+    { label: 'Career high points', value: milestones.careerHighPoints },
+  ];
+
+  for (const card of cards) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'padding:.85rem .95rem; border-radius:10px; border:1px solid var(--border); background:rgba(255,255,255,0.02);';
+    const label = document.createElement('p');
+    label.className = 'muted';
+    label.style.cssText = 'margin:0 0 .35rem; font-size:.78rem; text-transform:uppercase; letter-spacing:.05em;';
+    label.textContent = card.label;
+    const value = document.createElement('div');
+    value.style.cssText = 'font-size:1.5rem; font-weight:800;';
+    value.textContent = card.value ? String(card.value.value) : '0';
+    const detail = document.createElement('p');
+    detail.className = 'muted';
+    detail.style.cssText = 'margin:.35rem 0 0; font-size:.85rem;';
+    detail.textContent = card.value ? `vs ${card.value.opponent} on ${formatDate(card.value.date)}` : 'No games logged yet.';
+    wrap.append(label, value, detail);
+    grid.appendChild(wrap);
+  }
+
+  section.appendChild(grid);
+
+  const totals = document.createElement('p');
+  const totalPoints = milestones.careerTotals.goals + milestones.careerTotals.assists;
+  totals.className = 'muted';
+  totals.style.cssText = 'margin:.9rem 0 0; font-size:.9rem;';
+  totals.textContent = `Career totals: ${milestones.careerTotals.goals} goals, ${milestones.careerTotals.assists} assists, ${totalPoints} points, ${milestones.careerTotals.groundBalls} ground balls across ${milestones.careerTotals.games} games.`;
+  section.appendChild(totals);
+
+  return section;
 }
 
 type CorrectablePlayerField =

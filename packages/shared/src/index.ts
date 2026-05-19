@@ -93,6 +93,29 @@ export interface Team {
   streak?: number | null;
 }
 
+export interface CoachDashboardResponse {
+  team: {
+    id: string;
+    name: string;
+    record: string;
+  };
+  gamesTotal: number;
+  gamesWithStats: number;
+  gamesWithoutStats: number;
+  missingStatGames: Array<{
+    gameId: string;
+    opponent: string;
+    date: string;
+  }>;
+  playerCount: number;
+  playersWithNoStats: Array<{
+    id: string;
+    name: string;
+  }>;
+  lastUpdated: string;
+  uploadUrl: string;
+}
+
 export interface Game {
   id: number;
   date: string; // ISO date (YYYY-MM-DD), local Philadelphia date of game
@@ -142,6 +165,13 @@ export interface PlayerStat {
   source: StatSource;
   parserVersion: string;
   confidence: number; // 0..1
+}
+
+export interface PlayerMilestones {
+  careerHighGoals: { value: number; opponent: string; date: string } | null;
+  careerHighAssists: { value: number; opponent: string; date: string } | null;
+  careerHighPoints: { value: number; opponent: string; date: string } | null;
+  careerTotals: { goals: number; assists: number; groundBalls: number; games: number };
 }
 
 export interface TeamAlias {

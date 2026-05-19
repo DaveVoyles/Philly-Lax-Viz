@@ -3,6 +3,7 @@ import { apiUrl } from '../apiBase.js';
 import { IS_STATIC, staticUnavailableNode } from '../staticLoader.js';
 
 const ACCEPTED_UPLOAD_TYPES = '.xlsx,.csv';
+const COACH_TEAM_STORAGE_KEY = 'pll-coach-team';
 
 type UploadRowStatus = 'new_player' | 'update' | 'match' | 'error' | string;
 
@@ -383,6 +384,16 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
         option.textContent = team.name;
         teamSelect.appendChild(option);
       }
+      const storedTeamId = (() => {
+        try {
+          return window.localStorage.getItem(COACH_TEAM_STORAGE_KEY) ?? '';
+        } catch {
+          return '';
+        }
+      })();
+      if (storedTeamId && teams.some((team) => String(team.id) === storedTeamId)) {
+        teamSelect.value = storedTeamId;
+      }
       teamSelect.disabled = false;
       clearNotice(formNotice);
     } catch (error) {
@@ -391,6 +402,15 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
       syncButtons();
     }
   }
+
+  teamSelect.addEventListener('change', () => {
+    if (!teamSelect.value) return;
+    try {
+      window.localStorage.setItem(COACH_TEAM_STORAGE_KEY, teamSelect.value);
+    } catch {
+      // Ignore storage failures so uploads still work.
+    }
+  });
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();

@@ -143,6 +143,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 - **Server:** http://localhost:3001 (Fastify, `@pll/server`).
 - **Web:** http://localhost:5173 (Vite, `@pll/web`).
 - Static logos served at `/logos/*` from `data/logos/` with 1y immutable cache.
+- Coach tooling routes include `#/coach/dashboard` (coverage + upload triage) and `#/coach/upload` (spreadsheet import).
 - Selected read-only `GET /api/*` routes use `packages/server/src/plugins/responseCache.ts` for a 60s in-memory LRU cache plus `ETag`, `Cache-Control`, and `x-cache` headers. Cache keys use `${request.routeOptions.url}::${request.url}`. Exclude `/api/corrections`, `/api/upload`, and `/api/health`.
 
 ## 7. Where things live (quick map)
@@ -170,10 +171,10 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 | CI/CD workflows | `.github/workflows/` |
 
 **Key server routes** (all under `packages/server/src/routes/`):
-`teams.ts`, `games.ts`, `players.ts`, `schedule.ts`, `rankings.ts`, `h2h.ts`, `corrections.ts`, `upload.ts`, `hudl.ts`, `search.ts`, `dataExport.ts`, `sources.ts`
+`teams.ts`, `games.ts`, `players.ts`, `schedule.ts`, `rankings.ts`, `h2h.ts`, `coachDashboard.ts`, `corrections.ts`, `upload.ts`, `hudl.ts`, `search.ts`, `dataExport.ts`, `sources.ts`
 
 **Key web views** (all under `packages/web/src/views/`):
-`dashboard.ts`, `teamDetail.ts`, `gameDetail.ts`, `playerDetail.ts`, `leaders.ts`, `topTeams.ts`, `schedule.ts`, `compare.ts`, `h2h.ts`, `playerCompare.ts`, `constellation.ts`, `dataQuality.ts`, `sources.ts`, `coachUpload.ts`, `adminCorrections.ts`, `adminHudl.ts`
+`dashboard.ts`, `teamDetail.ts`, `gameDetail.ts`, `playerDetail.ts`, `leaders.ts`, `topTeams.ts`, `schedule.ts`, `compare.ts`, `h2h.ts`, `playerCompare.ts`, `constellation.ts`, `dataQuality.ts`, `sources.ts`, `coachDashboard.ts`, `coachUpload.ts`, `adminCorrections.ts`, `adminHudl.ts`
 
 **Key CI workflows** (all under `.github/workflows/`):
 - `ingest-nightly.yml` — crawl + parse + ingest + applyCorrections + export static + deploy
@@ -224,6 +225,8 @@ Stale docs cause agents to work from false assumptions and introduce bugs. This 
 The GitHub Pages build sets `VITE_STATIC_MODE=true`. In this mode:
 - **No live API calls.** All data comes from pre-exported JSON files in `packages/web/public/data/`.
 - **`staticLoader.ts`** defines `IS_STATIC`, `staticFetch()`, and `staticUnavailableNode()`.
+- Season selector views stay pinned to the latest exported season in static mode; do not offer cross-season switching on GitHub Pages.
+- Player detail static exports include `/api/players/:id/milestones` -> `players/{id}-milestones.json`.
 - Every view **must** guard API-only behavior with `IS_STATIC`.
 
 **Pattern for any view with live API calls:**

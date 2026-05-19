@@ -1,8 +1,8 @@
 import { getTeams, type TeamSeasonRecord } from '../api.js';
+import { createSeasonSelector, getSelectedSeason } from '../components/seasonSelector.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { createAnimatedCounter } from '../components/animatedCounter.js';
 import { shouldAnimate, shouldMountWebGL } from '../util/motionPrefs.js';
-import { IS_STATIC, staticFetch } from '../staticLoader.js';
 import { Application, Graphics } from 'pixi.js';
 
 const STYLE_ID = 'top-teams-view-styles';
@@ -292,15 +292,25 @@ function normalizeLogoUrl(logoUrl: string | null): string | null {
 }
 
 function winPct(team: TeamSeasonRecord): number {
-  const gamesPlayed = team.wins + team.losses;
+  const gamesPlayed = teamWins(team) + teamLosses(team);
   if (gamesPlayed <= 0) return 0;
   return team.wins / gamesPlayed;
 }
 
+function teamWins(team: TeamSeasonRecord): number {
+  return team.wins ?? team.derivedRecord?.wins ?? 0;
+}
+
+function teamLosses(team: TeamSeasonRecord): number {
+  return team.losses ?? team.derivedRecord?.losses ?? 0;
+}
+
 function compareTeams(a: TeamSeasonRecord, b: TeamSeasonRecord): number {
-  const winsDiff = b.wins - a.wins;
+  const winsDiff = teamWins(b) - teamWins(a);
   if (winsDiff !== 0) return winsDiff;
-  const pctDiff = winPct(b) - winPct(a);
+  const aPct = winPct({ ...a, wins: teamWins(a), losses: teamLosses(a) });
+  const bPct = winPct({ ...b, wins: teamWins(b), losses: teamLosses(b) });
+  const pctDiff = bPct - aPct;
   if (Math.abs(pctDiff) > 0.000001) return pctDiff > 0 ? 1 : -1;
   return a.name.localeCompare(b.name);
 }
@@ -460,11 +470,8 @@ function mountWebGL(host: HTMLElement, token: number): void {
   });
 }
 
-async function loadTeams(): Promise<TeamSeasonRecord[]> {
-  if (IS_STATIC) {
-    return staticFetch<TeamSeasonRecord[]>('/data/teams.json');
-  }
-  return getTeams();
+async function loadTeams(season: string): Promise<TeamSeasonRecord[]> {
+  return getTeams({ season });
 }
 
 function buildCard(team: TeamSeasonRecord, rank: number, animateCards: boolean): HTMLElement {
@@ -516,8 +523,8 @@ function buildCard(team: TeamSeasonRecord, rank: number, animateCards: boolean):
   const recordValue = document.createElement('div');
   recordValue.className = 'top-team-stat__value';
   const duration = animateCards ? 1200 : 1;
-  const winsCounter = createAnimatedCounter({ value: team.wins, duration });
-  const lossesCounter = createAnimatedCounter({ value: team.losses, duration });
+  const winsCounter = createAnimatedCounter({ value: teamWins(team), duration });
+  const lossesCounter = createAnimatedCounter({ value: teamLosses(team), duration });
   const winsSuffix = document.createElement('span');
   winsSuffix.className = 'top-team-stat__suffix';
   winsSuffix.textContent = 'W';
@@ -531,7 +538,7 @@ function buildCard(team: TeamSeasonRecord, rank: number, animateCards: boolean):
   record.append(recordLabel, recordValue);
   stats.appendChild(record);
 
-  const gamesPlayed = team.wins + team.losses;
+  const gamesPlayed = teamWins(team) + teamLosses(team);
   const gamesStat = document.createElement('div');
   gamesStat.className = 'top-team-stat';
   const gamesLabel = document.createElement('span');
@@ -606,17 +613,17 @@ function attachRevealObserver(cards: HTMLElement[]): void {
   for (const card of cards) activeObserver.observe(card);
 }
 
-async function renderTopTeams(root: HTMLElement, token: number): Promise<void> {
+async function renderTopTeams(root: HTMLElement, token: number, season: string): Promise<void> {
   const grid = root.querySelector<HTMLElement>('[data-top-teams-grid]');
   const status = root.querySelector<HTMLElement>('[data-top-teams-status]');
   if (!grid || !status) return;
 
   try {
-    const teams = await loadTeams();
+    const teams = await loadTeams(season);
     if (token !== renderToken) return;
 
     const ranked = [...teams]
-      .filter((team) => team.wins + team.losses > 0)
+      .filter((team) => teamWins(team) + teamLosses(team) > 0)
       .sort(compareTeams)
       .slice(0, 5);
 
@@ -665,6 +672,10 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   const shell = document.createElement('section');
   shell.className = 'top-teams-shell';
 
+  let selectedSeason = getSelectedSeason();
+  const selectorHost = document.createElement('div');
+  shell.appendChild(selectorHost);
+
   const header = document.createElement('header');
   const title = document.createElement('h1');
   title.className = 'top-teams-title';
@@ -697,7 +708,12 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
     mountWebGL(webglHost, token);
   }
 
-  void renderTopTeams(root, token);
+  createSeasonSelector(selectorHost, (season) => {
+    selectedSeason = season;
+    void renderTopTeams(root, token, selectedSeason);
+  });
+
+  void renderTopTeams(root, token, selectedSeason);
 }
 
 export function destroy(): void {

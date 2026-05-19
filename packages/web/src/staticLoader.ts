@@ -108,6 +108,9 @@ export function toStaticUrl(apiPath: string): string {
   if (segments[0] === 'players' && segments[1] === 'constellation') {
     return joinUrl(root, String(season), 'constellation.json');
   }
+  if (segments[0] === 'players' && segments[1] && segments[2] === 'milestones') {
+    return joinUrl(root, String(season), 'players', `${segments[1]}-milestones.json`);
+  }
   if (segments[0] === 'players' && segments[1]) {
     return joinUrl(root, String(season), 'players', `${segments[1]}.json`);
   }

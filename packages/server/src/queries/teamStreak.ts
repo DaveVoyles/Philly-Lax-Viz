@@ -15,10 +15,16 @@ interface RecentGameRow {
  *   streak = 0 = last game was a tie
  *   null = no games played
  */
-export function computeStreaks(db: Database, teamIds: number[]): Map<number, number | null> {
+export function computeStreaks(
+  db: Database,
+  teamIds: number[],
+  season?: number | null,
+): Map<number, number | null> {
   if (teamIds.length === 0) return new Map();
 
   const placeholders = teamIds.map(() => '?').join(', ');
+  const seasonClause = season == null ? '' : 'AND season = ?';
+  const seasonArgs = season == null ? [] : [season];
   const rows = db.prepare(`
     WITH team_games AS (
       SELECT
@@ -33,6 +39,7 @@ export function computeStreaks(db: Database, teamIds: number[]): Map<number, num
       FROM games
       WHERE home_team_id IN (${placeholders})
         AND postponed = 0
+        ${seasonClause}
 
       UNION ALL
 
@@ -48,6 +55,7 @@ export function computeStreaks(db: Database, teamIds: number[]): Map<number, num
       FROM games
       WHERE away_team_id IN (${placeholders})
         AND postponed = 0
+        ${seasonClause}
     ),
     ranked AS (
       SELECT
@@ -61,7 +69,7 @@ export function computeStreaks(db: Database, teamIds: number[]): Map<number, num
     FROM ranked
     WHERE seq <= 10
     ORDER BY team_id ASC, seq ASC
-  `).all(...teamIds, ...teamIds) as RecentGameRow[];
+  `).all(...teamIds, ...seasonArgs, ...teamIds, ...seasonArgs) as RecentGameRow[];
 
   const byTeam = new Map<number, number[]>();
   for (const row of rows) {

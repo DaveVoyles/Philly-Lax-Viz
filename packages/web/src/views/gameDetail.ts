@@ -14,12 +14,18 @@ import { renderQuarterByQuarter } from '../charts/index.js';
 import { renderGameFlow } from '../charts/gameFlow.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderAnomalyBanner } from '../components/anomalyBanner.js';
-import { renderConfidenceBadge } from '../util/confidence.js';
-import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 import { openCorrectionModal, type CorrectionTarget } from '../components/correctionModal.js';
+import { renderConfidenceBadge } from '../util/confidence.js';
+import { setOgMeta } from '../util/ogMeta.js';
+import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   ensureShareCss();
+  setOgMeta({
+    title: 'Game Detail | PhillyLaxStats',
+    description: 'Final score, quarter splits, and player stat lines for Philly-area lacrosse games.',
+    url: window.location.href,
+  });
   root.replaceChildren();
 
   const back = document.createElement('p');
@@ -62,6 +68,13 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
 
   const homeName = homeTeam?.name ?? `Team #${game.homeTeamId}`;
   const awayName = awayTeam?.name ?? `Team #${game.awayTeamId}`;
+  const scoreLabel = game.postponed ? 'Postponed' : `${game.homeScore}-${game.awayScore}`;
+  setOgMeta({
+    title: `${homeName} vs ${awayName} - ${scoreLabel} | PhillyLaxStats`,
+    description: `${formatDate(game.date)} - ${awayName} at ${homeName}.`,
+    image: game.imageUrl ?? homeTeam?.logoUrl ?? awayTeam?.logoUrl ?? undefined,
+    url: window.location.href,
+  });
   const homeLogo = homeTeam?.logoUrl ?? null;
   const awayLogo = awayTeam?.logoUrl ?? null;
 

@@ -26,6 +26,7 @@ import { renderProvenanceBadge } from '../components/provenanceBadge.js';
 import { renderPiaaBadge, piaaBadgeTooltip } from '../components/piaaBadge.js';
 import { ensureGlossaryCss, glossaryIcon } from '../util/glossary.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
+import { setOgMeta } from '../util/ogMeta.js';
 import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 import { buildStreakChip, ensureStreakChipStyles } from '../util/streakChip.js';
 
@@ -37,6 +38,11 @@ export function render(root: HTMLElement, params: Record<string, string>): void 
   ensureShareCss();
   ensureGlossaryCss();
   ensureStreakChipStyles();
+  setOgMeta({
+    title: 'Team Stats | PhillyLaxStats',
+    description: 'Season record, roster coverage, and game log for Philly-area lacrosse teams.',
+    url: window.location.href,
+  });
   root.replaceChildren();
 
   const back = document.createElement('p');
@@ -79,6 +85,13 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     return;
   }
   status.remove();
+
+  setOgMeta({
+    title: `${detail.team.name} Stats | PhillyLaxStats`,
+    description: `${formatRecord(detail.record)} record, game log, and roster details for ${detail.team.name}.`,
+    image: detail.team.logoUrl ?? undefined,
+    url: window.location.href,
+  });
 
   const teamId = detail.team.id;
   const seasonRecord = teams.find((team) => team.id === teamId);

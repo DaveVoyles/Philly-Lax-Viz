@@ -278,6 +278,18 @@ describe('GET /api/players/:id', () => {
   });
 });
 
+describe('GET /api/players/:id/milestones', () => {
+  it('returns career highs and totals', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/players/100/milestones' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.careerHighGoals).toMatchObject({ value: 4, opponent: 'Episcopal', date: '2025-04-21' });
+    expect(body.careerHighAssists).toMatchObject({ value: 3, opponent: 'Malvern Prep', date: '2025-04-19' });
+    expect(body.careerHighPoints).toMatchObject({ value: 6, opponent: 'Episcopal', date: '2025-04-21' });
+    expect(body.careerTotals).toMatchObject({ goals: 6, assists: 5, groundBalls: 11, games: 2 });
+  });
+});
+
 describe('GET /api/teams/:id/topScorers', () => {
   it('returns top scorers for a team sorted by points desc', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/teams/1/topScorers' });

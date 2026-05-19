@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { Database } from 'better-sqlite3';
+import type { PlayerMilestones } from '@pll/shared';
 import { getStatements } from '../queries/statements.js';
 import { listPlayersBySeason } from '../queries/playerList.js';
 import {
@@ -23,12 +24,7 @@ interface SeasonStatsRow {
   fo_taken: number;
 }
 
-/**
- * Aggregated player detail used by `/api/players/:id` and the H8 compare
- * endpoint (`/api/compare/players`). Returns null when the player id does
- * not exist so callers can choose between 404 (single) and "omit" (batch).
- */
-export function buildPlayerDetail(db: Database, id: number): {
+interface PlayerDetailResult {
   player: ReturnType<typeof mapPlayer>;
   team: ReturnType<typeof mapTeam> | null;
   seasonStats: {
@@ -42,8 +38,58 @@ export function buildPlayerDetail(db: Database, id: number): {
     foWon: number;
     foTaken: number;
   };
-  perGame: Array<ReturnType<typeof mapPlayerStat> & { date: string }>;
-} | null {
+  perGame: Array<ReturnType<typeof mapPlayerStat> & {
+    date: string;
+    opponentName: string | null;
+    opponentLogoUrl: string | null;
+    opponentId: number | null;
+  }>;
+}
+
+function milestoneBest(
+  perGame: PlayerDetailResult['perGame'],
+  pickValue: (row: PlayerDetailResult['perGame'][number]) => number,
+): PlayerMilestones['careerHighGoals'] {
+  let best: PlayerMilestones['careerHighGoals'] = null;
+  for (const row of perGame) {
+    const value = pickValue(row);
+    if (best === null || value > best.value) {
+      best = {
+        value,
+        opponent: row.opponentName ?? 'Unknown opponent',
+        date: row.date,
+      };
+    }
+  }
+  return best;
+}
+
+export function buildPlayerMilestones(db: Database, id: number): PlayerMilestones | null {
+  const detail = buildPlayerDetail(db, id);
+  if (!detail) return null;
+  const careerHighGoals = milestoneBest(detail.perGame, (row) => row.goals);
+  const careerHighAssists = milestoneBest(detail.perGame, (row) => row.assists);
+  const careerHighPoints = milestoneBest(detail.perGame, (row) => row.goals + row.assists);
+
+  return {
+    careerHighGoals,
+    careerHighAssists,
+    careerHighPoints,
+    careerTotals: {
+      goals: detail.seasonStats.goals,
+      assists: detail.seasonStats.assists,
+      groundBalls: detail.seasonStats.groundBalls,
+      games: detail.seasonStats.games,
+    },
+  };
+}
+
+/**
+ * Aggregated player detail used by `/api/players/:id` and the H8 compare
+ * endpoint (`/api/compare/players`). Returns null when the player id does
+ * not exist so callers can choose between 404 (single) and "omit" (batch).
+ */
+export function buildPlayerDetail(db: Database, id: number): PlayerDetailResult | null {
   const s = getStatements(db);
   const playerRow = s.getPlayerById.get(id) as PlayerRow | undefined;
   if (!playerRow) return null;
@@ -63,7 +109,12 @@ export function buildPlayerDetail(db: Database, id: number): {
   };
 
   const perGameRows = s.perGameStatsForPlayer.all(id) as Array<
-    PlayerStatRow & { game_date: string; opponent_name: string | null; opponent_logo_url: string | null; opponent_id: number | null }
+    PlayerStatRow & {
+      game_date: string;
+      opponent_name: string | null;
+      opponent_logo_url: string | null;
+      opponent_id: number | null;
+    }
   >;
   const perGame = perGameRows.map((row) => ({
     ...mapPlayerStat(row),
@@ -110,5 +161,19 @@ export async function playersRoutes(app: FastifyInstance, db: Database): Promise
       return { error: 'NotFound', message: `Player ${id} not found` };
     }
     return detail;
+  });
+
+  app.get<{ Params: { id: string } }>('/api/players/:id/milestones', async (req, reply) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      reply.code(400);
+      return { error: 'BadRequest', message: 'id must be a positive integer' };
+    }
+    const milestones = buildPlayerMilestones(db, id);
+    if (!milestones) {
+      reply.code(404);
+      return { error: 'NotFound', message: `Player ${id} not found` };
+    }
+    return milestones;
   });
 }

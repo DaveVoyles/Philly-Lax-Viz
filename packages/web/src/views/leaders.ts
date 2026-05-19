@@ -18,6 +18,7 @@ import { renderHorizontalLeaderboard } from '../charts/index.js';
 import { drawSparkline } from '../charts/sparkline.js';
 import type { ChartHandle } from '../charts/types.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
+import { createSeasonSelector, getSelectedSeason } from '../components/seasonSelector.js';
 import { renderEmptyState } from '../components/emptyState.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
 import { ensureGlossaryCss, renderGlossaryIcon } from '../util/glossary.js';
@@ -87,6 +88,7 @@ interface ViewState {
   tab: Tab;
   playerMetric: PlayerLeaderMetric;
   teamMetric: TeamLeaderMetric;
+  season: string;
   // Sort state per tab
   playerSort: { col: string; dir: 'asc' | 'desc' } | null;
   teamSort: { col: string; dir: 'asc' | 'desc' } | null;
@@ -137,9 +139,13 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
       tab === 'players' && metricRaw && isPlayerMetric(metricRaw) ? metricRaw : 'points',
     teamMetric:
       tab === 'teams' && metricRaw && isTeamMetric(metricRaw) ? metricRaw : 'wins',
+    season: getSelectedSeason(),
     playerSort: null,
     teamSort: null,
   };
+
+  const selectorHost = document.createElement('div');
+  root.appendChild(selectorHost);
 
   const h1 = document.createElement('h1');
   h1.textContent = 'League Leaders';
@@ -267,6 +273,15 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   tabButtons.players.addEventListener('click', () => setTab('players'));
   tabButtons.teams.addEventListener('click', () => setTab('teams'));
 
+  createSeasonSelector(selectorHost, (season) => {
+    if (state.season !== season) {
+      state.season = season;
+      refresh();
+      return;
+    }
+    refresh();
+  });
+
   refresh();
 }
 
@@ -293,7 +308,7 @@ async function loadPlayers(
 ): Promise<void> {
   let resp: PlayerLeadersResponse;
   try {
-    resp = await getPlayerLeaders({ metric: state.playerMetric, limit: 100 });
+    resp = await getPlayerLeaders({ metric: state.playerMetric, limit: 100, season: state.season });
   } catch (err) {
     showError(chartEl, err);
     showError(tableEl, err);
@@ -320,14 +335,14 @@ async function loadPlayers(
 
   renderPlayerTable(tableEl, resp.rows, state);
   caption.textContent =
-    `${resp.rows.length} players considered · metric: ${metricDef.label} · minGames ≥ ${resp.minGames}`;
+    `${resp.rows.length} players considered · season: ${state.season} · metric: ${metricDef.label} · minGames ≥ ${resp.minGames}`;
 
   // Wave H7 L2 — fetch sparklines and decorate the table. Non-fatal: if the
   // call fails, the table just renders without a Trend column.
   const sparkMetric = sparklineMetricFor(state.playerMetric);
   if (sparkMetric !== null) {
     try {
-      const sparkResp = await getLeaderSparklines(sparkMetric, SPARKLINE_TOP_N);
+      const sparkResp = await getLeaderSparklines(sparkMetric, SPARKLINE_TOP_N, state.season);
       const map = new Map<number, number[]>();
       for (const p of sparkResp.players) {
         map.set(p.player_id, p.perGame);
@@ -398,7 +413,7 @@ async function loadTeams(
 ): Promise<void> {
   let resp: TeamLeadersResponse;
   try {
-    resp = await getTeamLeaders({ metric: state.teamMetric, limit: 100 });
+    resp = await getTeamLeaders({ metric: state.teamMetric, limit: 100, season: state.season });
   } catch (err) {
     showError(chartEl, err);
     showError(tableEl, err);
@@ -424,7 +439,7 @@ async function loadTeams(
 
   renderTeamTable(tableEl, resp.rows, state);
   caption.textContent =
-    `${resp.rows.length} teams considered · metric: ${metricDef.label} · minGames ≥ 1`;
+    `${resp.rows.length} teams considered · season: ${state.season} · metric: ${metricDef.label} · minGames ≥ 1`;
 }
 
 interface ColDef<T> {
