@@ -64,7 +64,7 @@ const NAV: NavLink[] = [
 
 const MORE_NAV: NavLink[] = [
   { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
-  { href: '#/top-teams', label: 'Top 5 Teams', match: 'topTeams' },
+  { href: '#/top-teams', label: 'Top 10 Teams', match: 'topTeams' },
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
   { href: '#/sources', label: 'Sources', match: 'sources' },
   { href: '#/status', label: 'Status', match: 'status' },

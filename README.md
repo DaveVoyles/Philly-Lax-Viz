@@ -31,7 +31,7 @@ updated nightly.
 - **Players** — season totals, career-high milestone callouts, college commitments, and a per-game trend chart for goals, assists, and points
 - **Games** — full scoreboard with quarter-by-quarter breakdown and player stat tables
 - **League Leaders** — ranked leaderboards for goals, assists, saves, faceoff %, and more, with season selection
-- **Top 5 Teams** — a podium-style view of the best records in the league right now, with season selection
+- **Top 10 Teams** — a podium-style view of the best records in the league right now, with season selection
 - **Rankings** — PIAA District 1 official standings
 - **Rivalries** — a force-directed graph showing head-to-head matchup history
 - **Schedule** — upcoming games

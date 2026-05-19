@@ -625,7 +625,7 @@ async function renderTopTeams(root: HTMLElement, token: number, season: string):
     const ranked = [...teams]
       .filter((team) => teamWins(team) + teamLosses(team) > 0)
       .sort(compareTeams)
-      .slice(0, 5);
+      .slice(0, 10);
 
     status.className = 'top-teams-state';
     status.style.display = '';
@@ -683,7 +683,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   emoji.className = 'top-teams-title__emoji';
   emoji.textContent = '🔥';
   const titleText = document.createElement('span');
-  titleText.textContent = 'Top 5 Teams';
+  titleText.textContent = 'Top 10 Teams';
   title.append(emoji, titleText);
   const subtitle = document.createElement('p');
   subtitle.className = 'top-teams-subtitle';
