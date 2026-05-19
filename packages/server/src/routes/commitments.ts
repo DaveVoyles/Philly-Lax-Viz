@@ -102,11 +102,14 @@ function getCommitmentById(db: Database, id: string): Commitment | null {
 }
 
 export function getCommitmentForPlayer(db: Database, playerId: number): Commitment | null {
-  const row = db.prepare(`${SELECT_COMMITMENTS} WHERE c.player_id = ? LIMIT 1`).get(playerId) as CommitmentRow | undefined;
-  return row ? mapCommitment(row) : null;
+  try {
+    const row = db.prepare(`${SELECT_COMMITMENTS} WHERE c.player_id = ? LIMIT 1`).get(playerId) as CommitmentRow | undefined;
+    return row ? mapCommitment(row) : null;
+  } catch { return null; }
 }
 
 export function listCommitments(db: Database, filters: CommitmentFilters = {}): Commitment[] {
+  try { db.prepare('SELECT 1 FROM commitments LIMIT 0').run(); } catch { return []; }
   const where: string[] = [];
   const args: Array<string | number> = [];
 
