@@ -143,6 +143,14 @@ jobs:
             echo "::endgroup::"
           done
 
+      - name: Sync Hudl teams
+        run: pnpm --filter @pll/ingest exec tsx src/scripts/syncHudl.ts --all --db=${{ env.DB_PATH }}
+        env:
+          DB_PATH: ${{ env.DB_LOCAL_PATH }}
+          HUDL_EMAIL: ${{ secrets.HUDL_EMAIL }}
+          HUDL_PASSWORD: ${{ secrets.HUDL_PASSWORD }}
+        continue-on-error: true
+
       - name: Seed team aliases from anomalies
         run: pnpm --filter @pll/ingest seed:aliases ${{ github.workspace }}/data/lacrosse.db
 

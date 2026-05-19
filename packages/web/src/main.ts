@@ -37,6 +37,7 @@ const loaders: Record<Exclude<RouteName, 'notFound'>, () => Promise<ViewModule>>
   coachUpload: () => import('./views/coachUpload.js'),
   adminCorrections: () => import('./views/adminCorrections.js'),
   adminDedup: () => import('./views/adminDedup.js'),
+  adminHudl: () => import('./views/adminHudl.js'),
 };
 
 interface NavLink {
@@ -66,6 +67,7 @@ const MORE_NAV: NavLink[] = [
         { href: '#/coach/upload', label: 'Coach upload', match: 'coachUpload' as const },
         { href: '#/admin/corrections', label: 'Admin corrections', match: 'adminCorrections' as const },
         { href: '#/admin/dedup', label: 'Admin dedup', match: 'adminDedup' as const },
+        { href: '#/admin/hudl', label: 'Admin Hudl', match: 'adminHudl' as const },
       ]),
 ];
 

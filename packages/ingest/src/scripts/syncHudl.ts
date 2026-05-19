@@ -2,18 +2,14 @@
 //
 // Requires env vars: HUDL_EMAIL, HUDL_PASSWORD
 // Optional env var: HUDL_TEAM_URL
-// Run: pnpm --filter @pll/ingest exec tsx src/scripts/syncHudl.ts [--headed] [--dry-run]
+// Run: pnpm --filter @pll/ingest exec tsx src/scripts/syncHudl.ts [--headed] [--dry-run] [--db=<path>] [--team-id=<id>] [--all] [--hudl-url=<url>]
 //
 // What it does:
 //   1. Launches Chromium via Playwright
 //   2. Logs into hudl.com with coaching credentials
-//   3. Navigates to the team's roster/stats pages
+//   3. Navigates to one or more team roster/stats pages
 //   4. Extracts roster (name, jersey, position) plus per-game player stats
 //   5. Writes/updates players and player_stats in SQLite unless --dry-run is set
-//
-// The Harriton coach account can see:
-//   - Full stats for Harriton
-//   - Opponent stats from games Harriton has played
 //
 // TODO: Replace the heuristic selectors below with Hudl-specific selectors after
 // the first headed run confirms the real DOM structure for this account.
@@ -28,15 +24,14 @@ import { normalizePlayerName } from '../normalize/playerName.js';
 
 const log = createLogger({ name: 'ingest:syncHudl' });
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
-const DB_PATH = process.env.DB_PATH ?? process.env.PLL_DB_PATH ?? path.join(REPO_ROOT, 'data', 'lacrosse.db');
+const DEFAULT_DB_PATH = process.env.DB_PATH ?? process.env.PLL_DB_PATH ?? path.join(REPO_ROOT, 'data', 'lacrosse.db');
 const HUDL_EMAIL = process.env.HUDL_EMAIL;
 const HUDL_PASSWORD = process.env.HUDL_PASSWORD;
 const HUDL_TEAM_URL = process.env.HUDL_TEAM_URL;
 const DEFAULT_TEAM_NAME = 'Harriton';
 const IMPORT_SOURCE = 'hudl';
 const IMPORT_PARSER_VERSION = 'hudl-playwright-v0';
-const HEADED = process.argv.includes('--headed');
-const DRY_RUN = process.argv.includes('--dry-run');
+const TEAM_DELAY_MS = 30_000;
 
 interface HudlPlayer {
   name: string;
@@ -68,12 +63,32 @@ interface HudlGame {
 interface HudlArgs {
   headed: boolean;
   dryRun: boolean;
+  all: boolean;
+  teamId: string | null;
+  hudlUrl: string | null;
+  dbPath: string;
 }
 
 interface TeamRow {
   id: number;
   name: string;
   slug: string;
+}
+
+interface ManagedHudlTeamRow extends TeamRow {
+  hudl_team_id: string;
+  hudl_team_url: string;
+  hudl_team_name: string | null;
+  status: 'active' | 'paused' | 'error';
+  last_synced: string | null;
+  last_error: string | null;
+}
+
+interface HudlTarget {
+  label: string;
+  hudlUrl: string | null;
+  managedTeamId: string | null;
+  team: TeamRow | null;
 }
 
 interface PlayerRow {
@@ -100,10 +115,24 @@ interface GameCandidate {
 }
 
 function parseArgs(argv: string[]): HudlArgs {
-  return {
-    headed: argv.includes('--headed'),
-    dryRun: argv.includes('--dry-run'),
-  };
+  const headed = argv.includes('--headed');
+  const dryRun = argv.includes('--dry-run');
+  const all = argv.includes('--all');
+  const teamId = argv.find((arg) => arg.startsWith('--team-id='))?.slice('--team-id='.length) ?? null;
+  const hudlUrl = argv.find((arg) => arg.startsWith('--hudl-url='))?.slice('--hudl-url='.length) ?? null;
+  const dbPath = argv.find((arg) => arg.startsWith('--db='))?.slice('--db='.length) ?? DEFAULT_DB_PATH;
+
+  if (all && teamId) {
+    throw new Error('Use either --all or --team-id=<id>, not both');
+  }
+  if (all && hudlUrl) {
+    throw new Error('Use --hudl-url=<url> only for ad-hoc discovery runs, not with --all');
+  }
+  if (teamId && hudlUrl) {
+    throw new Error('Use either --team-id=<id> or --hudl-url=<url>, not both');
+  }
+
+  return { headed, dryRun, all, teamId, hudlUrl, dbPath };
 }
 
 function normalizeOpponentToken(value: string): string {
@@ -265,7 +294,6 @@ async function login(page: Page): Promise<void> {
   log.info('[syncHudl] navigating to login');
   await page.goto('https://www.hudl.com/login', { waitUntil: 'networkidle' });
 
-  // Step 1: Hudl uses Auth0 Universal Login — email first, then "Continue"
   await page.waitForSelector('input[type="email"]', { timeout: 15000 });
   const emailInput = page.locator('input[type="email"]').first();
   await emailInput.fill(HUDL_EMAIL ?? '');
@@ -273,7 +301,6 @@ async function login(page: Page): Promise<void> {
   const continueBtn = page.locator('button[type="submit"]').first();
   await continueBtn.click();
 
-  // Step 2: Password page loads after email submission
   await page.waitForSelector('input[type="password"]', { timeout: 15000 });
   const passwordInput = page.locator('input[type="password"]').first();
   await passwordInput.fill(HUDL_PASSWORD ?? '');
@@ -281,16 +308,15 @@ async function login(page: Page): Promise<void> {
   const loginBtn = page.locator('button[type="submit"]').first();
   await loginBtn.click();
 
-  // Wait for redirect away from identity.hudl.com
   await page.waitForURL((url) => !url.href.includes('identity.hudl.com') && !url.href.includes('/login'), { timeout: 30000 });
   log.info(`[syncHudl] login successful url=${page.url()}`);
 }
 
-async function navigateToTeamStats(page: Page): Promise<void> {
+async function navigateToTeamStats(page: Page, hudlUrl: string | null): Promise<void> {
   log.info('[syncHudl] navigating to team area');
-  if (HUDL_TEAM_URL) {
-    await page.goto(HUDL_TEAM_URL, { waitUntil: 'networkidle' });
-    log.info(`[syncHudl] opened HUDL_TEAM_URL=${HUDL_TEAM_URL}`);
+  if (hudlUrl) {
+    await page.goto(hudlUrl, { waitUntil: 'networkidle' });
+    log.info(`[syncHudl] opened hudl url=${hudlUrl}`);
     return;
   }
 
@@ -307,7 +333,7 @@ async function navigateToTeamStats(page: Page): Promise<void> {
     return;
   }
 
-  log.warn('[syncHudl] could not auto-find a team link from /home; set HUDL_TEAM_URL if this account lands elsewhere');
+  log.warn('[syncHudl] could not auto-find a team link from /home; set HUDL_TEAM_URL or pass --hudl-url=<url>');
 }
 
 async function scrapeRoster(page: Page): Promise<HudlPlayer[]> {
@@ -406,11 +432,113 @@ async function scrapeGameStats(page: Page): Promise<HudlGame[]> {
   return games;
 }
 
-function loadTeam(db: Database): TeamRow | null {
+function loadDefaultTeam(db: Database): TeamRow | null {
   const team = db
     .prepare('SELECT id, name, slug FROM teams WHERE name LIKE ? ORDER BY id LIMIT 1')
     .get(`%${DEFAULT_TEAM_NAME}%`) as TeamRow | undefined;
   return team ?? null;
+}
+
+function loadManagedTeam(db: Database, hudlTeamId: string): ManagedHudlTeamRow | null {
+  const row = db
+    .prepare(
+      `SELECT
+         ht.id AS hudl_team_id,
+         ht.hudl_team_url,
+         ht.hudl_team_name,
+         ht.status,
+         ht.last_synced,
+         ht.last_error,
+         t.id,
+         t.name,
+         t.slug
+       FROM hudl_teams ht
+       JOIN teams t ON t.id = ht.team_id
+       WHERE ht.id = ?
+       LIMIT 1`,
+    )
+    .get(hudlTeamId) as ManagedHudlTeamRow | undefined;
+  return row ?? null;
+}
+
+function loadActiveManagedTeams(db: Database): ManagedHudlTeamRow[] {
+  return db
+    .prepare(
+      `SELECT
+         ht.id AS hudl_team_id,
+         ht.hudl_team_url,
+         ht.hudl_team_name,
+         ht.status,
+         ht.last_synced,
+         ht.last_error,
+         t.id,
+         t.name,
+         t.slug
+       FROM hudl_teams ht
+       JOIN teams t ON t.id = ht.team_id
+       WHERE ht.status = 'active'
+       ORDER BY COALESCE(ht.hudl_team_name, t.name), ht.id`,
+    )
+    .all() as ManagedHudlTeamRow[];
+}
+
+function markHudlTeamSuccess(dbPath: string, hudlTeamId: string): void {
+  const db = openDb(dbPath);
+  try {
+    db.prepare("UPDATE hudl_teams SET last_synced = datetime('now'), last_error = NULL WHERE id = ?").run(hudlTeamId);
+  } finally {
+    db.close();
+  }
+}
+
+function markHudlTeamError(dbPath: string, hudlTeamId: string, message: string): void {
+  const db = openDb(dbPath);
+  try {
+    db.prepare("UPDATE hudl_teams SET status = 'error', last_error = ? WHERE id = ?").run(message, hudlTeamId);
+  } finally {
+    db.close();
+  }
+}
+
+function resolveTargets(args: HudlArgs): HudlTarget[] {
+  if (args.all) {
+    const db = openDb(args.dbPath);
+    try {
+      return loadActiveManagedTeams(db).map((team) => ({
+        label: team.hudl_team_name ?? team.name,
+        hudlUrl: team.hudl_team_url,
+        managedTeamId: team.hudl_team_id,
+        team,
+      }));
+    } finally {
+      db.close();
+    }
+  }
+
+  if (args.teamId) {
+    const db = openDb(args.dbPath);
+    try {
+      const team = loadManagedTeam(db, args.teamId);
+      if (!team) {
+        throw new Error(`Hudl team ${args.teamId} not found`);
+      }
+      return [{
+        label: team.hudl_team_name ?? team.name,
+        hudlUrl: team.hudl_team_url,
+        managedTeamId: team.hudl_team_id,
+        team,
+      }];
+    } finally {
+      db.close();
+    }
+  }
+
+  return [{
+    label: args.hudlUrl ?? HUDL_TEAM_URL ?? DEFAULT_TEAM_NAME,
+    hudlUrl: args.hudlUrl ?? HUDL_TEAM_URL ?? null,
+    managedTeamId: null,
+    team: null,
+  }];
 }
 
 function upsertRosterPlayers(db: Database, teamId: number, roster: HudlPlayer[]): void {
@@ -506,7 +634,9 @@ function matchGame(game: HudlGame, candidates: GameRow[]): GameCandidate | null 
   const matched = candidates.find((candidate) => {
     if (dateToken && candidate.date !== dateToken) return false;
     const candidateTokens = [normalizeOpponentToken(candidate.opponent_name), normalizeOpponentToken(candidate.opponent_slug)];
-    return opponentToken ? candidateTokens.some((token) => token && (token === opponentToken || token.includes(opponentToken) || opponentToken.includes(token))) : dateToken === candidate.date;
+    return opponentToken
+      ? candidateTokens.some((token) => token && (token === opponentToken || token.includes(opponentToken) || opponentToken.includes(token)))
+      : dateToken === candidate.date;
   });
   if (!matched) return null;
   return { gameId: matched.id, season: matched.season ?? Number.parseInt(matched.date.slice(0, 4), 10) };
@@ -579,46 +709,50 @@ function writeGameStats(db: Database, teamId: number, games: HudlGame[]): { writ
   return { written, skipped };
 }
 
-function writeToDb(roster: HudlPlayer[], games: HudlGame[], args: HudlArgs): void {
+function writeToDb(dbPath: string, team: TeamRow | null, roster: HudlPlayer[], games: HudlGame[], args: HudlArgs): void {
   if (args.dryRun) {
     log.info('[syncHudl] dry-run enabled; skipping all DB writes');
     log.info(`[syncHudl] dry-run roster=${roster.length} games=${games.length}`);
     return;
   }
 
-  const db = openDb(DB_PATH);
+  const db = openDb(dbPath);
   try {
-    log.info(`[syncHudl] writing to db=${DB_PATH}`);
-    const team = loadTeam(db);
-    if (!team) {
+    log.info(`[syncHudl] writing to db=${dbPath}`);
+    const targetTeam = team ?? loadDefaultTeam(db);
+    if (!targetTeam) {
       log.warn(`[syncHudl] ${DEFAULT_TEAM_NAME} not found in DB; skipping writes`);
       return;
     }
 
-    upsertRosterPlayers(db, team.id, roster);
-    const statResult = writeGameStats(db, team.id, games);
-    log.info(`[syncHudl] upserted roster players=${roster.length}`);
+    upsertRosterPlayers(db, targetTeam.id, roster);
+    const statResult = writeGameStats(db, targetTeam.id, games);
+    log.info(`[syncHudl] upserted roster players=${roster.length} team=${targetTeam.name}`);
     log.info(`[syncHudl] upserted player_stats rows=${statResult.written} skipped_rows=${statResult.skipped}`);
   } finally {
     db.close();
   }
 }
 
-async function main(): Promise<void> {
-  if (!HUDL_EMAIL || !HUDL_PASSWORD) {
-    log.error('HUDL_EMAIL and HUDL_PASSWORD env vars are required');
-    log.error('Set them in packages/ingest/.env (gitignored) or export them before running syncHudl');
-    process.exit(1);
-  }
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  log.info(`[syncHudl] starting db=${DB_PATH} headed=${HEADED} dryRun=${DRY_RUN}`);
-  if (!HUDL_TEAM_URL) {
-    log.info('[syncHudl] HUDL_TEAM_URL not set; auto-navigation will try to locate the team page from /home');
-  }
+async function scrapeTarget(page: Page, target: HudlTarget): Promise<{ roster: HudlPlayer[]; games: HudlGame[] }> {
+  await navigateToTeamStats(page, target.hudlUrl);
+  const roster = await scrapeRoster(page);
+  logRosterPreview(roster);
+  const games = await scrapeGameStats(page);
+  logGamePreview(games);
+  return { roster, games };
+}
 
+async function runTargets(args: HudlArgs, targets: HudlTarget[]): Promise<boolean> {
   let browser: Browser | null = null;
+  let hadFailures = false;
+
   try {
-    browser = await chromium.launch({ headless: !HEADED });
+    browser = await chromium.launch({ headless: !args.headed });
     const context = await browser.newContext({
       userAgent:
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -626,19 +760,64 @@ async function main(): Promise<void> {
     const page = await context.newPage();
 
     await login(page);
-    await navigateToTeamStats(page);
-    const roster = await scrapeRoster(page);
-    logRosterPreview(roster);
-    const games = await scrapeGameStats(page);
-    logGamePreview(games);
-    writeToDb(roster, games, { headed: HEADED, dryRun: DRY_RUN });
-    log.info('[syncHudl] complete');
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    log.error(`[syncHudl] failed: ${message}`);
-    process.exitCode = 1;
+
+    for (const [index, target] of targets.entries()) {
+      try {
+        log.info(
+          `[syncHudl] syncing target=${target.label} managedTeamId=${target.managedTeamId ?? 'ad-hoc'} url=${target.hudlUrl ?? 'auto'}`,
+        );
+        const { roster, games } = await scrapeTarget(page, target);
+        writeToDb(args.dbPath, target.team, roster, games, args);
+        if (target.managedTeamId) {
+          markHudlTeamSuccess(args.dbPath, target.managedTeamId);
+        }
+      } catch (error) {
+        hadFailures = true;
+        const message = error instanceof Error ? error.message : String(error);
+        log.error(`[syncHudl] target failed target=${target.label}: ${message}`);
+        if (target.managedTeamId) {
+          markHudlTeamError(args.dbPath, target.managedTeamId, message);
+        }
+      }
+
+      if (args.all && index < targets.length - 1) {
+        log.info(`[syncHudl] rate limiting for ${TEAM_DELAY_MS / 1000}s before next team`);
+        await sleep(TEAM_DELAY_MS);
+      }
+    }
   } finally {
     if (browser) await browser.close();
+  }
+
+  return hadFailures;
+}
+
+async function main(): Promise<void> {
+  const args = parseArgs(process.argv.slice(2));
+
+  if (!HUDL_EMAIL || !HUDL_PASSWORD) {
+    log.error('HUDL_EMAIL and HUDL_PASSWORD env vars are required');
+    log.error('Export them before running syncHudl');
+    process.exit(1);
+  }
+
+  const targets = resolveTargets(args);
+  log.info(
+    `[syncHudl] starting db=${args.dbPath} headed=${args.headed} dryRun=${args.dryRun} all=${args.all} teamId=${args.teamId ?? 'n/a'} targets=${targets.length}`,
+  );
+  if (!targets.length) {
+    log.warn('[syncHudl] no Hudl teams matched the requested scope');
+    return;
+  }
+  if (!args.all && !targets[0]?.hudlUrl) {
+    log.info('[syncHudl] no explicit Hudl URL set; auto-navigation will try to locate the team page from /home');
+  }
+
+  const hadFailures = await runTargets(args, targets);
+  if (hadFailures) {
+    process.exitCode = 1;
+  } else {
+    log.info('[syncHudl] complete');
   }
 }
 

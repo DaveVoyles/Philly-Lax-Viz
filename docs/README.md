@@ -11,7 +11,7 @@
 | `docs/architecture.md` | Deep architecture: data flow, all sources, full DB schema, API inventory, ADRs | Understanding internals |
 | `docs/pipeline-gaps.md` | Actionable backlog of missing CI steps and static export gaps | Planning ingest improvements |
 | `docs/improvements/` | RFC proposals for future work | Choosing next project |
-| `docs/runbooks/` | Step-by-step guides for specific operations | Deploying, importing data |
+| `docs/runbooks/` | Step-by-step guides for specific operations | Deploying, importing data, Hudl onboarding |
 | `docs/archive/` | Historical wave plans and session artifacts | Archaeology only |
 
 When both `AGENTS.md` and `architecture.md` cover the same topic, `AGENTS.md` is authoritative for conventions and commands; `architecture.md` is authoritative for system design and data flow.
@@ -31,8 +31,9 @@ Start here when joining the project cold:
 | 5 | [runbooks/deploy-to-pages.md](./runbooks/deploy-to-pages.md) | How to deploy code and data changes to the live site |
 | 6 | [runbooks/local-data-import.md](./runbooks/local-data-import.md) | Importing external data (spreadsheets, corrections) safely |
 | 7 | [runbooks/correction-workflow.md](./runbooks/correction-workflow.md) | Community corrections lifecycle: submission, outlier detection, auto-approval |
-| 8 | [improvements/00-INDEX.md](./improvements/00-INDEX.md) | Prioritized RFC backlog; choose your next wave from here |
-| 9 | [level-up.md](./level-up.md) | Long-term product roadmap: domain, coach uploads, PBLA, Hudl expansion |
+| 8 | [runbooks/hudl-invitation-flow.md](./runbooks/hudl-invitation-flow.md) | Invite the service account to a Hudl team and register it in admin UI |
+| 9 | [improvements/00-INDEX.md](./improvements/00-INDEX.md) | Prioritized RFC backlog; choose your next wave from here |
+| 10 | [level-up.md](./level-up.md) | Long-term product roadmap: domain, coach uploads, PBLA, Hudl expansion |
 
 ---
 

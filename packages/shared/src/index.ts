@@ -152,6 +152,18 @@ export interface TeamAlias {
   confidence: number;
 }
 
+export interface HudlTeam {
+  id: string;
+  teamId: string;
+  teamName?: string;
+  hudlTeamUrl: string;
+  hudlTeamName?: string;
+  status: 'active' | 'paused' | 'error';
+  lastSynced?: string;
+  lastError?: string;
+  createdAt: string;
+}
+
 export interface Ranking {
   id: number;
   weekStart: string; // ISO date of the Monday of the ranking week

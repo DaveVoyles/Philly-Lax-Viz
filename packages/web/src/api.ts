@@ -6,6 +6,7 @@ import type {
   GamePeriod,
   IngestAnomaly,
   PiaaRecord,
+  HudlTeam,
   Player,
   PlayerStat,
   Ranking,
@@ -888,6 +889,51 @@ export function getFlaggedCorrections(): Promise<CorrectionRecord[]> {
 
 export function getRecentCorrections(): Promise<CorrectionRecord[]> {
   return request<CorrectionRecord[]>('/corrections/recent');
+}
+
+async function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const url = apiUrl(path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`);
+  const res = await fetch(url, {
+    ...init,
+    headers: { Accept: 'application/json', ...(init?.headers ?? {}) },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`${res.status} ${res.statusText}${text ? `: ${text.slice(0, 200)}` : ''}`);
+  }
+  return (await res.json()) as T;
+}
+
+export interface CreateHudlTeamPayload {
+  teamId: string;
+  hudlTeamUrl: string;
+  hudlTeamName?: string;
+}
+
+export function getAdminHudlTeams(): Promise<HudlTeam[]> {
+  return adminRequest<HudlTeam[]>('/api/admin/hudl/teams');
+}
+
+export function createAdminHudlTeam(payload: CreateHudlTeamPayload): Promise<HudlTeam> {
+  return adminRequest<HudlTeam>('/api/admin/hudl/teams', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function patchAdminHudlTeam(id: string, body: { status: 'active' | 'paused' }): Promise<HudlTeam> {
+  return adminRequest<HudlTeam>(`/api/admin/hudl/teams/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteAdminHudlTeam(id: string): Promise<{ ok: true }> {
+  return adminRequest<{ ok: true }>(`/api/admin/hudl/teams/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
 }
 
 // ---- Admin player dedup review (LS-1-C, Chewy) ----

@@ -30,6 +30,7 @@ import { comparePlayersRoutes } from './routes/comparePlayers.js';
 import correctionsRoutes from './routes/corrections.js';
 import uploadRoutes from './routes/upload.js';
 import adminDedupRoutes from './routes/adminDedup.js';
+import hudlRoutes from './routes/hudl.js';
 import responseCache, { type ResponseCacheOptions } from './plugins/responseCache.js';
 
 export interface BuildOptions {
@@ -83,7 +84,7 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
 
   await app.register(cors, {
     origin: corsOrigins,
-    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
   await app.register(multipart, {
@@ -145,6 +146,7 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   await app.register(correctionsRoutes, { prefix: '/api' });
   await app.register(uploadRoutes);
   await app.register(adminDedupRoutes, { db });
+  await app.register(hudlRoutes, { db });
 
   return app;
 }

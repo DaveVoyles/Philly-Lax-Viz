@@ -9,8 +9,8 @@
 
 An Azure Container App hosts a live Fastify API server with the SQLite DB mounted via Azure Files.
 This powers admin-only features: player dedup (`#/admin/dedup`), coach spreadsheet upload
-(`#/coach/upload`), community corrections review (`#/admin/corrections`), and live data-quality diagnostics.
-It is **not** the primary user-facing site.
+(`#/coach/upload`), community corrections review (`#/admin/corrections`), Hudl team management
+(`#/admin/hudl`), and live data-quality diagnostics. It is **not** the primary user-facing site.
 
 The primary user-facing deployment is **GitHub Pages** (linked above). It uses pre-exported static JSON
 and requires no live server.
@@ -71,6 +71,7 @@ pnpm -r test          # vitest across all packages
 pnpm --filter @pll/web build
 pnpm --filter @pll/ingest sync:hudl -- --headed      # inspect Hudl selectors with a visible browser
 pnpm --filter @pll/ingest sync:hudl -- --dry-run     # scrape Hudl without DB writes
+pnpm --filter @pll/ingest sync:hudl -- --all --db=data/lacrosse.db  # sync all active managed Hudl teams
 pnpm --filter @pll/ingest apply:harriton-workbook -- --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db  # dry-run
 pnpm --filter @pll/ingest apply:harriton-workbook -- --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db --apply
 pnpm --filter @pll/ingest exec tsx src/scripts/generateUploadTemplate.ts  # create coach upload template XLSX
@@ -87,6 +88,7 @@ pnpm --filter @pll/ingest exec tsx src/scripts/generateUploadTemplate.ts  # crea
 | [docs/azure-deployment.md](./docs/azure-deployment.md) | Azure Container App + Static Web Apps deployment, CI/CD workflows, environment config |
 | [docs/pipeline-gaps.md](./docs/pipeline-gaps.md) | Known ingest gaps, anomaly types, and improvement backlog |
 | [docs/runbooks/source-priority.md](./docs/runbooks/source-priority.md) | Data source authority and score reconciliation rules (MaxPreps vs. PhillyLacrosse vs. PIAA) |
+| [docs/runbooks/hudl-invitation-flow.md](./docs/runbooks/hudl-invitation-flow.md) | How to get a team invited into the Hudl service account and register it in admin UI |
 | [docs/improvements/00-INDEX.md](./docs/improvements/00-INDEX.md) | Index of 10 improvement RFCs (data quality, performance, visualizations, devops) |
 
 ---
@@ -164,7 +166,7 @@ Full package entry points, key files, and path map → **[AGENTS.md §2 & §7](.
 
 Per-game scores: **MaxPreps** > PhillyLacrosse.
 Season W/L records: **PIAA** > computed-from-games > PhillyLacrosse.
-Per-player stats: **PhillyLacrosse** by default, with optional authenticated **Hudl** imports for Harriton roster + game-level stat backfill.
+Per-player stats: **PhillyLacrosse** by default, with optional authenticated **Hudl** imports for managed team roster + game-level stat backfill.
 
 When sources conflict, the higher-authority source wins. See **[docs/runbooks/source-priority.md](./docs/runbooks/source-priority.md)** for the full reconciliation flow.
 
