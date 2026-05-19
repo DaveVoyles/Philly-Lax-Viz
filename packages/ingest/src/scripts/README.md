@@ -82,6 +82,12 @@ migration files (~5 teams / 3 games / 10 players). Called by vitest
 `globalSetup`; the live DB is never touched by `pnpm test`.
 Run: `pnpm --filter @pll/ingest test:db:seed`.
 
+### `generateUploadTemplate.ts`
+Creates the coach-upload spreadsheet template workbook used by the web client.
+Writes `packages/web/public/data/upload-template.xlsx` with a `Stats` sheet,
+required headers, and example rows. Run:
+`pnpm --filter @pll/ingest exec tsx src/scripts/generateUploadTemplate.ts`.
+
 ### `seedLaxnumbersAliases.ts` (Wave H2 — pending)
 Will read the user-approved LaxNumbers → existing-team alias mapping and insert
 into `team_aliases`. Blocked on manual decision item #2 in the hygiene plan.

@@ -268,3 +268,88 @@ export interface Leader {
   // (non-postponed) games. Optional so older payloads remain valid.
   onFire?: boolean;
 }
+
+/** A single row parsed from a coach-uploaded spreadsheet */
+export interface UploadRow {
+  playerName: string;
+  gameDate: string; // YYYY-MM-DD
+  opponent: string;
+  goals?: number;
+  assists?: number;
+  groundBalls?: number;
+  causedTurnovers?: number;
+  saves?: number;
+  foWon?: number;
+  foTaken?: number;
+}
+
+/** Error for a specific row in the upload */
+export interface UploadRowError {
+  row: number;
+  message: string;
+}
+
+/** Result of parsing an uploaded file */
+export interface UploadParseResult {
+  rows: UploadRow[];
+  errors: UploadRowError[];
+}
+
+/** A preview item showing what would change */
+export interface UploadPreviewItem {
+  rowIndex: number;
+  playerName: string;
+  gameDate: string;
+  opponent: string;
+  playerId?: string;
+  gameId?: string;
+  status: 'new_player' | 'update' | 'match' | 'error';
+  currentStats?: Partial<UploadRow>;
+  proposedStats: Partial<UploadRow>;
+  error?: string;
+}
+
+/** Response from POST /api/upload/preview */
+export interface UploadPreviewResponse {
+  uploadId: string;
+  teamId: string;
+  teamName: string;
+  submitterName: string;
+  items: UploadPreviewItem[];
+  summary: {
+    totalRows: number;
+    validRows: number;
+    errors: number;
+    newPlayers: number;
+    updates: number;
+    unchanged: number;
+  };
+}
+
+/** Response from POST /api/upload/confirm */
+export interface UploadConfirmResponse {
+  uploadId: string;
+  applied: number;
+  newPlayers: number;
+}
+
+/** Response from POST /api/upload/revert/:uploadId */
+export interface UploadRevertResponse {
+  uploadId: string;
+  reverted: number;
+}
+
+/** Record from manual_uploads table */
+export interface ManualUpload {
+  id: string;
+  submitterName: string;
+  submitterEmail?: string;
+  teamId: string;
+  fileHash: string;
+  fileName: string;
+  rowCount: number;
+  status: 'pending' | 'applied' | 'reverted';
+  createdAt: string;
+  appliedAt?: string;
+  revertedAt?: string;
+}

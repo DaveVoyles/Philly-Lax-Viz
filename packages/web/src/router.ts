@@ -2,7 +2,27 @@
 // See route table below for full list of registered paths.
 
 export interface RouteMatch {
-  name: 'dashboard' | 'teamDetail' | 'gameDetail' | 'gameScrubber' | 'playerDetail' | 'comparePlayers' | 'dataQuality' | 'leaders' | 'topTeams' | 'anomalies' | 'graph' | 'constellation' | 'h2h' | 'schedule' | 'sources' | 'status' | 'adminCorrections' | 'adminDedup' | 'notFound';
+  name:
+    | 'dashboard'
+    | 'teamDetail'
+    | 'gameDetail'
+    | 'gameScrubber'
+    | 'playerDetail'
+    | 'comparePlayers'
+    | 'dataQuality'
+    | 'leaders'
+    | 'topTeams'
+    | 'anomalies'
+    | 'graph'
+    | 'constellation'
+    | 'h2h'
+    | 'schedule'
+    | 'sources'
+    | 'status'
+    | 'coachUpload'
+    | 'adminCorrections'
+    | 'adminDedup'
+    | 'notFound';
   path: string;
   params: Record<string, string>;
 }
@@ -32,6 +52,7 @@ const routes: RouteDef[] = [
   { name: 'schedule', pattern: /^\/schedule\/?$/, keys: [] },
   { name: 'sources', pattern: /^\/sources\/?$/, keys: [] },
   { name: 'status', pattern: /^\/status\/?$/, keys: [] },
+  { name: 'coachUpload', pattern: /^\/coach\/upload\/?$/, keys: [] },
   { name: 'adminCorrections', pattern: /^\/admin\/corrections\/?$/, keys: [] },
   { name: 'adminDedup', pattern: /^\/admin\/dedup\/?$/, keys: [] },
 ];

@@ -8,8 +8,9 @@
 <summary>Developer / admin deployment (not user-facing)</summary>
 
 An Azure Container App hosts a live Fastify API server with the SQLite DB mounted via Azure Files.
-This powers admin-only features: player dedup (`#/admin/dedup`), community corrections review
-(`#/admin/corrections`), and live data-quality diagnostics. It is **not** the primary user-facing site.
+This powers admin-only features: player dedup (`#/admin/dedup`), coach spreadsheet upload
+(`#/coach/upload`), community corrections review (`#/admin/corrections`), and live data-quality diagnostics.
+It is **not** the primary user-facing site.
 
 The primary user-facing deployment is **GitHub Pages** (linked above). It uses pre-exported static JSON
 and requires no live server.
@@ -72,6 +73,7 @@ pnpm --filter @pll/ingest sync:hudl -- --headed      # inspect Hudl selectors wi
 pnpm --filter @pll/ingest sync:hudl -- --dry-run     # scrape Hudl without DB writes
 pnpm --filter @pll/ingest apply:harriton-workbook -- --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db  # dry-run
 pnpm --filter @pll/ingest apply:harriton-workbook -- --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db --apply
+pnpm --filter @pll/ingest exec tsx src/scripts/generateUploadTemplate.ts  # create coach upload template XLSX
 ```
 
 ---
@@ -153,7 +155,7 @@ pnpm --filter @pll/ingest apply:harriton-workbook -- --workbook='/Users/.../HHS 
 | -------------- | -------------------------------------------------------------------- |
 | `@pll/shared`  | Domain types (`Team`, `Game`, `PlayerStat`, …) shared across packages. |
 | `@pll/ingest`  | Crawler, HTML parsers, ingest pipelines, SQLite migration & schema, CLIs (`crawl`, `ingest`). |
-| `@pll/server`  | Fastify HTTP API over the SQLite DB. CORS-locked to `localhost:5173`, with a 60s in-memory response cache + ETag headers on selected read-only `/api/*` routes. |
+| `@pll/server`  | Fastify HTTP API over the SQLite DB. CORS-locked to `localhost:5173`, with a 60s in-memory response cache + ETag headers on selected read-only `/api/*` routes plus coach upload preview/confirm/revert endpoints. |
 | `@pll/web`     | Vite + TypeScript SPA. Hash router, D3 charts, no framework runtime. |
 
 Full package entry points, key files, and path map → **[AGENTS.md §2 & §7](./AGENTS.md)**.

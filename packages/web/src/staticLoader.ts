@@ -4,6 +4,22 @@ const ENV = (import.meta as unknown as { env?: Record<string, string | undefined
 
 export const IS_STATIC: boolean = ENV.VITE_STATIC_MODE === 'true';
 
+export function staticUnavailableNode(featureName = 'This feature'): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'empty-state';
+
+  const title = document.createElement('p');
+  title.textContent = `${featureName} is not available on the static site.`;
+  wrap.appendChild(title);
+
+  const detail = document.createElement('p');
+  detail.className = 'muted';
+  detail.textContent = 'Use the live API deployment for upload and admin workflows.';
+  wrap.appendChild(detail);
+
+  return wrap;
+}
+
 interface SearchHit {
   kind: 'player' | 'team';
   id: number;

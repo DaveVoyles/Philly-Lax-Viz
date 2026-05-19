@@ -894,6 +894,161 @@ a.piaa-badge-link:hover { text-decoration: none; }
   opacity: 1;
 }
 
+/* - Coach Upload ------------------------------------------------ */
+.coach-upload {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+@media (min-width: 980px) {
+  .coach-upload {
+    grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+.coach-upload__card {
+  padding: 1rem;
+}
+.coach-upload__form {
+  display: grid;
+  gap: 1rem;
+}
+.coach-upload__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+.coach-upload__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.coach-upload__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.coach-upload__field input,
+.coach-upload__field select {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+}
+.coach-upload__template {
+  display: inline-flex;
+  margin-bottom: 1rem;
+}
+.coach-upload__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+.coach-upload__button {
+  appearance: none;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.65rem 1rem;
+}
+.coach-upload__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.coach-upload__button--secondary {
+  background: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+.coach-upload__alert {
+  margin: 0.75rem 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.coach-upload__alert--info {
+  background: var(--table-stripe);
+}
+.coach-upload__alert--success {
+  border-color: #2d6a2d;
+  background: rgba(45, 106, 45, 0.12);
+}
+.coach-upload__alert--error {
+  border-color: var(--error);
+  background: rgba(185, 28, 28, 0.08);
+  color: var(--error);
+}
+.coach-upload__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.coach-upload__table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1rem 0 1.5rem;
+}
+.coach-upload__table {
+  min-width: 940px;
+  margin: 0;
+}
+.coach-upload__table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.coach-upload__row--error {
+  background: rgba(185, 28, 28, 0.08) !important;
+}
+.coach-upload__status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.coach-upload__status--new_player {
+  background: #2d6a2d;
+  color: #fff;
+}
+.coach-upload__status--update {
+  background: #6a4a00;
+  color: #fff;
+}
+.coach-upload__status--match {
+  background: var(--table-stripe);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.coach-upload__status--error {
+  background: #6a2d2d;
+  color: #fff;
+}
+.coach-upload__error-text {
+  margin-top: 0.35rem;
+  color: var(--error);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+@media (max-width: 768px) {
+  .coach-upload__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .coach-upload__button {
+    width: 100%;
+  }
+}
+
 /* - Admin Dedup ------------------------------------------------ */
 .filter-tabs {
   display: flex;

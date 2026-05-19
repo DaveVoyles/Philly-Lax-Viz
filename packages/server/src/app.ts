@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import type { Database } from 'better-sqlite3';
 import type { Logger } from '@pll/shared';
@@ -27,6 +28,7 @@ import { postImagesRoutes } from './routes/postImages.js';
 import { searchRoutes } from './routes/search.js';
 import { comparePlayersRoutes } from './routes/comparePlayers.js';
 import correctionsRoutes from './routes/corrections.js';
+import uploadRoutes from './routes/upload.js';
 import adminDedupRoutes from './routes/adminDedup.js';
 import responseCache, { type ResponseCacheOptions } from './plugins/responseCache.js';
 
@@ -84,6 +86,13 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
     methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
   });
 
+  await app.register(multipart, {
+    limits: {
+      files: 1,
+      fileSize: 10 * 1024 * 1024,
+    },
+  });
+
   if (opts.responseCache !== false) {
     await app.register(responseCache, {
       includePrefixes: [...CACHED_ROUTE_PREFIXES],
@@ -134,6 +143,7 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   await searchRoutes(app, db);
   await comparePlayersRoutes(app, db);
   await app.register(correctionsRoutes, { prefix: '/api' });
+  await app.register(uploadRoutes);
   await app.register(adminDedupRoutes, { db });
 
   return app;

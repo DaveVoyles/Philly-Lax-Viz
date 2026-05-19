@@ -34,6 +34,7 @@ const loaders: Record<Exclude<RouteName, 'notFound'>, () => Promise<ViewModule>>
   schedule: () => import('./views/schedule.js'),
   sources: () => import('./views/sources.js'),
   status: () => import('./views/status.js'),
+  coachUpload: () => import('./views/coachUpload.js'),
   adminCorrections: () => import('./views/adminCorrections.js'),
   adminDedup: () => import('./views/adminDedup.js'),
 };
@@ -62,6 +63,7 @@ const MORE_NAV: NavLink[] = [
   ...(IS_STATIC
     ? []
     : [
+        { href: '#/coach/upload', label: 'Coach upload', match: 'coachUpload' as const },
         { href: '#/admin/corrections', label: 'Admin corrections', match: 'adminCorrections' as const },
         { href: '#/admin/dedup', label: 'Admin dedup', match: 'adminDedup' as const },
       ]),

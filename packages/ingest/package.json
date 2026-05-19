@@ -40,7 +40,8 @@
   "dependencies": {
     "@pll/shared": "workspace:*",
     "better-sqlite3": "^11.5.0",
-    "cheerio": "^1.0.0"
+    "cheerio": "^1.0.0",
+    "xlsx": "0.18.5"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",

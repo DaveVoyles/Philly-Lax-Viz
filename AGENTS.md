@@ -67,6 +67,7 @@ pnpm --filter @pll/ingest exec tsx src/scripts/emitLaxNumbersAliasCsv.ts     # e
 pnpm --filter @pll/ingest exec tsx src/scripts/dedupPlayers.ts         # interactive player dedup
 pnpm --filter @pll/ingest exec tsx src/scripts/applyHarritonWorkbook.ts --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db
 pnpm --filter @pll/ingest exec tsx src/scripts/applyHarritonWorkbook.ts --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db --apply
+pnpm --filter @pll/ingest exec tsx src/scripts/generateUploadTemplate.ts # create coach upload template XLSX
 ```
 
 Azure DB sync (after any local-only ingestion):
@@ -81,9 +82,9 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 
 ## 4. Database conventions
 
-- **Live DB:** `data/lacrosse.db` (SQLite, `user_version = 16`).
+- **Live DB:** `data/lacrosse.db` (SQLite, `user_version = 18`).
 - **Test DB:** `data/lacrosse.test.db` (auto-seeded by vitest setup). Tests must never touch the live DB.
-- **Migrations:** `packages/ingest/src/migrations/NNN_*.sql`, applied by `user_version` pragma. All 16 migrations:
+- **Migrations:** `packages/ingest/src/migrations/NNN_*.sql`, applied by `user_version` pragma. All 18 migrations:
   - `001_init.sql` — core tables: teams, games, game_periods, players, player_stats, rankings, ingest_anomalies, raw_cache_meta
   - `002_ingest_post_log.sql` — ingest_post_log
   - `003_piaa_official_teams.sql` — piaa_official_teams
@@ -96,12 +97,15 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
   - `014_team_alias_notes.sql` — team_aliases.notes column
   - `015_dedup_candidates.sql` — dedup_candidates
   - `016_player_jersey_number.sql` — players.jersey_number
+  - `017_manual_uploads.sql` — manual_uploads audit log for coach spreadsheet imports
+  - `018_stat_source_tracking.sql` — player_stats.upload_id provenance for coach uploads
 
 - **Key tables for agents:**
   - `teams` — id, name, slug, logo_url (bare filename), maxpreps_slug
   - `team_aliases` — id, alias, team_id, source, confidence, notes (used to match alternate team names during ingest)
   - `players` — id, name, team_id, jersey_number
-  - `player_stats` — per-game stats: goals, assists, ground_balls, caused_turnovers, saves, fo_won, fo_taken
+  - `player_stats` — per-game stats: goals, assists, ground_balls, caused_turnovers, saves, fo_won, fo_taken, source, upload_id
+  - `manual_uploads` — coach spreadsheet upload audit trail: submitter, team_id, file_hash, row_count, status, applied_at, reverted_at
   - `community_corrections` — status IN ('pending','approved','rejected','outlier'); nightly `applyCorrections.ts` auto-applies non-outliers
   - `ingest_anomalies` — unresolved ingest rows; source, raw_line, reason
 
@@ -164,10 +168,10 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 | CI/CD workflows | `.github/workflows/` |
 
 **Key server routes** (all under `packages/server/src/routes/`):
-`teams.ts`, `games.ts`, `players.ts`, `schedule.ts`, `rankings.ts`, `h2h.ts`, `corrections.ts`, `search.ts`, `dataExport.ts`, `sources.ts`
+`teams.ts`, `games.ts`, `players.ts`, `schedule.ts`, `rankings.ts`, `h2h.ts`, `corrections.ts`, `upload.ts`, `search.ts`, `dataExport.ts`, `sources.ts`
 
 **Key web views** (all under `packages/web/src/views/`):
-`dashboard.ts`, `teamDetail.ts`, `gameDetail.ts`, `playerDetail.ts`, `leaders.ts`, `topTeams.ts`, `schedule.ts`, `compare.ts`, `h2h.ts`, `playerCompare.ts`, `constellation.ts`, `dataQuality.ts`, `sources.ts`, `adminCorrections.ts`
+`dashboard.ts`, `teamDetail.ts`, `gameDetail.ts`, `playerDetail.ts`, `leaders.ts`, `topTeams.ts`, `schedule.ts`, `compare.ts`, `h2h.ts`, `playerCompare.ts`, `constellation.ts`, `dataQuality.ts`, `sources.ts`, `coachUpload.ts`, `adminCorrections.ts`
 
 **Key CI workflows** (all under `.github/workflows/`):
 - `ingest-nightly.yml` — crawl + parse + ingest + applyCorrections + export static + deploy
