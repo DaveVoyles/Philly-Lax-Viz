@@ -12,16 +12,19 @@
 //   --apply        Write to DB (default: dry-run)
 //   --db=PATH      DB path (default: data/lacrosse.db)
 
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { openDb } from '../db.js';
 import { runLaxNumbersRatings, DEFAULT_VIEWS } from '../pipelines/laxnumbersRatings.js';
+
+const __here = dirname(fileURLToPath(import.meta.url));
 
 function parseArgs() {
   const args = process.argv.slice(2);
   let year = new Date().getFullYear();
   let viewId: number | undefined;
   let apply = false;
-  let dbPath = resolve(process.cwd(), 'data/lacrosse.db');
+  let dbPath = resolve(__here, '..', '..', '..', '..', 'data', 'lacrosse.db');
 
   for (const arg of args) {
     if (arg.startsWith('--year=')) year = parseInt(arg.slice(7), 10);
