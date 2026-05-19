@@ -56,12 +56,18 @@ jobs:
           echo "Environment ID: $ACA_ENV"
 
           echo "Binding managed certificate for: $HOSTNAME"
+          # Apex domains use HTTP validation; subdomains use CNAME
+          if echo "$HOSTNAME" | grep -q "^www\."; then
+            VALIDATION="CNAME"
+          else
+            VALIDATION="HTTP"
+          fi
           az containerapp hostname bind \
             --name "$ACA_NAME" \
             --resource-group "$RG" \
             --hostname "$HOSTNAME" \
             --environment "$ACA_ENV" \
-            --validation-method CNAME || echo "Binding failed - check logs"
+            --validation-method "$VALIDATION" || echo "Binding failed - check logs"
 
       - name: Azure logout
         if: always()
