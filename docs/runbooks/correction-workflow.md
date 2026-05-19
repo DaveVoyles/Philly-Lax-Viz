@@ -112,7 +112,7 @@ too many corrections today. Please try again tomorrow."
 `VITE_API_BASE_URL`, which points to the Azure Container App in production:
 
 ```
-https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io/api/corrections
+https://phillylaxstats.com/api/corrections
 ```
 
 **This call is NOT gated by `IS_STATIC`.** Corrections submitted from the

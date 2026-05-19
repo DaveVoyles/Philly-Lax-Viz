@@ -5,7 +5,7 @@ import {
 } from '../api.js';
 import { IS_STATIC } from '../staticLoader.js';
 
-const STATIC_MESSAGE = 'Admin inbox not available in static mode - access via https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io/api/corrections/flagged';
+const STATIC_MESSAGE = 'Admin inbox not available in static mode - access via https://phillylaxstats.com/api/corrections/flagged';
 
 export function mountAdminCorrections(container: HTMLElement): void {
   if (IS_STATIC) {

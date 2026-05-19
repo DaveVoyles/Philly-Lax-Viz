@@ -8,7 +8,7 @@ TypeScript pnpm monorepo that scrapes, parses, and visualizes Philadelphia high-
 
 The site is deployed two ways:
 - **GitHub Pages** (`IS_STATIC=true`) — static HTML/JS with pre-exported JSON snapshots in `packages/web/public/data/`. No live API. Graceful fallback for API-only views.
-- **Azure Container App** — live Fastify API at `https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io`. DB stored in Azure Files, mounted at `/data/`.
+- **Azure Container App** — live Fastify API at `https://phillylaxstats.com`. DB stored in Azure Files, mounted at `/data/`.
 
 ## 2. Package map
 

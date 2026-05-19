@@ -3,7 +3,7 @@
 // In dev the Vite proxy rewrites `/api/*` → `http://localhost:3001/api/*`,
 // so the empty default keeps relative paths working unchanged.
 // In production builds, set VITE_API_BASE_URL to the absolute origin of the
-// backend (e.g. `https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io`)
+// backend (e.g. `https://phillylaxstats.com`)
 // and every /api call is rewritten to hit that origin.
 
 const RAW_BASE = (import.meta as unknown as { env?: Record<string, string | undefined> }).env

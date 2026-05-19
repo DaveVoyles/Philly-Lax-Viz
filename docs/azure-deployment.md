@@ -6,7 +6,7 @@ Low-cost, scale-to-zero deployment of the PLL stack:
 - **API** (`@pll/server` — Fastify + better-sqlite3) → **Azure Container Apps** (Consumption plan, scale-to-zero).
 - **DB** (`data/lacrosse.db`) → **baked into the container image** as a seed; copied to ephemeral `/tmp` on container start. Regenerated nightly by the ingest cron, so transient loss on cold-start is acceptable.
 
-> **Live deployment** (as of v3): SWA at `https://victorious-pond-0c5ff000f.7.azurestaticapps.net` · API at `https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io` · ACR `adovizacr1771621563.azurecr.io`.
+> **Live deployment** (as of v3): SWA at `https://victorious-pond-0c5ff000f.7.azurestaticapps.net` · API at `https://phillylaxstats.com` · ACR `adovizacr1771621563.azurecr.io`.
 
 > ### Deployment learnings (v3, baked from real run)
 >
@@ -654,10 +654,10 @@ az containerapp update -n pll-server -g pll-rg \
   --set-env-vars DB_PATH=/tmp/lacrosse.db PORT=8080 NODE_ENV=production
 
 # 4. Verify
-curl https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io/api/health
+curl https://phillylaxstats.com/api/health
 
 # 5. Build + deploy the web bundle to SWA
-VITE_API_BASE_URL=https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io \
+VITE_API_BASE_URL=https://phillylaxstats.com \
   pnpm --filter @pll/web build
 SWA_TOKEN=$(az staticwebapp secrets list -n pll-web -g pll-rg --query "properties.apiKey" -o tsv)
 npx -y @azure/static-web-apps-cli deploy packages/web/dist \
