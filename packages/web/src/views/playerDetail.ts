@@ -11,6 +11,7 @@ import { injectJsonLd, playerJsonLd } from '../util/jsonLd.js';
 import { setPageMeta } from '../util/pageMeta.js';
 import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
+import { createAutoCounter } from '../components/animatedCounter.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   ensureShareCss();
@@ -209,6 +210,7 @@ function statusPillStyle(status: NonNullable<PlayerDetail['commitment']>['status
 function buildSeasonCallouts(detail: PlayerDetail): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'callout-row';
+  const animatedLabels = new Set(['Games', 'Goals', 'Assists', 'Points']);
   const items: ReadonlyArray<{ label: string; value: number }> = [
     { label: 'Games', value: detail.seasonStats.games },
     { label: 'Goals', value: detail.seasonStats.goals },
@@ -225,7 +227,11 @@ function buildSeasonCallouts(detail: PlayerDetail): HTMLElement {
     lab.textContent = it.label;
     const val = document.createElement('span');
     val.className = 'callout-value';
-    val.textContent = String(it.value);
+    if (animatedLabels.has(it.label)) {
+      val.appendChild(createAutoCounter({ value: it.value, duration: 800 }));
+    } else {
+      val.textContent = String(it.value);
+    }
     c.append(lab, val);
     wrap.appendChild(c);
   }

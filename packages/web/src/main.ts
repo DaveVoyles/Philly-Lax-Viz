@@ -246,6 +246,19 @@ function applyRouteSeo(match: RouteMatch): void {
 
 async function dispatch(main: HTMLElement, match: RouteMatch): Promise<void> {
   const myToken = ++navToken;
+  const hasContent = main.children.length > 0 && !main.querySelector('[data-route-spinner]');
+  const runEnterAnimation = (): void => {
+    window.requestAnimationFrame(() => {
+      if (myToken !== navToken) return;
+      main.classList.remove('view-exit');
+      main.classList.remove('view-enter');
+      main.classList.add('view-enter');
+      window.setTimeout(() => {
+        if (myToken === navToken) main.classList.remove('view-enter');
+      }, 200);
+    });
+  };
+
   // Tear down any active GPU/pixi/scrubber resources from the previous view
   // before mounting the next one.
   if (currentDestroy) {
@@ -253,14 +266,29 @@ async function dispatch(main: HTMLElement, match: RouteMatch): Promise<void> {
     currentDestroy = null;
   }
 
+  if (hasContent) {
+    main.classList.remove('view-enter');
+    main.classList.add('view-exit');
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 120);
+    });
+    if (myToken !== navToken) {
+      main.classList.remove('view-exit');
+      return;
+    }
+    main.classList.remove('view-exit');
+  }
+
   if (match.name === 'notFound') {
     main.innerHTML = `<h1>Not found</h1><p>No route for <code>${match.path}</code>. <a href="#/">Go home</a>.</p>`;
+    runEnterAnimation();
     return;
   }
 
   const loader = loaders[match.name];
   if (!loader) {
     main.innerHTML = `<h1>Not found</h1><p>Unknown route.</p>`;
+    runEnterAnimation();
     return;
   }
 
@@ -271,7 +299,7 @@ async function dispatch(main: HTMLElement, match: RouteMatch): Promise<void> {
   try {
     const mod = await loader();
     // If the user has navigated again while we were waiting on the chunk,
-    // drop this result on the floor — a newer dispatch is in flight.
+    // drop this result on the floor - a newer dispatch is in flight.
     if (myToken !== navToken) {
       window.clearTimeout(spinTimer);
       return;
@@ -279,7 +307,9 @@ async function dispatch(main: HTMLElement, match: RouteMatch): Promise<void> {
     window.clearTimeout(spinTimer);
     hideSpinner(main);
     await mod.render(main, match.params);
-    if (myToken === navToken && typeof mod.destroy === 'function') {
+    if (myToken !== navToken) return;
+    runEnterAnimation();
+    if (typeof mod.destroy === 'function') {
       currentDestroy = mod.destroy;
     }
   } catch (err) {
@@ -289,6 +319,7 @@ async function dispatch(main: HTMLElement, match: RouteMatch): Promise<void> {
       main.innerHTML = `<h1>Failed to load view</h1><p class="muted">${
         err instanceof Error ? err.message : 'Unknown error'
       }</p>`;
+      runEnterAnimation();
     }
     console.error('route load failed', err);
   }

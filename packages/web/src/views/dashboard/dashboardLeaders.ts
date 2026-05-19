@@ -5,6 +5,7 @@ import {
 } from '../../api.js';
 import { renderHorizontalLeaderboard } from '../../charts/index.js';
 import type { ChartHandle } from '../../charts/types.js';
+import { createAnimatedCounter } from '../../components/animatedCounter.js';
 import { renderEmptyState } from '../../components/emptyState.js';
 import { errorBlock } from './dashboardErrors.js';
 
@@ -21,6 +22,59 @@ export function pctFmt(n: number): string {
 export interface LeaderPanel {
   wrap: HTMLElement;
   body: HTMLElement;
+}
+
+function animateLeaderboardValues(
+  el: HTMLElement,
+  rows: ReadonlyArray<PlayerLeaderRow>,
+  format: (n: number) => string,
+): void {
+  const valueNodes = Array.from(el.querySelectorAll<SVGTextElement>('svg text')).filter((node) =>
+    node.getAttribute('style')?.includes('font-weight: 600'),
+  );
+  if (valueNodes.length === 0) return;
+
+  const counters = valueNodes.slice(0, rows.length).map((node, index) => {
+    const row = rows[index];
+    if (!row) return null;
+    node.textContent = format(0);
+    return createAnimatedCounter({
+      value: row.value,
+      duration: 600,
+      format,
+      onUpdate: (text) => {
+        node.textContent = text;
+      },
+    });
+  });
+
+  const startAll = (): void => {
+    for (const counter of counters) counter?.start();
+  };
+
+  if (typeof IntersectionObserver === 'undefined') {
+    startAll();
+    return;
+  }
+
+  const obs = new IntersectionObserver(
+    (entries) => {
+      if (entries[0]?.isIntersecting) {
+        startAll();
+        obs.disconnect();
+      }
+    },
+    { threshold: 0.3 },
+  );
+
+  queueMicrotask(() => {
+    if (el.isConnected) {
+      obs.observe(el);
+    } else {
+      obs.disconnect();
+      startAll();
+    }
+  });
 }
 
 export function makeLeaderPanel(title: string, sub: string): LeaderPanel {
@@ -75,6 +129,7 @@ export async function loadLeaderPanel(
         margin: { top: 16, right: 56, bottom: 36, left: 170 },
       },
     );
+    animateLeaderboardValues(el, top, format);
     dashboardCharts.push(handle);
   } catch (err) {
     el.replaceChildren(errorBlock(err));

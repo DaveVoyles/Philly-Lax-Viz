@@ -31,9 +31,42 @@ import { injectJsonLd, teamJsonLd } from '../util/jsonLd.js';
 import { setPageMeta } from '../util/pageMeta.js';
 import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 import { buildStreakChip, ensureStreakChipStyles } from '../util/streakChip.js';
+import { createAutoCounter } from '../components/animatedCounter.js';
 
 function isValidHexColor(color: string | null | undefined): color is string {
   return !!color && /^#[0-9a-fA-F]{3,6}$/.test(color);
+}
+
+function renderAnimatedRecordValue(
+  target: HTMLElement,
+  record: { wins: number; losses: number; ties: number },
+  duration = 800,
+): void {
+  target.replaceChildren(
+    createAutoCounter({ value: record.wins, duration }),
+    document.createTextNode('-'),
+    createAutoCounter({ value: record.losses, duration }),
+  );
+
+  if (record.ties > 0) {
+    target.append(document.createTextNode('-'), createAutoCounter({ value: record.ties, duration }));
+  }
+}
+
+function buildNumericCallout(label: string, value: number, duration = 800): HTMLDivElement {
+  const callout = document.createElement('div');
+  callout.className = 'record-callout';
+
+  const calloutLabel = document.createElement('span');
+  calloutLabel.className = 'callout-label';
+  calloutLabel.textContent = label;
+
+  const calloutValue = document.createElement('span');
+  calloutValue.className = 'callout-value';
+  calloutValue.appendChild(createAutoCounter({ value, duration }));
+
+  callout.append(calloutLabel, calloutValue);
+  return callout;
 }
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
@@ -177,9 +210,9 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   const recordValue = document.createElement('span');
   recordValue.className = 'callout-value';
   recordValue.style.cssText = 'display:inline-flex; align-items:center; flex-wrap:wrap;';
-  recordValue.textContent = formatRecord(detail.record);
+  renderAnimatedRecordValue(recordValue, detail.record);
   const streakChip = buildStreakChip(seasonRecord?.streak);
-  if (streakChip) recordValue.appendChild(streakChip);
+  if (streakChip) recordValue.append(document.createTextNode(' '), streakChip);
   recordCallout.append(recordLabel, recordValue);
   if (piaa && (piaa.seed !== null || piaa.classification)) {
     const sub = document.createElement('span');
@@ -209,7 +242,8 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     derivedLabel.append(derivedLabelText, renderProvenanceBadge({ source: 'phillylacrosse' }));
     const derivedValue = document.createElement('span');
     derivedValue.className = 'callout-value';
-    derivedValue.textContent = formatRecord(derived);
+    derivedValue.style.cssText = 'display:inline-flex; align-items:center; flex-wrap:wrap;';
+    renderAnimatedRecordValue(derivedValue, derived);
     derivedCallout.append(derivedLabel, derivedValue);
     const note = document.createElement('span');
     note.className = 'muted';
@@ -230,6 +264,13 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     rankValue.textContent = `#${detail.recentRanking}`;
     rankCallout.append(rankLabel, rankValue);
     callouts.appendChild(rankCallout);
+  }
+
+  if (seasonRecord) {
+    callouts.append(
+      buildNumericCallout('Goals For', seasonRecord.goalsFor),
+      buildNumericCallout('Goals Against', seasonRecord.goalsAgainst),
+    );
   }
 
   root.appendChild(callouts);
