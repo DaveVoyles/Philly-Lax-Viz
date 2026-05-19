@@ -395,23 +395,35 @@ async function loadHypeCard(host: HTMLElement): Promise<void> {
   }
 }
 
+// Helper: extract wins/losses from either top-level (live API) or derivedRecord (static export)
+function teamWins(t: TeamSeasonRecord): number {
+  if (typeof t.wins === 'number' && t.wins > 0) return t.wins;
+  const dr = (t as unknown as { derivedRecord?: { wins?: number } }).derivedRecord;
+  return dr?.wins ?? 0;
+}
+function teamLosses(t: TeamSeasonRecord): number {
+  if (typeof t.losses === 'number' && t.losses > 0) return t.losses;
+  const dr = (t as unknown as { derivedRecord?: { losses?: number } }).derivedRecord;
+  return dr?.losses ?? 0;
+}
+
 async function loadTeamHypeCard(host: HTMLElement): Promise<void> {
   try {
     const teams = await getTeams();
     if (!teams.length) return;
     // Find the team with the best win record (most wins, fewest losses as tiebreak)
     const ranked = teams
-      .filter((t) => (t.wins ?? 0) + (t.losses ?? 0) >= 3)
+      .filter((t) => teamWins(t) + teamLosses(t) >= 3)
       .sort((a, b) => {
-        const aWins = a.wins ?? 0;
-        const bWins = b.wins ?? 0;
+        const aWins = teamWins(a);
+        const bWins = teamWins(b);
         if (bWins !== aWins) return bWins - aWins;
-        return (a.losses ?? 0) - (b.losses ?? 0);
+        return teamLosses(a) - teamLosses(b);
       });
     const top = ranked[0];
     if (!top) return;
-    const wins = top.wins ?? 0;
-    const losses = top.losses ?? 0;
+    const wins = teamWins(top);
+    const losses = teamLosses(top);
     const logoSrc = top.logoUrl ? top.logoUrl : '';
     const card = document.createElement('a');
     card.href = `#/teams/${top.id}`;
