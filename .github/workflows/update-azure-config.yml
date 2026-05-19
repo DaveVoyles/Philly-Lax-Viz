@@ -44,7 +44,6 @@ jobs:
           HOSTNAME="${{ github.event.inputs.custom_hostname }}"
           ACA_NAME="${{ secrets.ACA_NAME }}"
           RG="${{ secrets.ACA_RESOURCE_GROUP }}"
-          ACA_ENV="${{ secrets.ACA_ENVIRONMENT }}"
 
           echo "Adding hostname: $HOSTNAME"
           az containerapp hostname add \
@@ -52,13 +51,17 @@ jobs:
             --resource-group "$RG" \
             --hostname "$HOSTNAME" || echo "Hostname may already exist, continuing..."
 
+          echo "Listing managed environment for container app..."
+          ACA_ENV=$(az containerapp show --name "$ACA_NAME" --resource-group "$RG" --query "properties.environmentId" -o tsv)
+          echo "Environment ID: $ACA_ENV"
+
           echo "Binding managed certificate for: $HOSTNAME"
           az containerapp hostname bind \
             --name "$ACA_NAME" \
             --resource-group "$RG" \
             --hostname "$HOSTNAME" \
             --environment "$ACA_ENV" \
-            --validation-method CNAME || echo "Binding failed - may need DNS validation time"
+            --validation-method CNAME || echo "Binding failed - check logs"
 
       - name: Azure logout
         if: always()
