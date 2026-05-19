@@ -26,6 +26,7 @@ import {
 import { extractScoreTrend, renderTeamScoreTrend } from '../charts/teamScoreTrend.js';
 import {
   renderTeamRadarChart,
+  computeRadarAxes,
   type RadarOpponentRef,
   type TeamLike,
 } from '../components/teamRadarChart.js';
@@ -193,6 +194,18 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   }
 
   hero.appendChild(titleBlock);
+
+  // Pie chart (season record) in top-right of hero banner
+  const heroPieSlot = document.createElement('div');
+  heroPieSlot.dataset['chart'] = 'seasonRecord';
+  heroPieSlot.className = 'chart-slot';
+  heroPieSlot.style.cssText = 'margin-left:auto; flex:0 0 auto; max-width:180px;';
+  observeChartReveal(heroPieSlot);
+  if (detail.record.wins + detail.record.losses + detail.record.ties > 0) {
+    trackChart(renderSeasonRecord(heroPieSlot, detail.record));
+  }
+  hero.appendChild(heroPieSlot);
+
   root.appendChild(hero);
   initShareButtons();
 
@@ -423,24 +436,8 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     trackChart(renderSeasonArc(arcHost, arcGames));
   }
 
-  // Wrap pie chart + radar in a side-by-side row
-  const chartsRow = document.createElement('div');
-  chartsRow.style.cssText = 'display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; margin:1rem 0;';
-
-  const chartSlot = document.createElement('div');
-  chartSlot.dataset['chart'] = 'seasonRecord';
-  chartSlot.className = 'chart-slot';
-  chartSlot.style.cssText = 'flex:1 1 200px; max-width:280px;';
-  observeChartReveal(chartSlot);
-  chartsRow.appendChild(chartSlot);
-  if (detail.record.wins + detail.record.losses + detail.record.ties > 0) {
-    trackChart(renderSeasonRecord(chartSlot, detail.record));
-  }
-
-  // RFC 05 — Team strength radar. Render beside the season record so
-  // a coach scrolling for a profile sees the polygon before the long
-  // schedule list. Only attempt when this team appears in the league
-  // population (otherwise we can't percentile-rank meaningfully).
+  // Team Strength section — radar chart with visible stats table beside it.
+  // Placed after PIAA validation / coverage note and before Season Momentum.
   const focalRow = teams.find((t) => t.id === teamId) ?? null;
   if (focalRow) {
     const population: TeamLike[] = teams
@@ -451,25 +448,70 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       postponed: g.postponed,
     }));
     if (population.length >= 2) {
+      const strengthSection = document.createElement('div');
+      strengthSection.style.cssText = 'display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; margin:1.25rem 0;';
+
       const radarWrap = document.createElement('div');
-      radarWrap.style.cssText = 'flex:1 1 240px; max-width:320px;';
+      radarWrap.style.cssText = 'flex:0 0 auto; max-width:280px;';
       const radarHeader = document.createElement('h3');
-      radarHeader.textContent = 'Team strength';
-      radarHeader.style.cssText = 'margin:0 0 0.25rem; font-size:0.9rem;';
+      radarHeader.textContent = 'Team Strength';
+      radarHeader.style.cssText = 'margin:0 0 0.25rem; font-size:0.95rem;';
       radarWrap.appendChild(radarHeader);
       const radarHost = document.createElement('div');
       radarHost.className = 'team-radar-host';
       radarWrap.appendChild(radarHost);
-      chartsRow.appendChild(radarWrap);
-      trackChart(renderTeamRadarChart(radarHost, {
+      strengthSection.appendChild(radarWrap);
+
+      const radarData = {
         team: toTeamLike(focalRow),
         population,
         opponents,
-      }, { width: 220, height: 220 }));
+      };
+      trackChart(renderTeamRadarChart(radarHost, radarData, { width: 240, height: 240 }));
+
+      // Visible stats table beside the radar
+      const tableWrap = document.createElement('div');
+      tableWrap.style.cssText = 'flex:1 1 200px; min-width:200px;';
+      const axes = computeRadarAxes(radarData.team, population, opponents);
+      if (axes.length > 0) {
+        const tbl = document.createElement('table');
+        tbl.className = 'team-strength-table';
+        tbl.style.cssText = 'width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:1.75rem;';
+        const thead = document.createElement('thead');
+        const trh = document.createElement('tr');
+        for (const col of ['Metric', 'Value', 'Pctile']) {
+          const th = document.createElement('th');
+          th.textContent = col;
+          th.style.cssText = 'text-align:left; padding:0.3rem 0.5rem; border-bottom:1px solid var(--border,#333);';
+          trh.appendChild(th);
+        }
+        thead.appendChild(trh);
+        tbl.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        for (const ax of axes) {
+          const tr = document.createElement('tr');
+          const tdLabel = document.createElement('td');
+          tdLabel.textContent = ax.label;
+          tdLabel.style.cssText = 'padding:0.3rem 0.5rem;';
+          tr.appendChild(tdLabel);
+          const tdVal = document.createElement('td');
+          tdVal.textContent = ax.display;
+          tdVal.style.cssText = 'padding:0.3rem 0.5rem;';
+          tr.appendChild(tdVal);
+          const tdPct = document.createElement('td');
+          const pct = Math.round(ax.percentile * 100);
+          tdPct.textContent = `${pct}th`;
+          tdPct.style.cssText = `padding:0.3rem 0.5rem; font-weight:600; color:${pct >= 75 ? '#22c55e' : pct >= 50 ? '#eab308' : '#ef4444'};`;
+          tr.appendChild(tdPct);
+          tbody.appendChild(tr);
+        }
+        tbl.appendChild(tbody);
+        tableWrap.appendChild(tbl);
+      }
+      strengthSection.appendChild(tableWrap);
+      root.appendChild(strengthSection);
     }
   }
-
-  root.appendChild(chartsRow);
 
   const topScorersHeader = document.createElement('h2');
   topScorersHeader.textContent = 'Top Scorers';
@@ -580,10 +622,11 @@ async function loadTopScorers(slot: HTMLElement, teamId: number): Promise<void> 
     return;
   }
   if (!slot.isConnected) return;
+  const sorted = [...scorers].sort((a, b) => (b.goals + b.assists) - (a.goals + a.assists));
   trackChart(
     renderTopScorers(
       slot,
-      scorers.map((s) => ({ playerName: s.playerName, goals: s.goals, assists: s.assists })),
+      sorted.map((s) => ({ playerName: s.playerName, goals: s.goals, assists: s.assists })),
     ),
   );
 }
