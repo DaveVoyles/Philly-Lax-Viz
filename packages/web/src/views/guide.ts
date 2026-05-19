@@ -10,87 +10,92 @@ const SECTIONS: GuideSection[] = [
   {
     title: 'Dashboard',
     anchor: 'dashboard',
-    content: `The home page shows an overview of the league: Team of the Week, Player of the Week, recent results, and a grid of all teams with their records. Click any team tile to jump to their detail page.`,
+    content: `The home page shows the full league at a glance:<ul style="margin:0.3rem 0 0;padding-left:1.2rem;"><li><strong>Team &amp; Player of the Week</strong> - auto-calculated from the best record and top scorer</li><li><strong>All Teams grid</strong> - records, PIAA validation badges, and win-gap numbers</li><li><strong>Recent Games</strong> - last 7 days of results (auto-refreshes every 2 min during season)</li><li><strong>Game Competitiveness</strong> - margin distribution histogram</li><li><strong>Stat Leaders</strong> - saves, faceoff %, and ground ball leaders</li></ul>Click any team tile or player name to jump to their detail page.`,
   },
   {
     title: 'Stat Leaders',
     anchor: 'leaders',
-    content: `View the top performers across the league in goals, assists, ground balls, caused turnovers, saves, and faceoffs. Use the category tabs to switch between stats. Click any player name to see their full profile.`,
+    content: `View top performers in goals, assists, ground balls, caused turnovers, saves, and faceoffs. Use category tabs to switch stats. The bar chart shows the top 10; the full table below has everyone. Minimum-game thresholds filter out noise (e.g., 3+ games for counting stats, 20+ attempts for FO%).`,
   },
   {
     title: 'Top 10 Teams',
     anchor: 'top-teams',
-    content: `The top 10 teams ranked by win percentage. Each card shows their record, goals for/against, and strength-of-schedule indicator. Teams are ranked by winning percentage with tiebreakers by goal differential.`,
+    content: `Teams ranked by win percentage (min 3 games played). Each card shows record, goals for/against, and a composite strength score (schedule difficulty + offensive/defensive metrics). The #1 team gets a featured card. Tiebreaker: goal differential, then head-to-head result.`,
   },
   {
     title: 'Compare Teams (H2H)',
     anchor: 'h2h',
-    content: `Pick any two teams to see a head-to-head comparison. The page shows their records side-by-side, shared opponents, and direct matchup history (if they have played each other).`,
+    content: `Pick two teams to see head-to-head comparison: records, shared opponents, direct matchup history, and a strength radar overlay. Use this for scouting or settling debates about who is the better team.`,
   },
   {
     title: 'Team Detail',
     anchor: 'team-detail',
-    content: `Each team page shows their full season record (pie chart), a Team Strength radar (hover each axis for an explanation), top scorers bar chart, roster, and game-by-game results. The radar evaluates: Schedule Strength, Goals For, Goals Against, Win %, and Goal Differential.`,
+    content: `Each team page includes:<ul style="margin:0.3rem 0 0;padding-left:1.2rem;"><li><strong>Record pie chart</strong> - W/L/T at a glance</li><li><strong>Team Strength radar</strong> - 5 axes (hover for explanations): Schedule Str., GF Total, GA Total, Win %, Goal Diff</li><li><strong>Top Scorers chart</strong> - horizontal bar chart of leading scorers</li><li><strong>Game log</strong> - every game with scores, links to game detail</li><li><strong>Roster</strong> - all known players with jersey numbers</li></ul>PIAA validation badge shows whether our scraped record matches the official PIAA record.`,
   },
   {
     title: 'Player Detail',
     anchor: 'player-detail',
-    content: `A player's profile shows per-game stats, season totals, career trends (if multi-season data exists), and a comparison tool. Coaches and players can submit corrections via the pencil icon if a stat looks wrong.`,
+    content: `Player profiles show per-game breakdowns, season totals, and career trends (multi-season). The pencil icon lets anyone submit a correction if a stat looks wrong. Players with multiple seasons get a line chart showing progression. Stats tracked: G, A, GB, CT, Saves, FO W/T.`,
   },
   {
     title: 'Schedule',
     anchor: 'schedule',
-    content: `The full league schedule pulled from PIAA District 1 officials. Games are grouped by date. Completed games show final scores; upcoming games show time/location when available.`,
+    content: `Full league schedule from PIAA District 1. Games grouped by date - completed games show scores, upcoming games show time/location when available. Filter by team to see only your matchups.`,
   },
   {
     title: 'College Commitments',
     anchor: 'commitments',
-    content: `Track which players have committed to play college lacrosse. Players can self-submit their commitment using the form at the bottom of the page - enter your name, high school, position, college, and division.`,
+    content: `Track committed players. Anyone can self-submit via the form at the bottom: name, high school, position (Atk/Mid/LSM/Def/Goal), college, and division (D1/D2/D3/JUCO/MCLA). Submissions appear immediately after the nightly refresh.`,
   },
   {
     title: 'Player Map (Constellation)',
     anchor: 'constellation',
-    content: `An interactive network visualization showing player connections. Players who competed in the same game are linked. Use this to explore the competitive landscape and see which players have faced each other.`,
+    content: `Interactive network visualization - players who competed in the same game are linked by edges. Clusters reveal conference groupings. Zoom and drag to explore; hover nodes for details.`,
   },
   {
     title: 'Team Connections Graph',
     anchor: 'graph',
-    content: `A force-directed graph showing how teams are connected through their schedule. Teams that played each other are linked with edges weighted by how many times they met. Clusters indicate conference or division groupings.`,
+    content: `Force-directed graph of the league schedule. Teams linked by games played; edge weight = number of meetings. Clusters indicate conferences or geographic groupings.`,
   },
   {
     title: 'Coach Upload',
     anchor: 'coach-upload',
-    content: `Coaches can upload game stats via spreadsheet (.xlsx or .csv). Required columns: Player Name, Game Date, Opponent. Optional columns: Goals, Assists, Ground Balls, Caused Turnovers, Saves, FO Won, FO Taken. The system previews changes before applying them.`,
+    content: `Upload game stats via .xlsx or .csv spreadsheet.<br><strong>Required columns:</strong> Player Name, Game Date, Opponent<br><strong>Optional columns:</strong> Goals, Assists, Ground Balls, Caused Turnovers, Saves, FO Won, FO Taken<br><br>The system shows a preview before applying - you can verify matched players, new players to create, and stat diffs. Download the <a href="/data/upload-template.xlsx" style="color:var(--accent)">template spreadsheet</a> if you need the correct format.`,
   },
   {
     title: 'Coach Dashboard',
     anchor: 'coach-dashboard',
-    content: `After selecting your team, see stat coverage gaps (which games are missing player stats), performance trends over the last 10 games, practice focus suggestions based on stat gaps, and scouting reports on upcoming opponents.`,
+    content: `Select your team to see:<ul style="margin:0.3rem 0 0;padding-left:1.2rem;"><li><strong>Stat coverage</strong> - which games are missing player-level stats</li><li><strong>Performance trends</strong> - GF/GA line chart over last 10 games</li><li><strong>Practice focus</strong> - automated suggestions based on stat gaps (e.g., FO% &lt; 50% = high priority)</li><li><strong>Scouting reports</strong> - opponent profiles with top scorers and H2H history</li></ul>`,
   },
   {
     title: 'Community Corrections',
     anchor: 'corrections',
-    content: `Found a stat error? Click the pencil icon on any player or game detail page to submit a correction. Corrections are reviewed automatically - reasonable changes are applied nightly; outliers are flagged for manual review.`,
+    content: `Found an error? Click the pencil icon on any player or game page. Enter the correct value and submit. <strong>How review works:</strong> reasonable corrections (within normal bounds) are auto-approved nightly. Outlier values (e.g., 15+ goals in one game) are flagged for manual admin review. All changes are auditable.`,
   },
   {
-    title: 'Data Sources',
+    title: 'Data Sources &amp; Freshness',
     anchor: 'sources',
-    content: `All data is sourced from official channels: PIAA District 1 (rankings, schedule), PhillyLacrosse.com (game summaries, scores, player stats), and MaxPreps (team logos). Coach-submitted data takes priority over scraped data.`,
+    content: `<strong>Sources:</strong> PIAA District 1 (rankings, schedule), PhillyLacrosse.com (scores, stats), MaxPreps (logos), Hudl (opted-in teams), Coach uploads.<br><strong>Refresh schedule:</strong> all sources scraped nightly at ~3 AM ET. Coach uploads and corrections apply within 24 hours. The dashboard footer shows when data was last refreshed.<br><strong>Priority:</strong> Coach-submitted data &gt; Hudl &gt; PhillyLacrosse scraped &gt; PIAA.`,
   },
   {
-    title: 'For Coaches: How to Get Your Team on PhillyLaxStats',
-    anchor: 'coaches',
-    content: `<strong>Step 1:</strong> Upload a game spreadsheet via Coach Upload. Use the template format (Player Name, Game Date, Opponent, Goals, Assists, etc.).<br><br><strong>Step 2:</strong> Check the Coach Dashboard to see coverage gaps and make sure all games have stats.<br><br><strong>Step 3 (Optional):</strong> If your team uses Hudl, visit the Admin Hudl page to register your Hudl team URL. Once registered, stats sync automatically each night.<br><br><strong>Tips:</strong><ul><li>Data is refreshed every night from all sources</li><li>Coach-uploaded stats override any scraped data for the same game</li><li>Players can self-submit corrections if they spot errors</li><li>All changes are auditable and reversible</li></ul>`,
-  },
-  {
-    title: 'Hudl Integration (Automatic Stat Sync)',
+    title: 'Hudl Integration (Auto Stat Sync)',
     anchor: 'hudl',
-    content: `If your team uses Hudl, you can set up automatic nightly stat syncing. Here is how:<br><br><strong>Step 1:</strong> Visit the <a href="#/admin/hudl" style="color:var(--accent)">Hudl Team Management</a> page (under Admin in the More menu).<br><br><strong>Step 2:</strong> Select your team from the dropdown and paste your Hudl team URL (e.g., <code>https://www.hudl.com/team/v2/123456</code>).<br><br><strong>Step 3:</strong> In Hudl, invite <strong>phillylaxstats@gmail.com</strong> as an assistant coach for your team. This is required so our system can access your stats.<br><br><strong>What happens next:</strong> Every night, our system automatically logs into Hudl and pulls per-game stats for all registered teams. Your players' stats will appear on their profile pages within 24 hours of being added to Hudl.<br><br><strong>Troubleshooting:</strong> If status shows "error", it usually means the invitation hasn't been accepted yet or the URL is wrong. Check that the URL points to your actual team page on Hudl.`,
+    content: `If your team uses Hudl, set up automatic nightly stat sync:<ol style="margin:0.3rem 0 0;padding-left:1.2rem;"><li>Go to <a href="#/admin/hudl" style="color:var(--accent)">Hudl Team Management</a> (More &rarr; Admin Hudl)</li><li>Select your team and paste your Hudl URL (e.g., <code>https://www.hudl.com/team/v2/123456</code>)</li><li>In Hudl, invite <strong>phillylaxstats@gmail.com</strong> as assistant coach</li></ol><strong>After setup:</strong> Stats sync nightly. Your players appear within 24 hours. If status shows "error", the invite hasn't been accepted yet or the URL is wrong.`,
   },
   {
-    title: 'For Players: How to Use PhillyLaxStats',
+    title: 'For Coaches: Quick Start',
+    anchor: 'coaches',
+    content: `<ol style="margin:0.3rem 0 0;padding-left:1.2rem;"><li>Upload a game spreadsheet via <a href="#/coach/upload" style="color:var(--accent)">Coach Upload</a> (use the template)</li><li>Check the <a href="#/coach/dashboard" style="color:var(--accent)">Coach Dashboard</a> for coverage gaps</li><li>Optionally set up Hudl auto-sync (see above) for hands-free stat ingestion</li></ol><strong>Tips:</strong> Coach data overrides scraped data. Players can self-correct errors. All changes are reversible.`,
+  },
+  {
+    title: 'For Players: Quick Start',
     anchor: 'players',
-    content: `<strong>Check your stats:</strong> Search for your name using the search bar (top-right). Your profile shows per-game breakdowns, season totals, and how you rank among league leaders.<br><br><strong>Submit a correction:</strong> If a stat is wrong, click the pencil icon on your player page. Enter the correct value and it will be reviewed.<br><br><strong>College commitments:</strong> Visit the Commitments page to announce where you are playing in college. Fill out the self-service form with your name, school, college, and division.<br><br><strong>Compare yourself:</strong> Use the Compare Players page to see how you stack up against any other player in the league.`,
+    content: `<ul style="margin:0.3rem 0 0;padding-left:1.2rem;"><li><strong>Find your stats:</strong> use the search bar or browse your team page</li><li><strong>Fix errors:</strong> click the pencil icon on your player page to submit corrections</li><li><strong>College commitment:</strong> visit <a href="#/commitments" style="color:var(--accent)">Commitments</a> and fill out the form</li><li><strong>Compare:</strong> use Compare Players to see how you rank vs. anyone else</li></ul>`,
+  },
+  {
+    title: 'FAQ',
+    anchor: 'faq',
+    content: `<strong>Q: Why is my team/player missing?</strong><br>A: We only have data from games that appear on PhillyLacrosse.com, PIAA, or Hudl. Ask your coach to upload stats or set up Hudl sync.<br><br><strong>Q: A stat is wrong - how do I fix it?</strong><br>A: Click the pencil icon on the player or game page. Reasonable corrections are auto-approved overnight.<br><br><strong>Q: How often is data updated?</strong><br>A: Every night at ~3 AM ET. Coach uploads and corrections process in the same nightly run.<br><br><strong>Q: Can I see stats from previous seasons?</strong><br>A: Yes - use the season dropdown on the dashboard. Historical data goes back as far as our sources provide.`,
   },
 ];
 
@@ -101,35 +106,24 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
     description: 'Complete guide to using PhillyLaxStats - for players, coaches, and fans.',
   });
 
-  const back = document.createElement('p');
-  back.className = 'muted';
-  const backLink = document.createElement('a');
-  backLink.href = '#/';
-  backLink.textContent = '<- back to dashboard';
-  back.appendChild(backLink);
-  root.appendChild(back);
-
   const heading = document.createElement('h1');
   heading.textContent = 'Site Guide';
+  heading.style.marginBottom = '0.25rem';
   root.appendChild(heading);
 
   const intro = document.createElement('p');
   intro.className = 'muted';
-  intro.textContent = 'Everything you need to know about using PhillyLaxStats. Click a section below to jump to it.';
+  intro.style.cssText = 'margin:0 0 0.75rem; font-size:0.9rem;';
+  intro.textContent = 'Everything you need to know about PhillyLaxStats. Click a section to jump to it.';
   root.appendChild(intro);
 
-  // Table of contents
+  // Table of contents - compact
   const toc = document.createElement('nav');
   toc.className = 'tile';
-  toc.style.cssText = 'padding:1rem 1.5rem;margin-bottom:2rem;';
-  const tocTitle = document.createElement('strong');
-  tocTitle.textContent = 'Jump to:';
-  toc.appendChild(tocTitle);
-  const tocList = document.createElement('ul');
-  tocList.style.cssText = 'columns:2;column-gap:2rem;margin:0.5rem 0 0;padding-left:1.2rem;';
+  toc.style.cssText = 'padding:0.6rem 1rem; margin-bottom:1rem;';
+  const tocList = document.createElement('div');
+  tocList.style.cssText = 'display:flex; flex-wrap:wrap; gap:0.25rem 1rem; font-size:0.85rem;';
   for (const section of SECTIONS) {
-    const li = document.createElement('li');
-    li.style.marginBottom = '0.3rem';
     const a = document.createElement('a');
     a.href = `#/guide#${section.anchor}`;
     a.textContent = section.title;
@@ -139,37 +133,36 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
       const target = document.getElementById(`guide-${section.anchor}`);
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
-    li.appendChild(a);
-    tocList.appendChild(li);
+    tocList.appendChild(a);
   }
   toc.appendChild(tocList);
   root.appendChild(toc);
 
-  // Sections
+  // Sections - compact cards
   for (const section of SECTIONS) {
     const card = document.createElement('section');
     card.className = 'tile';
     card.id = `guide-${section.anchor}`;
-    card.style.cssText = 'padding:1.25rem 1.5rem;margin-bottom:1rem;';
+    card.style.cssText = 'padding:0.75rem 1rem; margin-bottom:0.5rem;';
 
     const h2 = document.createElement('h3');
     h2.textContent = section.title;
-    h2.style.marginTop = '0';
+    h2.style.cssText = 'margin:0 0 0.3rem; font-size:1rem;';
     card.appendChild(h2);
 
     const body = document.createElement('div');
     body.className = 'muted';
-    body.style.lineHeight = '1.6';
+    body.style.cssText = 'line-height:1.5; font-size:0.875rem;';
     body.innerHTML = section.content;
     card.appendChild(body);
 
     root.appendChild(card);
   }
 
-  // Footer note
+  // Footer
   const footer = document.createElement('p');
   footer.className = 'muted';
-  footer.style.cssText = 'margin-top:2rem;text-align:center;font-size:0.85rem;';
-  footer.textContent = 'Questions? Open an issue on GitHub or contact your league admin.';
+  footer.style.cssText = 'margin-top:1rem; text-align:center; font-size:0.8rem;';
+  footer.textContent = 'Questions? Open an issue on GitHub or email phillylaxstats@gmail.com';
   root.appendChild(footer);
 }
