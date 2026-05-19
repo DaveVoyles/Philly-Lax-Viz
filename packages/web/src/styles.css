@@ -1089,6 +1089,9 @@ a.piaa-badge-link:hover { text-decoration: none; }
   max-width: 100%;
   height: auto;
 }
+.team-radar-host .team-radar-summary {
+  display: none;
+}
 
 @media (max-width: 768px) {
   html,

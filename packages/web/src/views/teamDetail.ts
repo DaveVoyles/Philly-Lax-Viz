@@ -426,7 +426,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       strengthSection.style.cssText = 'display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; margin:1.25rem 0;';
 
       const radarWrap = document.createElement('div');
-      radarWrap.style.cssText = 'flex:0 0 auto; max-width:280px;';
+      radarWrap.style.cssText = 'flex:0 0 auto; max-width:360px;';
       const radarHeader = document.createElement('h3');
       radarHeader.textContent = 'Team Strength';
       radarHeader.style.cssText = 'margin:0 0 0.25rem; font-size:0.95rem;';
@@ -441,11 +441,11 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
         population,
         opponents,
       };
-      trackChart(renderTeamRadarChart(radarHost, radarData, { width: 240, height: 240 }));
-
-      // Hide the redundant radar summary paragraph
-      const radarSummary = radarHost.querySelector('.team-radar-summary');
-      if (radarSummary) (radarSummary as HTMLElement).style.display = 'none';
+      trackChart(renderTeamRadarChart(radarHost, radarData, {
+        width: 320,
+        height: 320,
+        margin: { top: 30, right: 60, bottom: 30, left: 60 },
+      }));
 
       // Visible stats table beside the radar
       const tableWrap = document.createElement('div');
@@ -454,7 +454,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       if (axes.length > 0) {
         const tbl = document.createElement('table');
         tbl.className = 'team-strength-table';
-        tbl.style.cssText = 'width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:1.75rem;';
+        tbl.style.cssText = 'width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;';
         const thead = document.createElement('thead');
         const trh = document.createElement('tr');
         for (const col of ['Metric', 'Value', 'Pctile']) {
