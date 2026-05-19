@@ -1,19 +1,41 @@
 // Player detail view: header, season totals, per-game trend chart, per-game table.
 
-import { ApiError, getPlayerDetail, type PlayerDetail, type PlayerPerGameStat } from '../api.js';
+import {
+  ApiError,
+  getPlayerDetail,
+  getPlayerMilestones,
+  type PlayerDetail,
+  type PlayerMilestones,
+  type PlayerPerGameStat,
+} from '../api.js';
 import { formatDate } from '../util/format.js';
 import { renderConfidenceBadge } from '../util/confidence.js';
 import { isOutlier } from '../util/zscore.js';
 import { renderPerGameTrend } from '../charts/index.js';
 import type { PerGameTrendDatum } from '../charts/index.js';
 import { openCorrectionModal, type CorrectionTarget } from '../components/correctionModal.js';
+import { triggerParticleBurst } from '../components/particleBurst.js';
 import { injectJsonLd, playerJsonLd } from '../util/jsonLd.js';
 import { setPageMeta } from '../util/pageMeta.js';
 import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
 import { createAutoCounter } from '../components/animatedCounter.js';
 
+let activeParticleBurstCleanup: (() => void) | null = null;
+
+function destroyPlayerDetailEffects(): void {
+  if (activeParticleBurstCleanup) {
+    activeParticleBurstCleanup();
+    activeParticleBurstCleanup = null;
+  }
+}
+
+export function destroy(): void {
+  destroyPlayerDetailEffects();
+}
+
 export function render(root: HTMLElement, params: Record<string, string>): void {
+  destroyPlayerDetailEffects();
   ensureShareCss();
   setPageMeta({
     title: 'Player',
@@ -47,8 +69,12 @@ export function render(root: HTMLElement, params: Record<string, string>): void 
 
 async function load(root: HTMLElement, status: HTMLElement, id: string): Promise<void> {
   let detail: PlayerDetail;
+  let milestones: PlayerMilestones | null = null;
   try {
-    detail = await getPlayerDetail(id);
+    [detail, milestones] = await Promise.all([
+      getPlayerDetail(id),
+      getPlayerMilestones(id).catch(() => null),
+    ]);
   } catch (err) {
     const msg = err instanceof ApiError ? `${err.message} (${err.url})` : String(err);
     status.className = 'error';
@@ -104,9 +130,14 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
 
   root.appendChild(buildSeasonCallouts(detail));
 
-  const careerHighlights = computeCareerHighlights(detail.perGame);
-  if (careerHighlights) {
-    root.appendChild(buildCareerHighlights(careerHighlights));
+  const playerMilestones = milestones ?? deriveMilestones(detail.perGame);
+  if (hasMilestones(playerMilestones)) {
+    const milestoneSection = buildMilestonesSection(playerMilestones);
+    root.appendChild(milestoneSection);
+    destroyPlayerDetailEffects();
+    activeParticleBurstCleanup = triggerParticleBurst(milestoneSection, {
+      colors: milestoneBurstColors(detail.team),
+    });
   }
 
   // Per-game trend chart slot. Points = goals + assists per game (documented choice).
@@ -299,38 +330,96 @@ export function computeCareerHighlights(stats: ReadonlyArray<PlayerPerGameStat>)
   return { bestGoals, bestAssists, bestPoints, totals };
 }
 
-function buildCareerHighlights(highlights: CareerHighlights): HTMLElement {
+function deriveMilestones(stats: ReadonlyArray<PlayerPerGameStat>): PlayerMilestones | null {
+  const highlights = computeCareerHighlights(stats);
+  const careerTotals = {
+    goals: stats.reduce((sum, stat) => sum + stat.goals, 0),
+    assists: stats.reduce((sum, stat) => sum + stat.assists, 0),
+    groundBalls: stats.reduce((sum, stat) => sum + stat.groundBalls, 0),
+    games: stats.length,
+  };
+
+  if (!highlights && careerTotals.goals === 0 && careerTotals.assists === 0 && careerTotals.groundBalls === 0) {
+    return null;
+  }
+
+  return {
+    careerHighGoals: highlights?.bestGoals ?? null,
+    careerHighAssists: highlights?.bestAssists ?? null,
+    careerHighPoints: highlights?.bestPoints ?? null,
+    careerTotals,
+  };
+}
+
+function hasMilestones(milestones: PlayerMilestones | null): milestones is PlayerMilestones {
+  if (!milestones) return false;
+  return !!(
+    milestones.careerHighGoals ||
+    milestones.careerHighAssists ||
+    milestones.careerHighPoints ||
+    milestones.careerTotals.goals > 0 ||
+    milestones.careerTotals.assists > 0 ||
+    milestones.careerTotals.groundBalls > 0
+  );
+}
+
+function isValidHexColor(color: string | null | undefined): color is string {
+  return !!color && /^#[0-9a-fA-F]{6}$/.test(color);
+}
+
+function milestoneBurstColors(team: PlayerDetail['team']): string[] {
+  const palette = [
+    team?.primaryColor,
+    team?.secondaryColor,
+    '#ffffff',
+    '#fbbf24',
+    '#f97316',
+  ].filter(isValidHexColor);
+
+  return palette.length > 0 ? palette : ['#fbbf24', '#f97316', '#ffffff'];
+}
+
+function buildMilestonesSection(milestones: PlayerMilestones): HTMLElement {
   const section = document.createElement('section');
   section.style.cssText = 'margin:1rem 0 1.5rem;padding:1rem 1.1rem;border:1px solid var(--border);border-radius:12px;background:var(--bg-card, var(--bg-elev, rgba(255,255,255,0.02)));';
 
   const heading = document.createElement('h2');
-  heading.textContent = '🏆 Career Highlights';
+  heading.textContent = '✨ Milestones';
   heading.style.cssText = 'margin:0 0 .25rem;font-size:1.05rem;';
   section.appendChild(heading);
 
   const subhead = document.createElement('p');
   subhead.className = 'muted';
   subhead.style.cssText = 'margin:0 0 .85rem;font-size:.9rem;';
-  subhead.textContent = `Best single-game marks and career scoring totals across ${highlights.totals.games} games.`;
+  subhead.textContent = `Career highs and season-to-date production across ${milestones.careerTotals.games} games.`;
   section.appendChild(subhead);
 
   const grid = document.createElement('div');
   grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:.75rem;';
 
-  const bestCards: Array<{ label: string; stat: CareerHigh | null; emptyLabel: string }> = [
-    { label: 'Best Goals', stat: highlights.bestGoals, emptyLabel: 'No goals logged yet.' },
-    { label: 'Best Assists', stat: highlights.bestAssists, emptyLabel: 'No assists logged yet.' },
-    { label: 'Best Points', stat: highlights.bestPoints, emptyLabel: 'No points logged yet.' },
+  const bestCards: Array<{
+    label: string;
+    stat: PlayerMilestones['careerHighGoals'];
+    emptyLabel: string;
+  }> = [
+    { label: 'Best Goals', stat: milestones.careerHighGoals, emptyLabel: 'No goals logged yet.' },
+    { label: 'Best Assists', stat: milestones.careerHighAssists, emptyLabel: 'No assists logged yet.' },
+    { label: 'Best Points', stat: milestones.careerHighPoints, emptyLabel: 'No points logged yet.' },
   ];
 
   for (const card of bestCards) {
-    grid.appendChild(buildHighlightCard(card.label, card.stat?.value ?? 0, card.stat ? [`vs ${card.stat.opponent}`, formatDate(card.stat.date)] : [card.emptyLabel]));
+    grid.appendChild(
+      buildHighlightCard(
+        card.label,
+        card.stat?.value ?? 0,
+        card.stat ? [`vs ${card.stat.opponent}`, formatDate(card.stat.date)] : [card.emptyLabel],
+      ),
+    );
   }
 
-  grid.appendChild(buildHighlightCard('Career Goals', highlights.totals.goals));
-  grid.appendChild(buildHighlightCard('Career Assists', highlights.totals.assists));
-  grid.appendChild(buildHighlightCard('Career Points', highlights.totals.points));
-  grid.appendChild(buildHighlightCard('Hat Tricks', highlights.totals.hatTricks, ['3+ goals in a game']));
+  grid.appendChild(buildHighlightCard('Career Goals', milestones.careerTotals.goals));
+  grid.appendChild(buildHighlightCard('Career Assists', milestones.careerTotals.assists));
+  grid.appendChild(buildHighlightCard('Ground Balls', milestones.careerTotals.groundBalls));
 
   section.appendChild(grid);
   return section;

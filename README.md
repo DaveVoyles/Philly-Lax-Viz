@@ -33,7 +33,8 @@ updated nightly.
 - **League Leaders** — ranked leaderboards for goals, assists, saves, faceoff %, and more, with season selection
 - **Top 10 Teams** — a podium-style view of the best records in the league right now, with season selection
 - **Rankings** — PIAA District 1 official standings
-- **Rivalries** — a force-directed graph showing head-to-head matchup history
+- **Rivalries** — a dedicated matchup page for the league's most-played series, including records, last meeting scores, and close-game intensity
+- **Team Connections** — a force-directed graph showing head-to-head matchup history
 - **Schedule** — upcoming games
 - **College Commitments** — a chronological recruiting feed with division, status, and verification badges
 - **Player Constellation** — a visual bubble chart plotting every player's goals vs. assists
