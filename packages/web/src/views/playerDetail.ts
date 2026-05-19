@@ -1,13 +1,6 @@
 // Player detail view: header, season totals, per-game trend chart, per-game table.
 
-import {
-  ApiError,
-  getPlayerDetail,
-  getPlayerMilestones,
-  type PlayerDetail,
-  type PlayerMilestones,
-  type PlayerPerGameStat,
-} from '../api.js';
+import { ApiError, getPlayerDetail, type PlayerDetail, type PlayerPerGameStat } from '../api.js';
 import { formatDate } from '../util/format.js';
 import { renderConfidenceBadge } from '../util/confidence.js';
 import { isOutlier } from '../util/zscore.js';
@@ -15,17 +8,15 @@ import { renderPerGameTrend } from '../charts/index.js';
 import type { PerGameTrendDatum } from '../charts/index.js';
 import { openCorrectionModal, type CorrectionTarget } from '../components/correctionModal.js';
 import { injectJsonLd, playerJsonLd } from '../util/jsonLd.js';
-import { setOgMeta } from '../util/ogMeta.js';
-import { setPageTitle } from '../util/pageTitle.js';
+import { setPageMeta } from '../util/pageMeta.js';
 import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   ensureShareCss();
-  setOgMeta({
-    title: 'Player Stats | PhillyLaxStats',
+  setPageMeta({
+    title: 'Player',
     description: 'Season totals and per-game stats for Philly-area lacrosse players.',
-    url: window.location.href,
   });
   root.replaceChildren();
 
@@ -55,12 +46,8 @@ export function render(root: HTMLElement, params: Record<string, string>): void 
 
 async function load(root: HTMLElement, status: HTMLElement, id: string): Promise<void> {
   let detail: PlayerDetail;
-  let milestones: PlayerMilestones | null = null;
   try {
-    [detail, milestones] = await Promise.all([
-      getPlayerDetail(id),
-      getPlayerMilestones(id).catch(() => null),
-    ]);
+    detail = await getPlayerDetail(id);
   } catch (err) {
     const msg = err instanceof ApiError ? `${err.message} (${err.url})` : String(err);
     status.className = 'error';
@@ -69,12 +56,10 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   }
   status.remove();
 
-  setPageTitle(detail.player.name);
-  setOgMeta({
-    title: `${detail.player.name} | PhillyLaxStats`,
-    description: `Season stats for ${detail.player.name}${detail.team ? ` from ${detail.team.name}` : ''}.`,
+  setPageMeta({
+    title: detail.player.name,
+    description: `Stats and game log for ${detail.player.name}.`,
     image: detail.team?.logoUrl ?? undefined,
-    url: window.location.href,
   });
   injectJsonLd(
     playerJsonLd({
@@ -118,6 +103,11 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
 
   root.appendChild(buildSeasonCallouts(detail));
 
+  const careerHighlights = computeCareerHighlights(detail.perGame);
+  if (careerHighlights) {
+    root.appendChild(buildCareerHighlights(careerHighlights));
+  }
+
   // Per-game trend chart slot. Points = goals + assists per game (documented choice).
   const trendHeader = document.createElement('h2');
   trendHeader.textContent = 'Per-Game Points (G + A)';
@@ -139,10 +129,6 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     empty.className = 'muted';
     empty.textContent = 'No per-game stats logged yet.';
     root.appendChild(empty);
-  }
-
-  if (milestones) {
-    root.appendChild(buildCareerHighlights(milestones));
   }
 
   const tableHeader = document.createElement('h2');
@@ -246,52 +232,128 @@ function buildSeasonCallouts(detail: PlayerDetail): HTMLElement {
   return wrap;
 }
 
-function buildCareerHighlights(milestones: PlayerMilestones): HTMLElement {
-  const section = document.createElement('section');
-  section.style.cssText = 'margin:1rem 0 1.5rem; padding:1rem 1.1rem; border:1px solid var(--border); border-radius:12px; background:var(--bg-elev, rgba(255,255,255,0.02));';
+type CareerHigh = {
+  value: number;
+  opponent: string;
+  date: string;
+};
 
-  const heading = document.createElement('h2');
-  heading.textContent = 'Career Highlights';
-  heading.style.cssText = 'margin:0 0 .75rem; font-size:1.05rem;';
-  section.appendChild(heading);
+export type CareerHighlights = {
+  bestGoals: CareerHigh | null;
+  bestAssists: CareerHigh | null;
+  bestPoints: CareerHigh | null;
+  totals: {
+    goals: number;
+    assists: number;
+    points: number;
+    hatTricks: number;
+    games: number;
+  };
+};
 
-  const grid = document.createElement('div');
-  grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:.75rem;';
+export function computeCareerHighlights(stats: ReadonlyArray<PlayerPerGameStat>): CareerHighlights | null {
+  if (stats.length === 0) return null;
 
-  const cards: Array<{ label: string; value: { value: number; opponent: string; date: string } | null }> = [
-    { label: 'Career high goals', value: milestones.careerHighGoals },
-    { label: 'Career high assists', value: milestones.careerHighAssists },
-    { label: 'Career high points', value: milestones.careerHighPoints },
-  ];
+  const totals = {
+    goals: 0,
+    assists: 0,
+    points: 0,
+    hatTricks: 0,
+    games: stats.length,
+  };
 
-  for (const card of cards) {
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'padding:.85rem .95rem; border-radius:10px; border:1px solid var(--border); background:rgba(255,255,255,0.02);';
-    const label = document.createElement('p');
-    label.className = 'muted';
-    label.style.cssText = 'margin:0 0 .35rem; font-size:.78rem; text-transform:uppercase; letter-spacing:.05em;';
-    label.textContent = card.label;
-    const value = document.createElement('div');
-    value.style.cssText = 'font-size:1.5rem; font-weight:800;';
-    value.textContent = card.value ? String(card.value.value) : '0';
-    const detail = document.createElement('p');
-    detail.className = 'muted';
-    detail.style.cssText = 'margin:.35rem 0 0; font-size:.85rem;';
-    detail.textContent = card.value ? `vs ${card.value.opponent} on ${formatDate(card.value.date)}` : 'No games logged yet.';
-    wrap.append(label, value, detail);
-    grid.appendChild(wrap);
+  let bestGoals: CareerHigh | null = null;
+  let bestAssists: CareerHigh | null = null;
+  let bestPoints: CareerHigh | null = null;
+
+  for (const stat of stats) {
+    const points = stat.goals + stat.assists;
+    const opponent = stat.opponentName ?? 'Unknown opponent';
+
+    totals.goals += stat.goals;
+    totals.assists += stat.assists;
+    totals.points += points;
+    if (stat.goals >= 3) totals.hatTricks += 1;
+
+    if (stat.goals > 0 && (!bestGoals || stat.goals > bestGoals.value)) {
+      bestGoals = { value: stat.goals, opponent, date: stat.date };
+    }
+    if (stat.assists > 0 && (!bestAssists || stat.assists > bestAssists.value)) {
+      bestAssists = { value: stat.assists, opponent, date: stat.date };
+    }
+    if (points > 0 && (!bestPoints || points > bestPoints.value)) {
+      bestPoints = { value: points, opponent, date: stat.date };
+    }
   }
 
+  if (totals.goals === 0 && totals.assists === 0 && totals.points === 0) {
+    return null;
+  }
+
+  return { bestGoals, bestAssists, bestPoints, totals };
+}
+
+function buildCareerHighlights(highlights: CareerHighlights): HTMLElement {
+  const section = document.createElement('section');
+  section.style.cssText = 'margin:1rem 0 1.5rem;padding:1rem 1.1rem;border:1px solid var(--border);border-radius:12px;background:var(--bg-card, var(--bg-elev, rgba(255,255,255,0.02)));';
+
+  const heading = document.createElement('h2');
+  heading.textContent = '🏆 Career Highlights';
+  heading.style.cssText = 'margin:0 0 .25rem;font-size:1.05rem;';
+  section.appendChild(heading);
+
+  const subhead = document.createElement('p');
+  subhead.className = 'muted';
+  subhead.style.cssText = 'margin:0 0 .85rem;font-size:.9rem;';
+  subhead.textContent = `Best single-game marks and career scoring totals across ${highlights.totals.games} games.`;
+  section.appendChild(subhead);
+
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:.75rem;';
+
+  const bestCards: Array<{ label: string; stat: CareerHigh | null; emptyLabel: string }> = [
+    { label: 'Best Goals', stat: highlights.bestGoals, emptyLabel: 'No goals logged yet.' },
+    { label: 'Best Assists', stat: highlights.bestAssists, emptyLabel: 'No assists logged yet.' },
+    { label: 'Best Points', stat: highlights.bestPoints, emptyLabel: 'No points logged yet.' },
+  ];
+
+  for (const card of bestCards) {
+    grid.appendChild(buildHighlightCard(card.label, card.stat?.value ?? 0, card.stat ? [`vs ${card.stat.opponent}`, formatDate(card.stat.date)] : [card.emptyLabel]));
+  }
+
+  grid.appendChild(buildHighlightCard('Career Goals', highlights.totals.goals));
+  grid.appendChild(buildHighlightCard('Career Assists', highlights.totals.assists));
+  grid.appendChild(buildHighlightCard('Career Points', highlights.totals.points));
+  grid.appendChild(buildHighlightCard('Hat Tricks', highlights.totals.hatTricks, ['3+ goals in a game']));
+
   section.appendChild(grid);
-
-  const totals = document.createElement('p');
-  const totalPoints = milestones.careerTotals.goals + milestones.careerTotals.assists;
-  totals.className = 'muted';
-  totals.style.cssText = 'margin:.9rem 0 0; font-size:.9rem;';
-  totals.textContent = `Career totals: ${milestones.careerTotals.goals} goals, ${milestones.careerTotals.assists} assists, ${totalPoints} points, ${milestones.careerTotals.groundBalls} ground balls across ${milestones.careerTotals.games} games.`;
-  section.appendChild(totals);
-
   return section;
+}
+
+function buildHighlightCard(label: string, value: number, lines: ReadonlyArray<string> = []): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'padding:.85rem .95rem;border-radius:12px;border:1px solid var(--border);background:linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, transparent), rgba(255,255,255,0.02));box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);';
+
+  const heading = document.createElement('p');
+  heading.className = 'muted';
+  heading.style.cssText = 'margin:0 0 .35rem;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;';
+  heading.textContent = label;
+
+  const stat = document.createElement('div');
+  stat.style.cssText = 'font-size:1.6rem;font-weight:800;line-height:1.1;margin-bottom:.35rem;';
+  stat.textContent = String(value);
+
+  wrap.append(heading, stat);
+
+  for (const line of lines) {
+    const detail = document.createElement('p');
+    detail.className = 'muted';
+    detail.style.cssText = 'margin:.15rem 0 0;font-size:.85rem;';
+    detail.textContent = line;
+    wrap.appendChild(detail);
+  }
+
+  return wrap;
 }
 
 type CorrectablePlayerField =

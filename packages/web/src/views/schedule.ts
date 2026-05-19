@@ -8,6 +8,7 @@ import { ApiError, getGameCalendar, getSchedule, type ScheduleByDate } from '../
 import { renderCalendarHeatmap } from '../charts/calendarHeatmap.js';
 import type { ChartHandle } from '../charts/types.js';
 import { formatDate } from '../util/format.js';
+import { setPageMeta } from '../util/pageMeta.js';
 
 let abort: AbortController | null = null;
 let heatmapChart: ChartHandle | null = null;
@@ -34,6 +35,10 @@ export function destroy(): void {
 }
 
 export function render(root: HTMLElement, _params: Record<string, string>): void {
+  setPageMeta({
+    title: 'Schedule',
+    description: 'Upcoming and recent games in Philadelphia lacrosse.',
+  });
   destroy();
   abort = new AbortController();
   root.replaceChildren();

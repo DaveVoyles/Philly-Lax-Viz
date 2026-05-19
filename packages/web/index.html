@@ -3,9 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Philly Lacrosse — Boys HS</title>
+    <title>Philly Lacrosse Stats</title>
+    <meta
+      name="description"
+      content="Live stats, standings, and player leaders for Philadelphia-area high school boys lacrosse."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Philly Lacrosse Stats" />
+    <meta
+      property="og:title"
+      content="Philly Lacrosse Stats - Philadelphia High School Boys Lacrosse"
+    />
+    <meta
+      property="og:description"
+      content="Live stats, standings, and player leaders for Philadelphia-area high school boys lacrosse."
+    />
+    <meta property="og:url" content="https://phillylaxstats.com/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Philly Lacrosse Stats" />
+    <meta
+      name="twitter:description"
+      content="Live stats, standings, and player leaders for Philadelphia-area high school boys lacrosse."
+    />
     <!-- PWA -->
-    <meta name="theme-color" content="#e94560">
+    <meta name="theme-color" content="#00d4ff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="PLL Viz">
@@ -17,5 +38,10 @@
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      }
+    </script>
   </body>
 </html>

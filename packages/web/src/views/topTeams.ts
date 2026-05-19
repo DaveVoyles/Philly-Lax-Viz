@@ -3,6 +3,7 @@ import { createSeasonSelector, getSelectedSeason } from '../components/seasonSel
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { createAnimatedCounter } from '../components/animatedCounter.js';
 import { shouldAnimate, shouldMountWebGL } from '../util/motionPrefs.js';
+import { setPageMeta } from '../util/pageMeta.js';
 import { Application, Graphics } from 'pixi.js';
 
 const STYLE_ID = 'top-teams-view-styles';
@@ -655,6 +656,10 @@ async function renderTopTeams(root: HTMLElement, token: number, season: string):
 }
 
 export function render(root: HTMLElement, _params: Record<string, string>): void {
+  setPageMeta({
+    title: 'Top 10 Teams',
+    description: 'The top 10 teams in Philadelphia high school boys lacrosse by record.',
+  });
   destroy();
   ensureStyles();
 

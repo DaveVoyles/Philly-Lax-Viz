@@ -27,8 +27,7 @@ import { renderPiaaBadge, piaaBadgeTooltip } from '../components/piaaBadge.js';
 import { ensureGlossaryCss, glossaryIcon } from '../util/glossary.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
 import { injectJsonLd, teamJsonLd } from '../util/jsonLd.js';
-import { setOgMeta } from '../util/ogMeta.js';
-import { setPageTitle } from '../util/pageTitle.js';
+import { setPageMeta } from '../util/pageMeta.js';
 import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 import { buildStreakChip, ensureStreakChipStyles } from '../util/streakChip.js';
 
@@ -40,10 +39,9 @@ export function render(root: HTMLElement, params: Record<string, string>): void 
   ensureShareCss();
   ensureGlossaryCss();
   ensureStreakChipStyles();
-  setOgMeta({
-    title: 'Team Stats | PhillyLaxStats',
+  setPageMeta({
+    title: 'Team',
     description: 'Season record, roster coverage, and game log for Philly-area lacrosse teams.',
-    url: window.location.href,
   });
   root.replaceChildren();
 
@@ -88,12 +86,10 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   }
   status.remove();
 
-  setPageTitle(`${detail.team.name} Stats`);
-  setOgMeta({
-    title: `${detail.team.name} Stats | PhillyLaxStats`,
-    description: `${formatRecord(detail.record)} record, game log, and roster details for ${detail.team.name}.`,
+  setPageMeta({
+    title: detail.team.name,
+    description: `${formatRecord(detail.record)} record, game log, and roster for ${detail.team.name}.`,
     image: detail.team.logoUrl ?? undefined,
-    url: window.location.href,
   });
   injectJsonLd(
     teamJsonLd({
@@ -298,15 +294,20 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     }
   }
 
+  // Wrap pie chart + radar in a side-by-side row
+  const chartsRow = document.createElement('div');
+  chartsRow.style.cssText = 'display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; margin:1rem 0;';
+
   const chartSlot = document.createElement('div');
   chartSlot.dataset['chart'] = 'seasonRecord';
   chartSlot.className = 'chart-slot';
-  root.appendChild(chartSlot);
+  chartSlot.style.cssText = 'flex:1 1 200px; max-width:280px;';
+  chartsRow.appendChild(chartSlot);
   if (detail.record.wins + detail.record.losses + detail.record.ties > 0) {
     renderSeasonRecord(chartSlot, detail.record);
   }
 
-  // RFC 05 — Team strength radar. Render right under the season record so
+  // RFC 05 — Team strength radar. Render beside the season record so
   // a coach scrolling for a profile sees the polygon before the long
   // schedule list. Only attempt when this team appears in the league
   // population (otherwise we can't percentile-rank meaningfully).
@@ -320,19 +321,26 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       postponed: g.postponed,
     }));
     if (population.length >= 2) {
-      const radarHeader = document.createElement('h2');
-      radarHeader.textContent = 'Team strength radar';
-      root.appendChild(radarHeader);
+      const radarWrap = document.createElement('div');
+      radarWrap.style.cssText = 'flex:1 1 240px; max-width:320px;';
+      const radarHeader = document.createElement('h3');
+      radarHeader.textContent = 'Team strength';
+      radarHeader.style.cssText = 'margin:0 0 0.25rem; font-size:0.9rem;';
+      radarWrap.appendChild(radarHeader);
       const radarHost = document.createElement('div');
       radarHost.className = 'team-radar-host';
-      root.appendChild(radarHost);
+      radarHost.style.cssText = 'max-height:220px;';
+      radarWrap.appendChild(radarHost);
+      chartsRow.appendChild(radarWrap);
       renderTeamRadarChart(radarHost, {
         team: toTeamLike(focalRow),
         population,
         opponents,
-      });
+      }, { width: 300, height: 300 });
     }
   }
+
+  root.appendChild(chartsRow);
 
   const topScorersHeader = document.createElement('h2');
   topScorersHeader.textContent = 'Top Scorers';

@@ -22,6 +22,7 @@ import { createSeasonSelector, getSelectedSeason } from '../components/seasonSel
 import { renderEmptyState } from '../components/emptyState.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
 import { ensureGlossaryCss, renderGlossaryIcon } from '../util/glossary.js';
+import { setPageMeta } from '../util/pageMeta.js';
 
 type Tab = 'players' | 'teams';
 
@@ -120,6 +121,11 @@ function isTeamMetric(s: string): s is TeamLeaderMetric {
 }
 
 export function render(root: HTMLElement, _params: Record<string, string>): void {
+  setPageMeta({
+    title: 'Stat Leaders',
+    description:
+      'Top scorers, assist leaders, and statistical leaders across Philadelphia lacrosse.',
+  });
   ensureGlossaryCss();
 
   if (activeChart) {

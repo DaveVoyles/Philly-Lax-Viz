@@ -1,11 +1,10 @@
 {
-  "name": "PhillyLaxStats",
-  "short_name": "PLStats",
-  "description": "Philadelphia high school lacrosse statistics",
+  "name": "Philly Lacrosse Stats",
+  "short_name": "PhillyLax",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1a2e",
-  "theme_color": "#e94560",
+  "theme_color": "#00d4ff",
   "icons": [
     {
       "src": "/icons/icon-192.png",

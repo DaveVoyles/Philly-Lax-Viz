@@ -30,6 +30,7 @@ import { wrapResponsive } from '../util/responsiveTable.js';
 import { buildStreakChip, ensureStreakChipStyles } from '../util/streakChip.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { createSeasonSelector, getSelectedSeason } from '../components/seasonSelector.js';
+import { setPageMeta } from '../util/pageMeta.js';
 
 type SortKey = 'name' | 'gap' | 'wins';
 type SortDir = 'asc' | 'desc';
@@ -114,6 +115,11 @@ export function destroy(): void {
 }
 
 export function render(root: HTMLElement, _params: Record<string, string>): void {
+  setPageMeta({
+    title: 'Dashboard',
+    description:
+      'Philadelphia high school boys lacrosse dashboard - team standings, recent games, and stat leaders.',
+  });
   destroyDashboardCharts();
   ensureStreakChipStyles();
   ensureDashboardLiveStyles();

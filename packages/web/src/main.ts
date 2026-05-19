@@ -60,6 +60,9 @@ const NAV: NavLink[] = [
   { href: '#/schedule', label: 'Schedule', match: 'schedule' },
   { href: '#/commitments', label: 'Commitments', match: 'commitments' },
   { href: '#/constellation', label: 'Player Map', match: 'constellation' },
+  ...(IS_STATIC
+    ? []
+    : [{ href: '#/coach/upload', label: 'Coach Upload', match: 'coachUpload' as const }]),
 ];
 
 const MORE_NAV: NavLink[] = [
@@ -72,7 +75,6 @@ const MORE_NAV: NavLink[] = [
     ? []
     : [
         { href: '#/coach/dashboard', label: 'Coach dashboard', match: 'coachDashboard' as const },
-        { href: '#/coach/upload', label: 'Coach upload', match: 'coachUpload' as const },
         { href: '#/admin/corrections', label: 'Admin corrections', match: 'adminCorrections' as const },
         { href: '#/admin/dedup', label: 'Admin dedup', match: 'adminDedup' as const },
         { href: '#/admin/hudl', label: 'Admin Hudl', match: 'adminHudl' as const },
@@ -85,7 +87,7 @@ function mountShell(app: HTMLElement): {
 } {
   app.innerHTML = `
     <header class="site-header">
-      <div class="brand">🥍 Philly Lacrosse</div>
+      <div class="brand">🥍 PhillyLaxStats</div>
       <button class="nav-hamburger" aria-label="Open navigation" aria-expanded="false" aria-controls="main-nav">&#9776;</button>
       <nav id="main-nav">
         ${NAV.map(

@@ -355,8 +355,17 @@ export function renderTeamRadarChart(
       .attr('stroke-dasharray', Math.abs(r - opts.medianRing) < 1e-6 ? '4 3' : null);
   }
 
-  // Axis spokes + labels.
+  // Axis spokes + labels with hover tooltips explaining each metric.
+  const axisDescriptions: Record<string, string> = {
+    winPct: 'Win percentage: games won divided by total games played',
+    goalsFor: 'Goals per game: average goals scored per game this season',
+    defense: 'Defense: fewer goals allowed per game = higher rating',
+    margin: 'Goal margin per game: average difference between goals scored and allowed',
+    goalsForTotal: 'Total goals scored this season (volume, not per-game)',
+    sos: 'Schedule strength: average win% of opponents faced this season',
+  };
   for (let i = 0; i < axes.length; i += 1) {
+    const ax = axes[i]!;
     const tip = axisCoords(i, axes.length, cx, cy, maxRadius);
     inner
       .append('line')
@@ -369,7 +378,7 @@ export function renderTeamRadarChart(
     const labelPos = axisCoords(i, axes.length, cx, cy, maxRadius + 14);
     const anchor =
       Math.abs(labelPos.x - cx) < 1 ? 'middle' : labelPos.x > cx ? 'start' : 'end';
-    inner
+    const textEl = inner
       .append('text')
       .attr('x', labelPos.x)
       .attr('y', labelPos.y)
@@ -378,7 +387,10 @@ export function renderTeamRadarChart(
       .attr('fill', theme.fg)
       .attr('font-size', 13)
       .attr('font-weight', '600')
-      .text(axes[i]!.label);
+      .attr('cursor', 'help')
+      .text(ax.label);
+    const desc = axisDescriptions[ax.key] ?? ax.label;
+    textEl.append('title').text(`${desc} - ${ax.display} (${Math.round(ax.percentile * 100)}th percentile)`);
   }
 
   // Polygon — filled, with a stroke. Dashed when sample size is thin.
@@ -392,17 +404,20 @@ export function renderTeamRadarChart(
     .attr('stroke-dasharray', lowSample ? '5 3' : null)
     .attr('stroke-linejoin', 'round');
 
-  // Vertex dots — give each axis a click target visual anchor.
+  // Vertex dots — give each axis a click target visual anchor with tooltip.
   for (let i = 0; i < axes.length; i += 1) {
     const ax = axes[i]!;
     const r = Math.max(0, Math.min(1, ax.percentile)) * maxRadius;
     const v = axisCoords(i, axes.length, cx, cy, r);
-    inner
+    const dot = inner
       .append('circle')
       .attr('cx', v.x)
       .attr('cy', v.y)
-      .attr('r', 3)
-      .attr('fill', opts.color);
+      .attr('r', 5)
+      .attr('fill', opts.color)
+      .attr('cursor', 'help');
+    const desc = axisDescriptions[ax.key] ?? ax.label;
+    dot.append('title').text(`${ax.label}: ${ax.display} (${Math.round(ax.percentile * 100)}th percentile)\n${desc}`);
   }
 
   // Visible narrative paragraph (also serves as the sighted a11y mirror).
