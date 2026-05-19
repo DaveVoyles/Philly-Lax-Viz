@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Database } from 'better-sqlite3';
 import { getStatements } from '../queries/statements.js';
+import { cacheable } from '../plugins/responseCache.js';
 import {
   mapRanking,
   mapTeam,
@@ -27,7 +28,7 @@ function normalizeSource(s: string | undefined): string | undefined {
 export async function rankingsRoutes(app: FastifyInstance, db: Database): Promise<void> {
   const s = getStatements(db);
 
-  app.get<{ Querystring: Query }>('/api/rankings', async (req, reply) => {
+  app.get<{ Querystring: Query }>('/api/rankings', cacheable, async (req, reply) => {
     const source = normalizeSource(req.query.source);
 
     let week = req.query.week;

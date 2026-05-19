@@ -8,6 +8,7 @@ import {
   type PlayerMetric,
   type TeamMetric,
 } from '../queries/leaderboards.js';
+import { cacheable } from '../plugins/responseCache.js';
 import { resolveSeason } from '../queries/seasons.js';
 
 const MAX_LIMIT = 100;
@@ -52,7 +53,7 @@ export async function leadersRoutes(app: FastifyInstance, db: Database): Promise
       teamId?: string;
       season?: string;
     };
-  }>('/api/leaders/players', async (req, reply) => {
+  }>('/api/leaders/players', cacheable, async (req, reply) => {
     const metricRaw = req.query.metric ?? 'points';
     if (!(PLAYER_METRICS as readonly string[]).includes(metricRaw)) {
       reply.code(400);
@@ -137,7 +138,7 @@ export async function leadersRoutes(app: FastifyInstance, db: Database): Promise
 
   app.get<{
     Querystring: { metric?: string; limit?: string; season?: string };
-  }>('/api/leaders/teams', async (req, reply) => {
+  }>('/api/leaders/teams', cacheable, async (req, reply) => {
     const metricRaw = req.query.metric ?? 'wins';
     if (!(TEAM_METRICS as readonly string[]).includes(metricRaw)) {
       reply.code(400);

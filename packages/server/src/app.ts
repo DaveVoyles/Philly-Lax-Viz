@@ -43,23 +43,6 @@ export interface BuildOptions {
   responseCache?: ResponseCacheOptions | false;
 }
 
-const CACHED_ROUTE_PREFIXES: readonly string[] = [
-  '/api/leaders',
-  '/api/teams',
-  '/api/games',
-  '/api/rankings',
-  '/api/h2h',
-  '/api/constellation',
-  '/api/schedule',
-  '/api/sources',
-];
-
-const UNCACHED_ROUTE_PREFIXES: readonly string[] = [
-  '/api/corrections',
-  '/api/upload',
-  '/api/health',
-];
-
 // Resolve the default logos directory the same way index.ts resolves the DB:
 // relative to the repo root (../../.. from packages/server/src/).
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -97,11 +80,7 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   });
 
   if (opts.responseCache !== false) {
-    await app.register(responseCache, {
-      includePrefixes: [...CACHED_ROUTE_PREFIXES],
-      excludePrefixes: [...UNCACHED_ROUTE_PREFIXES],
-      ...(opts.responseCache ?? {}),
-    });
+    await app.register(responseCache, opts.responseCache ?? {});
   }
 
   await app.register(fastifyStatic, {

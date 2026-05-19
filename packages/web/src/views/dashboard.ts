@@ -401,7 +401,7 @@ async function loadHypeCard(host: HTMLElement, season: string): Promise<void> {
     } else {
       const card = document.createElement('a');
       card.href = data.playerHref;
-      card.style.cssText = 'display:block; padding:1rem 1.25rem; border-radius:12px; background:#0e1119; border:2px solid #ffd166; text-decoration:none; color:inherit;';
+      card.style.cssText = 'display:block; padding:0.75rem 1.25rem; border-radius:12px; background:#0e1119; border:2px solid #ffd166; text-decoration:none; color:inherit;';
       card.innerHTML = `<span style="color:#ffd166;font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">&#128293; Player of the Week</span>
         <div style="font-size:1.1rem;font-weight:700;color:#e5e7eb;margin-top:0.25rem;">${data.playerName}</div>
         <div style="font-size:0.8rem;color:#9ca3af;">${data.teamName}</div>
@@ -456,7 +456,7 @@ async function loadTeamHypeCard(host: HTMLElement, season: string): Promise<void
     } else {
       const card = document.createElement('a');
       card.href = data.playerHref;
-      card.style.cssText = 'display:block; padding:1rem 1.25rem; border-radius:12px; background:#0e1119; border:2px solid #4ea1ff; text-decoration:none; color:inherit;';
+      card.style.cssText = 'display:block; padding:0.75rem 1.25rem; border-radius:12px; background:#0e1119; border:2px solid #4ea1ff; text-decoration:none; color:inherit;';
       card.innerHTML = `<span style="color:#4ea1ff;font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">&#127942; Team of the Week</span>
         <div style="font-size:1.1rem;font-weight:700;color:#e5e7eb;margin-top:0.25rem;">${top.name}</div>
         <div style="font-size:0.8rem;color:#9ca3af;">${wins}-${losses} Record</div>`;

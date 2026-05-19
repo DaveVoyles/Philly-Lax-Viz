@@ -4,6 +4,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import type { Database } from 'better-sqlite3';
+import { cacheable } from '../plugins/responseCache.js';
 import { getH2HPlayers, getH2HTeams } from '../queries/h2h.js';
 
 function parseId(raw: string | undefined): number | null {
@@ -16,6 +17,7 @@ function parseId(raw: string | undefined): number | null {
 export async function h2hRoutes(app: FastifyInstance, db: Database): Promise<void> {
   app.get<{ Querystring: { a?: string; b?: string } }>(
     '/api/h2h/teams',
+    cacheable,
     async (req, reply) => {
       const a = parseId(req.query.a);
       const b = parseId(req.query.b);
@@ -32,6 +34,7 @@ export async function h2hRoutes(app: FastifyInstance, db: Database): Promise<voi
 
   app.get<{ Querystring: { a?: string; b?: string } }>(
     '/api/h2h/players',
+    cacheable,
     async (req, reply) => {
       const a = parseId(req.query.a);
       const b = parseId(req.query.b);

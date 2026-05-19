@@ -316,7 +316,7 @@ table.stat tbody tr.row-link:focus { outline: 2px solid var(--accent); outline-o
   padding: 0;
   margin: 0.5rem 0 1rem;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 0.5rem;
 }
 .team-grid li a {

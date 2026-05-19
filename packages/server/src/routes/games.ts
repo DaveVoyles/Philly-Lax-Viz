@@ -11,6 +11,7 @@ import {
   type PlayerStatRow,
   type TeamRow,
 } from '../queries/mappers.js';
+import { cacheable } from '../plugins/responseCache.js';
 import { synthesizeScoringEvents } from '../queries/games.js';
 import { getImageForSlug } from '../queries/postImages.js';
 
@@ -142,6 +143,34 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
 
     return rows.map(mapGame);
   });
+
+  app.get<{ Querystring: Pick<ListQuery, 'limit' | 'season'> }>(
+    '/api/games/recent',
+    cacheable,
+    async (req, reply) => {
+      let limit = 10;
+      if (req.query.limit !== undefined) {
+        const n = Number(req.query.limit);
+        if (!Number.isInteger(n) || n <= 0) {
+          reply.code(400);
+          return { error: 'BadRequest', message: 'limit must be a positive integer' };
+        }
+        limit = Math.min(n, 100);
+      }
+
+      let rows = s.listGames.all(limit, 0) as GameRow[];
+      if (req.query.season !== undefined) {
+        const season = Number(req.query.season);
+        if (!Number.isInteger(season) || season < 1900 || season > 3000) {
+          reply.code(400);
+          return { error: 'BadRequest', message: 'season must be a 4-digit year' };
+        }
+        rows = rows.filter((row) => (row as GameRow & { season?: number }).season === season);
+      }
+
+      return rows.map(mapGame);
+    },
+  );
 
   app.get<{ Querystring: { season?: string } }>('/api/games/calendar', async (req) => {
     const season = req.query.season?.trim() ?? null;

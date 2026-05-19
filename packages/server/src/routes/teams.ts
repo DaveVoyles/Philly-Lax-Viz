@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Database } from 'better-sqlite3';
 import { getStatements } from '../queries/statements.js';
+import { cacheable } from '../plugins/responseCache.js';
 import { computeStreaks } from '../queries/teamStreak.js';
 import {
   mapGame,
@@ -63,7 +64,7 @@ function listGamesForSeason(db: Database, season: number | null): GameRow[] {
 export async function teamsRoutes(app: FastifyInstance, db: Database): Promise<void> {
   const s = getStatements(db);
 
-  app.get<{ Querystring: { season?: string } }>('/api/teams', async (req, reply) => {
+  app.get<{ Querystring: { season?: string } }>('/api/teams', cacheable, async (req, reply) => {
     let season: number | null;
     try {
       season = resolveSeason(db, req.query.season);

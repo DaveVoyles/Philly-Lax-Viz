@@ -1,192 +1,288 @@
-import { axisBottom, axisLeft } from 'd3-axis';
 import { scaleLinear } from 'd3-scale';
-import { line, curveStepAfter } from 'd3-shape';
-import { createResponsiveSvg, periodLabel, readTheme } from './internal/svg.js';
+import { curveStepAfter, line } from 'd3-shape';
+import { readTheme } from './internal/svg.js';
 
-export interface Period {
-  gameId: number;
-  teamId: number;
-  periodNumber: number;
+export interface GameFlowData {
+  homeTeam: string;
+  awayTeam: string;
+  periods: Array<{ period: number; homeGoals: number; awayGoals: number }>;
+}
+
+interface SeriesPoint {
+  period: number;
   goals: number;
 }
 
-interface TeamRef {
-  id: number;
-  name: string;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const WIDTH = 600;
+const HEIGHT = 300;
+const MARGIN = { top: 48, right: 24, bottom: 48, left: 52 };
+const AWAY_COLOR = '#4ecdc4';
+
+function homeColor(): string {
+  if (typeof window === 'undefined') return '#e94560';
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  return accent || '#e94560';
 }
 
-interface Point {
-  x: number;
-  goals: number;
+function svgEl(tag: string): SVGElement {
+  return document.createElementNS(SVG_NS, tag);
 }
 
-const HOME_COLOR = '#2563eb';
-const AWAY_COLOR = '#f97316';
-const HEIGHT = 200;
-const MARGIN = { top: 16, right: 128, bottom: 40, left: 40 };
-
-function getMaxPeriod(periods: readonly Period[]): number {
-  return Math.max(
-    4,
-    ...periods.map((period) => period.periodNumber),
-  );
+function setAttrs(node: SVGElement, attrs: Record<string, string | number>): void {
+  for (const [key, value] of Object.entries(attrs)) {
+    node.setAttribute(key, String(value));
+  }
 }
 
-function buildCumulativeSeries(
-  periods: readonly Period[],
-  teamId: number,
-  maxPeriod: number,
-): Point[] {
-  const totalsByPeriod = new Map<number, number>();
+function appendSvgText(
+  parent: SVGElement,
+  attrs: Record<string, string | number>,
+  text: string,
+): SVGTextElement {
+  const node = svgEl('text') as SVGTextElement;
+  setAttrs(node, attrs);
+  node.textContent = text;
+  parent.appendChild(node);
+  return node;
+}
+
+function buildSeries(
+  periods: GameFlowData['periods'],
+  key: 'homeGoals' | 'awayGoals',
+): SeriesPoint[] {
+  const series: SeriesPoint[] = [{ period: 0, goals: 0 }];
+  let runningGoals = 0;
   for (const period of periods) {
-    if (period.teamId !== teamId) continue;
-    totalsByPeriod.set(
-      period.periodNumber,
-      (totalsByPeriod.get(period.periodNumber) ?? 0) + period.goals,
+    runningGoals += period[key];
+    series.push({ period: period.period, goals: runningGoals });
+  }
+  return series;
+}
+
+function buildGoalTicks(maxGoals: number): number[] {
+  const top = Math.max(1, maxGoals);
+  const step = Math.max(1, Math.ceil(top / 5));
+  const ticks: number[] = [];
+  for (let value = 0; value <= top; value += step) ticks.push(value);
+  if (ticks[ticks.length - 1] !== top) ticks.push(top);
+  return ticks;
+}
+
+function renderLegend(svg: SVGSVGElement, homeTeam: string, awayTeam: string, homeStroke: string): void {
+  const legend = svgEl('g');
+  setAttrs(legend, { transform: `translate(${MARGIN.left},20)` });
+  svg.appendChild(legend);
+
+  const entries = [
+    { name: homeTeam, color: homeStroke, x: 0 },
+    { name: awayTeam, color: AWAY_COLOR, x: 176 },
+  ];
+
+  for (const entry of entries) {
+    const group = svgEl('g');
+    setAttrs(group, { transform: `translate(${entry.x},0)` });
+
+    const sample = svgEl('line');
+    setAttrs(sample, {
+      x1: 0,
+      y1: 0,
+      x2: 20,
+      y2: 0,
+      stroke: entry.color,
+      'stroke-width': 3,
+      'stroke-linecap': 'round',
+    });
+    group.appendChild(sample);
+
+    appendSvgText(
+      group,
+      {
+        x: 28,
+        y: 4,
+        fill: readTheme().fg,
+        'font-size': 12,
+      },
+      entry.name,
+    );
+
+    legend.appendChild(group);
+  }
+}
+
+function renderAxisLine(parent: SVGElement, attrs: Record<string, string | number>): void {
+  const node = svgEl('line');
+  setAttrs(node, attrs);
+  parent.appendChild(node);
+}
+
+export function renderGameFlow(container: HTMLElement, data: GameFlowData): void {
+  while (container.firstChild) container.removeChild(container.firstChild);
+
+  if (!data.periods?.length) {
+    const message = document.createElement('p');
+    message.className = 'muted';
+    message.textContent = 'No period data available';
+    container.appendChild(message);
+    return;
+  }
+
+  const theme = readTheme();
+  const homeStroke = homeColor();
+  const innerWidth = WIDTH - MARGIN.left - MARGIN.right;
+  const innerHeight = HEIGHT - MARGIN.top - MARGIN.bottom;
+  const maxPeriod = Math.max(...data.periods.map((period) => period.period), 1);
+  const homeSeries = buildSeries(data.periods, 'homeGoals');
+  const awaySeries = buildSeries(data.periods, 'awayGoals');
+  const maxGoals = Math.max(
+    homeSeries[homeSeries.length - 1]?.goals ?? 0,
+    awaySeries[awaySeries.length - 1]?.goals ?? 0,
+    1,
+  );
+
+  const x = scaleLinear().domain([0, maxPeriod]).range([MARGIN.left, MARGIN.left + innerWidth]);
+  const y = scaleLinear().domain([0, maxGoals]).nice().range([MARGIN.top + innerHeight, MARGIN.top]);
+
+  const svg = svgEl('svg') as SVGSVGElement;
+  setAttrs(svg, {
+    viewBox: `0 0 ${WIDTH} ${HEIGHT}`,
+    width: '100%',
+    role: 'img',
+    'aria-label': `Game flow for ${data.awayTeam} at ${data.homeTeam}`,
+    style: 'display:block;max-width:100%;height:auto;font-family:inherit',
+  });
+  container.appendChild(svg);
+
+  const title = svgEl('title');
+  title.textContent = `Game flow for ${data.awayTeam} at ${data.homeTeam}`;
+  svg.appendChild(title);
+
+  renderLegend(svg, data.homeTeam, data.awayTeam, homeStroke);
+
+  const plot = svgEl('g');
+  svg.appendChild(plot);
+
+  for (const goalTick of buildGoalTicks(Math.ceil(y.domain()[1] ?? maxGoals))) {
+    const yPos = y(goalTick);
+    renderAxisLine(plot, {
+      x1: MARGIN.left,
+      y1: yPos,
+      x2: MARGIN.left + innerWidth,
+      y2: yPos,
+      stroke: theme.border,
+      'stroke-width': 1,
+    });
+    appendSvgText(
+      plot,
+      {
+        x: MARGIN.left - 10,
+        y: yPos + 4,
+        'text-anchor': 'end',
+        fill: theme.muted,
+        'font-size': 11,
+      },
+      String(goalTick),
     );
   }
 
-  const points: Point[] = [{ x: 0, goals: 0 }];
-  let runningTotal = 0;
-  for (let periodNumber = 1; periodNumber <= maxPeriod; periodNumber += 1) {
-    runningTotal += totalsByPeriod.get(periodNumber) ?? 0;
-    points.push({ x: periodNumber, goals: runningTotal });
+  renderAxisLine(plot, {
+    x1: MARGIN.left,
+    y1: MARGIN.top,
+    x2: MARGIN.left,
+    y2: MARGIN.top + innerHeight,
+    stroke: theme.fg,
+    'stroke-width': 1,
+  });
+  renderAxisLine(plot, {
+    x1: MARGIN.left,
+    y1: MARGIN.top + innerHeight,
+    x2: MARGIN.left + innerWidth,
+    y2: MARGIN.top + innerHeight,
+    stroke: theme.fg,
+    'stroke-width': 1,
+  });
+
+  for (let period = 1; period <= maxPeriod; period += 1) {
+    const xPos = x(period);
+    renderAxisLine(plot, {
+      x1: xPos,
+      y1: MARGIN.top + innerHeight,
+      x2: xPos,
+      y2: MARGIN.top + innerHeight + 6,
+      stroke: theme.fg,
+      'stroke-width': 1,
+    });
+    appendSvgText(
+      plot,
+      {
+        x: xPos,
+        y: MARGIN.top + innerHeight + 20,
+        'text-anchor': 'middle',
+        fill: theme.muted,
+        'font-size': 11,
+      },
+      String(period),
+    );
   }
 
-  return points;
-}
-
-function tickLabel(periodNumber: number): string {
-  if (periodNumber === 0) return 'Start';
-  return periodLabel(periodNumber);
-}
-
-export function renderGameFlow(
-  container: HTMLElement,
-  periods: Period[],
-  homeTeam: TeamRef,
-  awayTeam: TeamRef,
-): void {
-  while (container.firstChild) container.removeChild(container.firstChild);
-  if (periods.length === 0) return;
-
-  const heading = document.createElement('h2');
-  heading.textContent = 'Game Flow';
-  container.appendChild(heading);
-
-  const chartHost = document.createElement('div');
-  chartHost.className = 'chart-slot';
-  chartHost.dataset['chart'] = 'gameFlow';
-  container.appendChild(chartHost);
-
-  const theme = readTheme();
-  const width = Math.max(container.clientWidth || 0, 320);
-  const maxPeriod = getMaxPeriod(periods);
-  const homeSeries = buildCumulativeSeries(periods, homeTeam.id, maxPeriod);
-  const awaySeries = buildCumulativeSeries(periods, awayTeam.id, maxPeriod);
-  const homeFinal = homeSeries[homeSeries.length - 1]?.goals ?? 0;
-  const awayFinal = awaySeries[awaySeries.length - 1]?.goals ?? 0;
-  const maxGoals = Math.max(homeFinal, awayFinal);
-
-  const { svg, inner, innerWidth, innerHeight } = createResponsiveSvg(
-    chartHost,
-    width,
-    HEIGHT,
-    MARGIN,
-  );
-
-  svg.attr('aria-label', `Game flow: ${awayTeam.name} ${awayFinal}, ${homeTeam.name} ${homeFinal}`);
-  svg.append('title').text(`Game flow: ${awayTeam.name} ${awayFinal}, ${homeTeam.name} ${homeFinal}`);
-
-  const x = scaleLinear().domain([0, maxPeriod]).range([0, innerWidth]);
-  const y = scaleLinear()
-    .domain([0, Math.max(1, maxGoals + 1)])
-    .range([innerHeight, 0]);
-
-  for (let boundary = 1; boundary < maxPeriod; boundary += 1) {
-    inner
-      .append('line')
-      .attr('x1', x(boundary))
-      .attr('x2', x(boundary))
-      .attr('y1', 0)
-      .attr('y2', innerHeight)
-      .attr('stroke', theme.border)
-      .attr('stroke-dasharray', '4 4');
-  }
-
-  const lineGenerator = line<Point>()
-    .x((point) => x(point.x))
+  const lineGenerator = line<SeriesPoint>()
+    .x((point) => x(point.period))
     .y((point) => y(point.goals))
     .curve(curveStepAfter);
 
-  inner
-    .append('path')
-    .attr('d', lineGenerator(homeSeries) ?? '')
-    .attr('fill', 'none')
-    .attr('stroke', HOME_COLOR)
-    .attr('stroke-width', 3)
-    .attr('stroke-linejoin', 'round')
-    .attr('stroke-linecap', 'round');
+  const series = [
+    { name: data.homeTeam, color: homeStroke, points: homeSeries, key: 'home' },
+    { name: data.awayTeam, color: AWAY_COLOR, points: awaySeries, key: 'away' },
+  ] as const;
 
-  inner
-    .append('path')
-    .attr('d', lineGenerator(awaySeries) ?? '')
-    .attr('fill', 'none')
-    .attr('stroke', AWAY_COLOR)
-    .attr('stroke-width', 3)
-    .attr('stroke-linejoin', 'round')
-    .attr('stroke-linecap', 'round');
+  for (const entry of series) {
+    const path = svgEl('path');
+    setAttrs(path, {
+      d: lineGenerator(entry.points) ?? '',
+      fill: 'none',
+      stroke: entry.color,
+      'stroke-width': 3,
+      'stroke-linejoin': 'round',
+      'stroke-linecap': 'round',
+      class: `game-flow-line game-flow-line--${entry.key}`,
+    });
+    plot.appendChild(path);
 
-  const finalLabels = [
-    { team: homeTeam, score: homeFinal, color: HOME_COLOR, yOffset: homeFinal === awayFinal ? -10 : 0 },
-    { team: awayTeam, score: awayFinal, color: AWAY_COLOR, yOffset: homeFinal === awayFinal ? 12 : 0 },
-  ];
-
-  for (const label of finalLabels) {
-    inner
-      .append('text')
-      .attr('x', x(maxPeriod) + 8)
-      .attr('y', y(label.score) + label.yOffset)
-      .attr('dy', '0.32em')
-      .attr('fill', label.color)
-      .style('font-size', '12px')
-      .style('font-weight', '600')
-      .text(`${label.team.name} ${label.score}`);
+    for (const point of entry.points) {
+      const circle = svgEl('circle');
+      setAttrs(circle, {
+        cx: x(point.period),
+        cy: y(point.goals),
+        r: 4,
+        fill: entry.color,
+        class: `game-flow-point game-flow-point--${entry.key}`,
+        'data-period': point.period,
+      });
+      plot.appendChild(circle);
+    }
   }
 
-  const xAxis = inner
-    .append('g')
-    .attr('transform', `translate(0,${innerHeight})`)
-    .call(
-      axisBottom(x)
-        .tickValues(Array.from({ length: maxPeriod + 1 }, (_, index) => index))
-        .tickFormat((value) => tickLabel(Number(value))),
-    );
-  xAxis.selectAll('text').attr('fill', theme.fg);
-  xAxis.selectAll('path,line').attr('stroke', theme.border);
-
-  const yAxis = inner
-    .append('g')
-    .call(
-      axisLeft(y)
-        .ticks(Math.min(6, maxGoals + 1))
-        .tickFormat((value) => String(Math.round(Number(value)))),
-    );
-  yAxis.selectAll('text').attr('fill', theme.fg);
-  yAxis.selectAll('path,line').attr('stroke', theme.border);
-
-  svg
-    .append('text')
-    .attr('x', MARGIN.left + innerWidth / 2)
-    .attr('y', HEIGHT - 8)
-    .attr('text-anchor', 'middle')
-    .attr('fill', theme.muted)
-    .text('Period');
-
-  svg
-    .append('text')
-    .attr('transform', `translate(14,${MARGIN.top + innerHeight / 2}) rotate(-90)`)
-    .attr('text-anchor', 'middle')
-    .attr('fill', theme.muted)
-    .text('Cumulative Goals');
+  appendSvgText(
+    svg,
+    {
+      x: MARGIN.left + innerWidth / 2,
+      y: HEIGHT - 10,
+      'text-anchor': 'middle',
+      fill: theme.muted,
+      'font-size': 12,
+    },
+    'Period',
+  );
+  appendSvgText(
+    svg,
+    {
+      x: 18,
+      y: MARGIN.top + innerHeight / 2,
+      transform: `rotate(-90 18 ${MARGIN.top + innerHeight / 2})`,
+      'text-anchor': 'middle',
+      fill: theme.muted,
+      'font-size': 12,
+    },
+    'Goals',
+  );
 }
