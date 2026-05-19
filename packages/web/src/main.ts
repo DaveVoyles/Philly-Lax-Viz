@@ -1,6 +1,10 @@
 import { onRoute, startRouter, type RouteMatch } from './router.js';
 import { mountSearchBox } from './components/searchBox.js';
+import { setCanonicalUrl } from './util/ogMeta.js';
+import { setPageTitle } from './util/pageTitle.js';
+import { clearJsonLd } from './util/jsonLd.js';
 import { IS_STATIC } from './staticLoader.js';
+import './styles/responsive.css';
 
 // W18 Lane A (Han) — proposal 04: every view module is now lazy-loaded so the
 // entry chunk only carries the router, shell, and search box. Each route's
@@ -193,6 +197,40 @@ function hideSpinner(main: HTMLElement): void {
 let currentDestroy: (() => void) | null = null;
 let navToken = 0;
 
+const ROUTE_TITLES: Partial<Record<RouteName, string>> = {
+  dashboard: 'Dashboard',
+  teamDetail: 'Team Stats',
+  gameDetail: 'Game Detail',
+  gameScrubber: 'Game Scrubber',
+  playerDetail: 'Player Stats',
+  comparePlayers: 'Compare Players',
+  dataQuality: 'Data Quality',
+  leaders: 'Stat Leaders',
+  topTeams: 'Top Teams',
+  anomalies: 'Anomalies',
+  graph: 'Team Connections',
+  constellation: 'Player Map',
+  h2h: 'Compare Teams',
+  schedule: 'Schedule',
+  sources: 'Sources',
+  status: 'Site Status',
+  coachDashboard: 'Coach Dashboard',
+  coachUpload: 'Coach Upload',
+  adminCorrections: 'Admin Corrections',
+  adminDedup: 'Admin Dedup',
+  adminHudl: 'Admin Hudl',
+};
+
+function applyRouteSeo(match: RouteMatch): void {
+  clearJsonLd();
+  setCanonicalUrl(window.location.href);
+  if (match.name === 'notFound') {
+    setPageTitle('Not found');
+    return;
+  }
+  setPageTitle(ROUTE_TITLES[match.name]);
+}
+
 async function dispatch(main: HTMLElement, match: RouteMatch): Promise<void> {
   const myToken = ++navToken;
   // Tear down any active GPU/pixi/scrubber resources from the previous view
@@ -262,6 +300,7 @@ function boot(): void {
 
   onRoute((match) => {
     setActive(match.name);
+    applyRouteSeo(match);
     void dispatch(main, match);
   });
   startRouter();
@@ -271,3 +310,7 @@ function boot(): void {
 }
 
 boot();
+
+if ('serviceWorker' in navigator) {
+  void navigator.serviceWorker.register('/sw.js').catch(() => {});
+}

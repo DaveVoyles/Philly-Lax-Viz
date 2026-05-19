@@ -26,7 +26,9 @@ import { renderProvenanceBadge } from '../components/provenanceBadge.js';
 import { renderPiaaBadge, piaaBadgeTooltip } from '../components/piaaBadge.js';
 import { ensureGlossaryCss, glossaryIcon } from '../util/glossary.js';
 import { wrapResponsive } from '../util/responsiveTable.js';
+import { injectJsonLd, teamJsonLd } from '../util/jsonLd.js';
 import { setOgMeta } from '../util/ogMeta.js';
+import { setPageTitle } from '../util/pageTitle.js';
 import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 import { buildStreakChip, ensureStreakChipStyles } from '../util/streakChip.js';
 
@@ -86,12 +88,20 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   }
   status.remove();
 
+  setPageTitle(`${detail.team.name} Stats`);
   setOgMeta({
     title: `${detail.team.name} Stats | PhillyLaxStats`,
     description: `${formatRecord(detail.record)} record, game log, and roster details for ${detail.team.name}.`,
     image: detail.team.logoUrl ?? undefined,
     url: window.location.href,
   });
+  injectJsonLd(
+    teamJsonLd({
+      name: detail.team.name,
+      id: String(detail.team.id),
+      record: formatRecord(detail.record),
+    }),
+  );
 
   const teamId = detail.team.id;
   const seasonRecord = teams.find((team) => team.id === teamId);

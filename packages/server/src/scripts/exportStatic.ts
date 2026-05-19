@@ -35,6 +35,7 @@ import { groupByDate, listScheduleGames, listUpcomingForTeam } from '../queries/
 import { getStatements } from '../queries/statements.js';
 import { computeStreaks } from '../queries/teamStreak.js';
 import { buildPlayerDetail, buildPlayerMilestones } from '../routes/players.js';
+import { generateSitemap } from './generateSitemap.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../');
 const DEFAULT_OUT_DIR = path.join(REPO_ROOT, 'packages', 'web', 'public', 'data');
@@ -808,6 +809,10 @@ function main(): void {
     writeFileSync(file.path, JSON.stringify(file.data, null, 2));
   }
   db.close();
+  generateSitemap({
+    dbPath: DB_PATH,
+    outputPath: path.join(path.dirname(outDir), 'sitemap.xml'),
+  });
 }
 
 main();

@@ -16,7 +16,9 @@ import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderAnomalyBanner } from '../components/anomalyBanner.js';
 import { openCorrectionModal, type CorrectionTarget } from '../components/correctionModal.js';
 import { renderConfidenceBadge } from '../util/confidence.js';
+import { gameJsonLd, injectJsonLd } from '../util/jsonLd.js';
 import { setOgMeta } from '../util/ogMeta.js';
+import { setPageTitle } from '../util/pageTitle.js';
 import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
@@ -68,13 +70,23 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
 
   const homeName = homeTeam?.name ?? `Team #${game.homeTeamId}`;
   const awayName = awayTeam?.name ?? `Team #${game.awayTeamId}`;
-  const scoreLabel = game.postponed ? 'Postponed' : `${game.homeScore}-${game.awayScore}`;
+  const scoreLabel = game.postponed ? 'Postponed' : `${awayName} ${game.awayScore} - ${game.homeScore} ${homeName}`;
+  setPageTitle(`${awayName} vs ${homeName}`);
   setOgMeta({
-    title: `${homeName} vs ${awayName} - ${scoreLabel} | PhillyLaxStats`,
-    description: `${formatDate(game.date)} - ${awayName} at ${homeName}.`,
+    title: `${awayName} vs ${homeName} | PhillyLaxStats`,
+    description: `${formatDate(game.date)} - ${scoreLabel}.`,
     image: game.imageUrl ?? homeTeam?.logoUrl ?? awayTeam?.logoUrl ?? undefined,
     url: window.location.href,
   });
+  injectJsonLd(
+    gameJsonLd({
+      id: String(game.id),
+      homeTeam: homeName,
+      awayTeam: awayName,
+      date: game.date,
+      score: scoreLabel,
+    }),
+  );
   const homeLogo = homeTeam?.logoUrl ?? null;
   const awayLogo = awayTeam?.logoUrl ?? null;
 

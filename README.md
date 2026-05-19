@@ -1,6 +1,6 @@
 # Philly Lacrosse Vis 🥍
 
-**[👉 View the live site](https://davevoyles.github.io/Philly-Lax-Viz/)**
+**[👉 View the live site](https://phillylaxstats.com/)**
 
 > Data refreshes every night. All charts, leaderboards, and stats are available. PWA-installable on desktop and mobile.
 
@@ -13,8 +13,8 @@ coach spreadsheet upload (`#/coach/upload`), community corrections review (`#/ad
 Hudl team management (`#/admin/hudl`), and live data-quality diagnostics. It is **not** the primary
 user-facing site.
 
-The primary user-facing deployment is **GitHub Pages** (linked above). It uses pre-exported static JSON
-and requires no live server.
+The primary user-facing deployment is **GitHub Pages** at `https://phillylaxstats.com/`. It uses pre-exported static JSON,
+plus `robots.txt` and `sitemap.xml`, and requires no live server.
 
 </details>
 
@@ -71,6 +71,7 @@ Useful one-offs:
 pnpm -r typecheck     # strict TS across all packages
 pnpm -r test          # vitest across all packages
 pnpm --filter @pll/web build
+pnpm --filter @pll/server exec tsx src/scripts/generateSitemap.ts  # refresh packages/web/public/sitemap.xml
 pnpm --filter @pll/ingest sync:hudl -- --headed      # inspect Hudl selectors with a visible browser
 pnpm --filter @pll/ingest sync:hudl -- --dry-run     # scrape Hudl without DB writes
 pnpm --filter @pll/ingest sync:hudl -- --all --db=data/lacrosse.db  # sync all active managed Hudl teams

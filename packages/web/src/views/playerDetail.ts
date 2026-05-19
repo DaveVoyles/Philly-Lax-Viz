@@ -14,8 +14,11 @@ import { isOutlier } from '../util/zscore.js';
 import { renderPerGameTrend } from '../charts/index.js';
 import type { PerGameTrendDatum } from '../charts/index.js';
 import { openCorrectionModal, type CorrectionTarget } from '../components/correctionModal.js';
+import { injectJsonLd, playerJsonLd } from '../util/jsonLd.js';
 import { setOgMeta } from '../util/ogMeta.js';
+import { setPageTitle } from '../util/pageTitle.js';
 import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
+import { wrapResponsive } from '../util/responsiveTable.js';
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
   ensureShareCss();
@@ -66,12 +69,20 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   }
   status.remove();
 
+  setPageTitle(detail.player.name);
   setOgMeta({
-    title: `${detail.player.name} - ${detail.team?.name ?? 'Unknown Team'} | PhillyLaxStats`,
+    title: `${detail.player.name} | PhillyLaxStats`,
     description: `Season stats for ${detail.player.name}${detail.team ? ` from ${detail.team.name}` : ''}.`,
     image: detail.team?.logoUrl ?? undefined,
     url: window.location.href,
   });
+  injectJsonLd(
+    playerJsonLd({
+      name: detail.player.name,
+      id: String(detail.player.id),
+      teamName: detail.team?.name ?? undefined,
+    }),
+  );
 
   const headingWrap = document.createElement('div');
   headingWrap.style.cssText = 'display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;';
@@ -334,7 +345,7 @@ function buildPerGameTable(stats: PlayerPerGameStat[], playerName: string): HTML
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
-  return table;
+  return wrapResponsive(table);
 }
 
 function createPlayerStatCell(

@@ -590,7 +590,7 @@ function buildPiaaLegend(): HTMLElement {
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
-  details.appendChild(table);
+  details.appendChild(wrapResponsive(table));
 
   // Gap number legend
   const gapHeading = document.createElement('p');
@@ -622,7 +622,7 @@ function buildPiaaLegend(): HTMLElement {
     gapTbody.appendChild(tr);
   }
   gapTable.appendChild(gapTbody);
-  details.appendChild(gapTable);
+  details.appendChild(wrapResponsive(gapTable));
 
   return details;
 }

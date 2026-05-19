@@ -24,6 +24,18 @@ function normalizeUrl(value: string | undefined): string | undefined {
   }
 }
 
+export function setCanonicalUrl(value: string | undefined): void {
+  const url = normalizeUrl(value ?? window.location.href);
+  if (!url) return;
+  let link = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'canonical';
+    document.head.appendChild(link);
+  }
+  link.href = url;
+}
+
 export function setOgMeta(opts: OgMetaOptions): void {
   document.title = opts.title;
 
@@ -41,6 +53,7 @@ export function setOgMeta(opts: OgMetaOptions): void {
 
   if (url) {
     ensureMeta('meta[property="og:url"]', { property: 'og:url' }).content = url;
+    setCanonicalUrl(url);
   }
 
   const ogImage = ensureMeta('meta[property="og:image"]', { property: 'og:image' });

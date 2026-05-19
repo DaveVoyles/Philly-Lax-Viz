@@ -1,0 +1,50 @@
+/* Mobile-first responsive utilities */
+.table-responsive,
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 768px) {
+  .card-grid,
+  .stat-cards,
+  .dashboard-cards,
+  .top-teams-grid,
+  .team-grid,
+  .callout-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .top-team-card--rank-1 {
+    grid-column: auto !important;
+  }
+
+  .top-team-card {
+    min-height: 0;
+    padding: 1rem;
+  }
+
+  nav {
+    flex-wrap: wrap;
+  }
+
+  .hide-mobile,
+  .col-secondary {
+    display: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+}
