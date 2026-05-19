@@ -196,15 +196,22 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   hero.appendChild(titleBlock);
 
   // Pie chart (season record) in top-right of hero banner
+  const heroPieWrap = document.createElement('div');
+  heroPieWrap.style.cssText = 'margin-left:auto; flex:0 0 auto; max-width:220px; text-align:center;';
+  const heroPieLabel = document.createElement('span');
+  heroPieLabel.className = 'muted';
+  heroPieLabel.style.cssText = 'font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em;';
+  heroPieLabel.textContent = 'Season Record';
+  heroPieWrap.appendChild(heroPieLabel);
   const heroPieSlot = document.createElement('div');
   heroPieSlot.dataset['chart'] = 'seasonRecord';
   heroPieSlot.className = 'chart-slot';
-  heroPieSlot.style.cssText = 'margin-left:auto; flex:0 0 auto; max-width:180px;';
   observeChartReveal(heroPieSlot);
   if (detail.record.wins + detail.record.losses + detail.record.ties > 0) {
     trackChart(renderSeasonRecord(heroPieSlot, detail.record));
   }
-  hero.appendChild(heroPieSlot);
+  heroPieWrap.appendChild(heroPieSlot);
+  hero.appendChild(heroPieWrap);
 
   root.appendChild(hero);
   initShareButtons();
@@ -403,41 +410,8 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     }
   }
 
-  const arcGames: SeasonArcDatum[] = detail.games
-    .filter((g) => !g.postponed && g.homeScore !== null && g.awayScore !== null)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .map((g) => {
-      const isHome = g.homeTeamId === teamId;
-      const gf = isHome ? g.homeScore! : g.awayScore!;
-      const ga = isHome ? g.awayScore! : g.homeScore!;
-      const result = gf > ga ? 'win' : gf < ga ? 'loss' : 'tie';
-      const opponentId = isHome ? g.awayTeamId : g.homeTeamId;
-      return {
-        gameId: g.id,
-        date: g.date,
-        opponent: teamsById.get(opponentId) ?? 'Unknown opponent',
-        result,
-        goalsFor: gf,
-        goalsAgainst: ga,
-      };
-    });
-
-  if (arcGames.length >= 3) {
-    const arcSection = document.createElement('div');
-    arcSection.style.cssText = 'margin:1rem 0;';
-    const arcHeader = document.createElement('h3');
-    arcHeader.textContent = 'Season Momentum';
-    arcHeader.style.cssText = 'margin:0 0 0.5rem; font-size:0.95rem;';
-    arcSection.appendChild(arcHeader);
-    const arcHost = document.createElement('div');
-    arcHost.style.cssText = 'width:100%; max-width:700px;';
-    arcSection.appendChild(arcHost);
-    root.appendChild(arcSection);
-    trackChart(renderSeasonArc(arcHost, arcGames));
-  }
-
   // Team Strength section — radar chart with visible stats table beside it.
-  // Placed after PIAA validation / coverage note and before Season Momentum.
+  // Placed directly after PIAA validation / coverage note, before Season Momentum.
   const focalRow = teams.find((t) => t.id === teamId) ?? null;
   if (focalRow) {
     const population: TeamLike[] = teams
@@ -468,6 +442,10 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
         opponents,
       };
       trackChart(renderTeamRadarChart(radarHost, radarData, { width: 240, height: 240 }));
+
+      // Hide the redundant radar summary paragraph
+      const radarSummary = radarHost.querySelector('.team-radar-summary');
+      if (radarSummary) (radarSummary as HTMLElement).style.display = 'none';
 
       // Visible stats table beside the radar
       const tableWrap = document.createElement('div');
@@ -511,6 +489,40 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       strengthSection.appendChild(tableWrap);
       root.appendChild(strengthSection);
     }
+  }
+
+  // Season Momentum arc chart (after Team Strength)
+  const arcGames: SeasonArcDatum[] = detail.games
+    .filter((g) => !g.postponed && g.homeScore !== null && g.awayScore !== null)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map((g) => {
+      const isHome = g.homeTeamId === teamId;
+      const gf = isHome ? g.homeScore! : g.awayScore!;
+      const ga = isHome ? g.awayScore! : g.homeScore!;
+      const result = gf > ga ? 'win' : gf < ga ? 'loss' : 'tie';
+      const opponentId = isHome ? g.awayTeamId : g.homeTeamId;
+      return {
+        gameId: g.id,
+        date: g.date,
+        opponent: teamsById.get(opponentId) ?? 'Unknown opponent',
+        result,
+        goalsFor: gf,
+        goalsAgainst: ga,
+      };
+    });
+
+  if (arcGames.length >= 3) {
+    const arcSection = document.createElement('div');
+    arcSection.style.cssText = 'margin:1rem 0;';
+    const arcHeader = document.createElement('h3');
+    arcHeader.textContent = 'Season Momentum';
+    arcHeader.style.cssText = 'margin:0 0 0.5rem; font-size:0.95rem;';
+    arcSection.appendChild(arcHeader);
+    const arcHost = document.createElement('div');
+    arcHost.style.cssText = 'width:100%; max-width:700px;';
+    arcSection.appendChild(arcHost);
+    root.appendChild(arcSection);
+    trackChart(renderSeasonArc(arcHost, arcGames));
   }
 
   const topScorersHeader = document.createElement('h2');
