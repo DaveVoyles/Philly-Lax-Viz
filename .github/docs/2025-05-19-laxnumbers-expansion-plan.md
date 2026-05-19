@@ -26,9 +26,40 @@
 
 1. **Score-only data** — LaxNumbers scoreboard API only returns team names + final scores. No player stats (goals, assists, etc.).
 2. **Alias coverage gaps** — ~15-20 team names remain unresolved (stored in `ingest_anomalies`).
-3. **No automation** — LaxNumbers ingest runs manually (`pnpm ingest --source=laxnumbers --since=X --until=Y --apply`).
-4. **No per-game player stats** — LaxNumbers does have individual game pages with box scores (`phillylaxnumbers.com/games/{id}`) but we haven't built a parser for those.
-5. **Single scoreboard** — Hardcoded to scoreboard 3453 (PA Boys HS). No expansion to other states/levels.
+3. **No per-game player stats** — LaxNumbers does NOT have individual game box scores. It tracks career totals only. Per-game stats must come from Hudl or coach uploads.
+4. **Single scoreboard** — Hardcoded to scoreboard 3453 (PA Boys HS). No expansion to other states/levels.
+
+### 2026-05-19 Research findings (from live site inspection)
+
+**URL patterns discovered:**
+
+| Resource | URL pattern | Example |
+|----------|-------------|---------|
+| Team page (schedule + scores) | `/team_info.php?y={year}&t={team_id}` | `?y=2026&t=13039` (Harriton) |
+| Conference ratings | `/ratings.php?y={year}&v={view_id}` | `?y=2026&v=3454` (PA East) |
+| Conference scoreboard | `/scoreboard/{view_id}` | `/scoreboard/3454` |
+| Career player records | `/ratings.php?y={year}&v={view_id}&mode=player-stats` | Career points leaders |
+| Score correction form | `/fix_score.php?g={game_id}` | `?g=34370` (score report only, not box score) |
+
+**Key IDs:**
+
+| Entity | LaxNumbers ID |
+|--------|--------------|
+| Harriton | `t=13039` |
+| PA East conference | `v=3454` |
+| IAC/Private schools | `v=3468` |
+| PA Boys HS scoreboard | `3453` |
+
+**What IS available:**
+- Team schedules with game scores + game IDs (from `/fix_score.php?g=` links)
+- Conference/region team ratings (Rating, AGD, SCHED)
+- Career player stats (aggregated: Points, Goals, Assists, FOW, Saves)
+- Team metadata (mascot, head coach, record, divisions, social links)
+
+**What is NOT available:**
+- Per-game player box scores (no individual game pages exist — 404)
+- Per-team seasonal player stats (mode=player-stats on team page doesn't add player data)
+- Per-game breakdown of any kind beyond the final score
 
 ---
 
@@ -37,8 +68,14 @@
 ### Goal A: Automate daily score ingest (quick win)
 Add LaxNumbers to the nightly CI pipeline so scores flow in automatically.
 
-### Goal B: Per-game player stats (major expansion)
-Scrape individual game pages for box-score data (goals, assists, ground balls, etc.) per player.
+### Goal B: ~~Per-game player stats~~ → Team ratings + career stats import
+
+**REVISED (2026-05-19):** Per-game player stats do NOT exist on LaxNumbers. The site only tracks game scores and career stat totals. Instead, Goal B pivots to:
+
+1. **Import team ratings** — scrape conference ratings pages for team Rating, AGD, and SCHED values
+2. **Import career player records** — scrape career leaders from `/ratings.php?mode=player-stats`
+3. **Map LaxNumbers team IDs** — store `laxnumbers_team_id` for each team to enable deep-linking
+4. **Per-game stats source** — remains Hudl + coach uploads + phillylacrosse.com RSS
 
 ### Goal C: Improve alias coverage (ongoing)
 Reduce unknown-team anomalies from ~15-20 to <5 via automated fuzzy matching + admin review UI.
@@ -66,71 +103,61 @@ Reduce unknown-team anomalies from ~15-20 to <5 via automated fuzzy matching + a
 
 ---
 
-## 4. Architecture — Goal B (Per-Game Player Stats)
+## 4. Architecture — Goal B (Team Ratings + Career Stats)
 
-**Effort:** M (2-3 waves, ~8 lanes)
+**Effort:** S-M (1-2 waves)
 
-### Data source analysis
+### Data available from live site research
 
-LaxNumbers game pages at `https://phillylaxnumbers.com/games/{game_id}` contain:
-- Home/away team names
-- Per-player: goals, assists, ground balls, caused turnovers, saves, faceoff won/taken
-- This is the SAME stat set we already track in `player_stats`
+LaxNumbers does **NOT** have per-game box scores. The `/fix_score.php?g={id}` links are for score correction reporting only — hitting the game_id directly (e.g., `/game_info.php?g=34370`) returns 404.
 
-**Key questions:**
-1. How do we discover game IDs? → The scoreboard API likely returns them (needs investigation).
-2. How do we match LaxNumbers players to our `players` table? → Fuzzy name matching + `player_aliases` table.
-3. Rate limiting? → Probably need 1-2s delay between requests.
+**What we CAN scrape:**
+
+1. **Team ratings** from `/ratings.php?y=2026&v=3454` — includes Rating, AGD, SCHED per team
+2. **Career player records** from `/ratings.php?y=2026&v=3454&mode=player-stats` — Points, Goals, Assists, FOW, Saves
+3. **Team metadata** from `/team_info.php?y=2026&t={id}` — mascot, coach, record, divisions
 
 ### Proposed architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    LaxNumbers Player Stats Pipeline                  │
+│                LaxNumbers Team Ratings Pipeline                       │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  1. Scoreboard API → fetch game IDs for date range                  │
-│     (extend existing LaxRawGame type to capture game_id)            │
+│  1. Fetch conference ratings page(s):                               │
+│     GET /ratings.php?y=2026&v=3454 (PA East)                        │
+│     GET /ratings.php?y=2026&v=3468 (IAC/Private)                    │
 │                                                                     │
-│  2. For each game_id where both teams resolve:                      │
-│     GET https://phillylaxnumbers.com/games/{id}                     │
-│     → Parse HTML box score OR discover JSON API endpoint            │
+│  2. Parse HTML table → team name, rating, AGD, SCHED, record        │
+│     Extract team_id from links (/team_info.php?t={id})              │
 │                                                                     │
-│  3. Resolve players via player_aliases + fuzzy matching             │
-│     → Create new players if confidence > threshold                  │
-│     → Store anomalies if unresolved                                 │
+│  3. Resolve team names to our teams table                           │
+│     Store laxnumbers_team_id for future deep-linking                │
 │                                                                     │
-│  4. Write to player_stats with source='laxnumbers'                  │
-│     → Additive only: don't overwrite existing coach_upload/summary  │
-│     → Migration: add laxnumbers_game_id to player_stats?            │
+│  4. Upsert team ratings into rankings or a new ratings table        │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### New components needed
+### Migration needed
 
-| Component | Description |
-|-----------|-------------|
-| `parsers/laxnumbersBoxScore.ts` | HTML or JSON parser for individual game pages |
-| `pipelines/laxnumbersStats.ts` | Orchestrates: fetch game IDs → fetch box scores → resolve players → write stats |
-| `playerResolver.ts` (or extend teamResolver) | Fuzzy match LaxNumbers player names to `players` rows |
-| Migration 022 | Add `laxnumbers_game_id TEXT` column to `games` table for dedup |
-| `player_aliases` seeding | Script to seed player aliases from initial LaxNumbers scrape |
+```sql
+ALTER TABLE teams ADD COLUMN laxnumbers_team_id INTEGER;
+-- Or a separate laxnumbers_ratings table for time-series tracking
+```
 
-### Player resolution strategy
+### Per-game player stats — alternative sources
 
-1. **Exact match:** Normalize both names (lowercase, strip suffixes like "Jr.", collapse whitespace) and match against `players.name_normalized` WHERE `team_id` = resolved team.
-2. **Fuzzy match:** If no exact match, use Levenshtein distance (already implemented in `emitLaxNumbersAliasCsv.ts`). Accept if distance <= 2 AND only one candidate.
-3. **Create new:** If team is resolved but player is unknown AND we have high confidence (e.g., name appears in multiple games), create the player.
-4. **Skip + anomaly:** If ambiguous, store in `ingest_anomalies` for manual review.
+Since LaxNumbers doesn't provide per-game stats, the sources are:
+- **phillylacrosse.com RSS** — game summaries with top scorers (current primary)
+- **Coach uploads** — spreadsheet upload via the coach dashboard
+- **Hudl** — authenticated scraper for per-game stats (requires coach invitation)
 
 ### Authority precedence for stats
 
 ```
 coach_upload > phillylacrosse (summary parser) > laxnumbers > hudl
 ```
-
-If a `player_stats` row already exists for (game_id, player_id) with source != 'laxnumbers', do NOT overwrite.
 
 ### Rate limiting & politeness
 
@@ -175,25 +202,28 @@ Unknown team in LaxNumbers → ingest_anomalies → emitLaxNumbersAliasCsv.ts �
 
 ## 6. Implementation Phases
 
-### Phase 1 — Quick Wins (do now)
-- [ ] Add LaxNumbers to nightly CI (`ingest-nightly.yml`)
-- [ ] Auto-resolve Levenshtein-1 aliases (update `seedAliasesFromAnomalies.ts`)
+### Phase 1 — Quick Wins ✅ DONE
+- [x] Add LaxNumbers to nightly CI (`ingest-nightly.yml`) — already existed
+- [x] Auto-resolve Levenshtein-1 aliases (update `seedAliasesFromAnomalies.ts`)
 
-### Phase 2 — Game ID Discovery (research)
-- [ ] Investigate LaxNumbers scoreboard API for game ID fields
-- [ ] Test `phillylaxnumbers.com/games/{id}` page structure
-- [ ] Determine if there's a JSON API endpoint for box scores
+### Phase 2 — Research ✅ DONE (2026-05-19)
+- [x] Investigated LaxNumbers site structure — team pages, ratings, player records
+- [x] Confirmed NO per-game box scores exist (game pages return 404)
+- [x] Discovered URL patterns, team IDs, conference view IDs
+- [x] Game IDs exist in `/fix_score.php?g=` links but only for score correction reporting
 
-### Phase 3 — Box Score Parser (implementation)
-- [ ] Build `parsers/laxnumbersBoxScore.ts` + tests with HTML fixtures
-- [ ] Build `pipelines/laxnumbersStats.ts`
-- [ ] Add migration for `games.laxnumbers_game_id`
-- [ ] Player resolution logic
+### Phase 3 — Team Ratings Import (next)
+- [ ] Build `parsers/laxnumbersRatings.ts` — scrape conference ratings tables
+- [ ] Build `pipelines/laxnumbersRatings.ts` — orchestrate fetch + parse + upsert
+- [ ] Add migration for `teams.laxnumbers_team_id`
+- [ ] Map our teams to LaxNumbers team IDs using name resolution
+- [ ] Add to nightly CI
 
-### Phase 4 — Integration & Nightly
-- [ ] Add to nightly CI with rate limiting
-- [ ] Admin alias review UI
-- [ ] Monitoring: anomaly count dashboard widget
+### Phase 4 — Career Player Records (optional)
+- [ ] Parse career leaders from `/ratings.php?mode=player-stats`
+- [ ] Match to our players via fuzzy name matching
+- [ ] Store career totals (could enrich player profiles on the web client)
+- [ ] Admin alias review UI for unresolved names
 
 ---
 
