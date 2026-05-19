@@ -38,6 +38,28 @@ svg {
   .col-secondary {
     display: none !important;
   }
+
+  /* Hype cards stack vertically on mobile */
+  .hype-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Leader panels stack on mobile */
+  .leader-panels {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Reduce section spacing on mobile */
+  .dashboard-section,
+  section {
+    margin-bottom: 1rem;
+  }
+
+  /* Compact chart sizing */
+  .margin-hist-section svg,
+  #season-calendar svg {
+    max-height: 200px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -47,4 +69,30 @@ svg {
 
   h1 { font-size: 1.5rem; }
   h2 { font-size: 1.25rem; }
+
+  /* Tighter padding on small screens */
+  .container {
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Team grid cards compact */
+  .team-grid li {
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Reduce hype card padding on mobile */
+  .hype-row a,
+  .hype-row canvas {
+    max-height: 180px;
+  }
+
+  /* Season selector compact */
+  .season-selector {
+    margin-bottom: 0.5rem !important;
+  }
+
+  /* Recent games list compact */
+  .recent-game-item {
+    padding: 0.5rem 0;
+  }
 }

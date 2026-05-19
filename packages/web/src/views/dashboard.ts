@@ -166,6 +166,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
 
   // Hype cards row — Team of the Week + Player of the Week, side by side
   const hypeRow = document.createElement('div');
+  hypeRow.className = 'hype-row';
   hypeRow.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0; align-items:stretch;';
   const teamHypeHost = document.createElement('div');
   teamHypeHost.id = 'team-hype-host';
@@ -253,7 +254,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   const panelsGrid = document.createElement('div');
   panelsGrid.className = 'leader-panels';
   panelsGrid.style.cssText =
-    'display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:1rem; margin-top:.5rem;';
+    'display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1rem; margin-top:.5rem;';
   leadersSection.appendChild(panelsGrid);
 
   const savesPanel = makeLeaderPanel('Save Leaders', 'Top goalies by total saves (min 3 games).');
@@ -267,7 +268,11 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
   panelsGrid.appendChild(gbPanel.wrap);
   root.appendChild(leadersSection);
 
+  // Token prevents stale async renders (double-call from initial load + season selector callback)
+  let loadToken = 0;
+
   async function loadSeasonData(season: string): Promise<void> {
+    const token = ++loadToken;
     for (const chart of dashboardCharts) chart.destroy();
     dashboardCharts = [];
     if (glowHandle) { glowHandle.destroy(); glowHandle = null; }
@@ -282,6 +287,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
     gbPanel.body.textContent = 'Loading…';
 
     await loadTeamsAndGames(teamsBody, gamesBody, marginChartDiv, lastUpdated, season, (teamById) => {
+      if (token !== loadToken) return;
       if (!shouldAutoRefreshRecentGames(season)) {
         liveIndicator.style.display = 'none';
         lastUpdated.textContent = '';
@@ -312,8 +318,11 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
       }
     });
 
+    if (token !== loadToken) return;
+
     void getGameCalendar({ season })
       .then((calDays) => {
+        if (token !== loadToken) return;
         if (calDays.length > 0) {
           const handle = renderCalendarHeatmap(calDiv, calDays);
           dashboardCharts.push(handle);
@@ -391,6 +400,8 @@ async function loadDashboardFreshness(target: HTMLElement): Promise<void> {
 async function loadHypeCard(host: HTMLElement, season: string): Promise<void> {
   try {
     const resp = await getPlayerLeaders({ metric: 'goals', limit: 1, minGames: 3, season });
+    // Guard: if the host was repopulated by a newer load, bail out
+    if (host.children.length > 0) return;
     const top = resp.rows[0];
     if (!top) return;
     const data: HypePlayerData = {
@@ -434,6 +445,8 @@ function teamLosses(t: TeamSeasonRecord): number {
 async function loadTeamHypeCard(host: HTMLElement, season: string): Promise<void> {
   try {
     const teams = await getTeams({ season });
+    // Guard: if the host was repopulated by a newer load, bail out
+    if (host.children.length > 0) return;
     if (!teams.length) return;
     // Find the team with the best win record (most wins, fewest losses as tiebreak)
     const ranked = teams
