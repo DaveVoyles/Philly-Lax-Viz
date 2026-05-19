@@ -15,7 +15,14 @@ import {
 import type { Game } from '@pll/shared';
 import { IS_STATIC, staticFetch } from '../staticLoader.js';
 import { formatDate, formatRecord } from '../util/format.js';
-import { renderSeasonRecord, renderTopScorers } from '../charts/index.js';
+import {
+  observeChartReveal,
+  renderSeasonArc,
+  renderSeasonRecord,
+  renderTopScorers,
+  type ChartHandle,
+  type SeasonArcDatum,
+} from '../charts/index.js';
 import { extractScoreTrend, renderTeamScoreTrend } from '../charts/teamScoreTrend.js';
 import {
   renderTeamRadarChart,
@@ -32,6 +39,22 @@ import { setPageMeta } from '../util/pageMeta.js';
 import { ensureShareCss, getShareButtonHtml, initShareButtons } from '../util/share.js';
 import { buildStreakChip, ensureStreakChipStyles } from '../util/streakChip.js';
 import { createAutoCounter } from '../components/animatedCounter.js';
+
+let activeChartHandles: ChartHandle[] = [];
+
+function destroyActiveCharts(): void {
+  for (const handle of activeChartHandles) handle.destroy();
+  activeChartHandles = [];
+}
+
+function trackChart<T extends ChartHandle>(handle: T): T {
+  activeChartHandles.push(handle);
+  return handle;
+}
+
+export function destroy(): void {
+  destroyActiveCharts();
+}
 
 function isValidHexColor(color: string | null | undefined): color is string {
   return !!color && /^#[0-9a-fA-F]{3,6}$/.test(color);
@@ -70,6 +93,7 @@ function buildNumericCallout(label: string, value: number, duration = 800): HTML
 }
 
 export function render(root: HTMLElement, params: Record<string, string>): void {
+  destroyActiveCharts();
   ensureShareCss();
   ensureGlossaryCss();
   ensureStreakChipStyles();
@@ -366,6 +390,39 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     }
   }
 
+  const arcGames: SeasonArcDatum[] = detail.games
+    .filter((g) => !g.postponed && g.homeScore !== null && g.awayScore !== null)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map((g) => {
+      const isHome = g.homeTeamId === teamId;
+      const gf = isHome ? g.homeScore! : g.awayScore!;
+      const ga = isHome ? g.awayScore! : g.homeScore!;
+      const result = gf > ga ? 'win' : gf < ga ? 'loss' : 'tie';
+      const opponentId = isHome ? g.awayTeamId : g.homeTeamId;
+      return {
+        gameId: g.id,
+        date: g.date,
+        opponent: teamsById.get(opponentId) ?? 'Unknown opponent',
+        result,
+        goalsFor: gf,
+        goalsAgainst: ga,
+      };
+    });
+
+  if (arcGames.length >= 3) {
+    const arcSection = document.createElement('div');
+    arcSection.style.cssText = 'margin:1rem 0;';
+    const arcHeader = document.createElement('h3');
+    arcHeader.textContent = 'Season Momentum';
+    arcHeader.style.cssText = 'margin:0 0 0.5rem; font-size:0.95rem;';
+    arcSection.appendChild(arcHeader);
+    const arcHost = document.createElement('div');
+    arcHost.style.cssText = 'width:100%; max-width:700px;';
+    arcSection.appendChild(arcHost);
+    root.appendChild(arcSection);
+    trackChart(renderSeasonArc(arcHost, arcGames));
+  }
+
   // Wrap pie chart + radar in a side-by-side row
   const chartsRow = document.createElement('div');
   chartsRow.style.cssText = 'display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; margin:1rem 0;';
@@ -374,9 +431,10 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   chartSlot.dataset['chart'] = 'seasonRecord';
   chartSlot.className = 'chart-slot';
   chartSlot.style.cssText = 'flex:1 1 200px; max-width:280px;';
+  observeChartReveal(chartSlot);
   chartsRow.appendChild(chartSlot);
   if (detail.record.wins + detail.record.losses + detail.record.ties > 0) {
-    renderSeasonRecord(chartSlot, detail.record);
+    trackChart(renderSeasonRecord(chartSlot, detail.record));
   }
 
   // RFC 05 — Team strength radar. Render beside the season record so
@@ -403,11 +461,11 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       radarHost.className = 'team-radar-host';
       radarWrap.appendChild(radarHost);
       chartsRow.appendChild(radarWrap);
-      renderTeamRadarChart(radarHost, {
+      trackChart(renderTeamRadarChart(radarHost, {
         team: toTeamLike(focalRow),
         population,
         opponents,
-      }, { width: 220, height: 220 });
+      }, { width: 220, height: 220 }));
     }
   }
 
@@ -426,6 +484,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   const topScorersSlot = document.createElement('div');
   topScorersSlot.dataset['chart'] = 'topScorers';
   topScorersSlot.className = 'chart-slot';
+  observeChartReveal(topScorersSlot);
   root.appendChild(topScorersSlot);
   void loadTopScorers(topScorersSlot, teamId);
 
@@ -463,7 +522,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     trendCanvas.className = 'team-score-trend';
     trendCanvas.dataset['chart'] = 'teamScoreTrend';
     root.appendChild(trendCanvas);
-    renderTeamScoreTrend(trendCanvas, trendPoints);
+    trackChart(renderTeamScoreTrend(trendCanvas, trendPoints));
   }
 
   root.appendChild(wrapResponsive(buildGamesTable(detail.games, teamId, teamsById)));
@@ -520,9 +579,12 @@ async function loadTopScorers(slot: HTMLElement, teamId: number): Promise<void> 
     slot.replaceChildren(p);
     return;
   }
-  renderTopScorers(
-    slot,
-    scorers.map((s) => ({ playerName: s.playerName, goals: s.goals, assists: s.assists })),
+  if (!slot.isConnected) return;
+  trackChart(
+    renderTopScorers(
+      slot,
+      scorers.map((s) => ({ playerName: s.playerName, goals: s.goals, assists: s.assists })),
+    ),
   );
 }
 

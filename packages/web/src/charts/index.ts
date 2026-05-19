@@ -7,6 +7,7 @@ export { renderSeasonRecord } from './seasonRecord.js';
 export { renderTopScorers } from './topScorers.js';
 export { renderPerGameTrend } from './perGameTrend.js';
 export { renderHorizontalLeaderboard } from './horizontalLeaderboard.js';
+export { renderSeasonArc } from './seasonArc.js';
 
 export type {
   ChartHandle,
@@ -22,4 +23,8 @@ export type {
   PerGameTrendOptions,
   HorizontalLeaderboardDatum,
   HorizontalLeaderboardOptions,
+  SeasonArcDatum,
+  SeasonArcOptions,
 } from './types.js';
+
+export { observeChartReveal } from './internal/chartReveal.js';

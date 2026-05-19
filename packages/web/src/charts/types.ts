@@ -85,3 +85,21 @@ export interface PerGameTrendOptions extends BaseChartOptions {
   lineColor: string;
   dotColor: string;
 }
+
+// ===== seasonArc =====
+export interface SeasonArcDatum {
+  gameId: number;
+  date: string;
+  opponent: string;
+  result: 'win' | 'loss' | 'tie';
+  goalsFor: number;
+  goalsAgainst: number;
+}
+
+export interface SeasonArcOptions extends BaseChartOptions {
+  winColor: string;
+  lossColor: string;
+  tieColor: string;
+  lineColor: string;
+  nodeRadius: number;
+}
