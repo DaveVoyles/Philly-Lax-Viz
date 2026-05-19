@@ -117,6 +117,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
 
   const h1 = document.createElement('h1');
   h1.textContent = 'Philly Lacrosse — Boys HS';
+  h1.style.margin = '0.54em 0';
   root.appendChild(h1);
 
   const sub = document.createElement('p');
