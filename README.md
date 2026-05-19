@@ -5,12 +5,14 @@
 > Data refreshes every night. All charts, leaderboards, and stats are available. PWA-installable on desktop and mobile.
 
 <details>
-<summary>Developer / admin deployment</summary>
+<summary>Developer / admin deployment (not user-facing)</summary>
 
-An Azure Static Web Apps instance also exists at
-[victorious-pond-0c5ff000f.7.azurestaticapps.net](https://victorious-pond-0c5ff000f.7.azurestaticapps.net)
-with a live Fastify API backend. It exposes the player dedup admin UI (`#/admin/dedup`)
-and the data-quality anomaly feed — both require a running server and are not intended for end users.
+An Azure Container App hosts a live Fastify API server with the SQLite DB mounted via Azure Files.
+This powers admin-only features: player dedup (`#/admin/dedup`), community corrections review
+(`#/admin/corrections`), and live data-quality diagnostics. It is **not** the primary user-facing site.
+
+The primary user-facing deployment is **GitHub Pages** (linked above). It uses pre-exported static JSON
+and requires no live server.
 
 </details>
 
@@ -92,6 +94,9 @@ pnpm --filter @pll/ingest apply:harriton-workbook -- --workbook='/Users/.../HHS 
 ```
                            ┌────────────────────────────┐
                            │     phillylacrosse.com     │
+                           │     piaad1.org             │
+                           │     maxpreps.com (logos)   │
+                           │     laxnumbers.com         │
                            └─────────────┬──────────────┘
                                          │ HTTP (cheerio)
                                          ▼
@@ -103,14 +108,14 @@ pnpm --filter @pll/ingest apply:harriton-workbook -- --workbook='/Users/.../HHS 
                                          ▼
                 ┌────────────────────────────────────────────┐
                 │  data/raw-cache/<post-id>.html             │
-                │  raw_cache_meta  (sqlite — etag, fetched)  │
+                │  raw_cache_meta  (sqlite - etag, fetched)  │
                 └─────────────┬──────────────────────────────┘
                               │ reads
                               ▼
                 ┌────────────────────────────────────────────┐
                 │  parsers (scoreLine, quarterLine,          │
                 │  playerStat, scoreboardPost, summariesPost,│
-                │  aggregatedList, rankings)                 │
+                │  aggregatedList, rankings, piaa)           │
                 └─────────────┬──────────────────────────────┘
                               │ feed
                               ▼
@@ -122,24 +127,24 @@ pnpm --filter @pll/ingest apply:harriton-workbook -- --workbook='/Users/.../HHS 
                               ▼
                 ┌────────────────────────────────────────────┐
                 │     data/lacrosse.db   (SQLite, WAL)       │
-                │   teams, games, game_periods, players,     │
-                │   player_stats, rankings, ingest_anomalies │
-                └─────────────┬──────────────────────────────┘
-                              │ read
-                              ▼
-                ┌────────────────────────────────────────────┐
-                │    @pll/server  (Fastify, port 3001)       │
-                │    GET /api/{health,teams,games,           │
-                │            players,rankings,anomalies,     │
-                │            teams/:id/topScorers,           │
-                │            leaders/players,leaders/teams}  │
-                └─────────────┬──────────────────────────────┘
-                              │ JSON
-                              ▼
-                ┌────────────────────────────────────────────┐
-                │       @pll/web  (Vite SPA, port 5173)      │
-                │   hash router → views → D3 chart renderers │
-                └────────────────────────────────────────────┘
+                │   teams, games, players, player_stats,     │
+                │   rankings, schedule_games, + 10 more      │
+                └──────────┬─────────────────┬───────────────┘
+                           │                 │
+                    read   │                 │ read
+                           ▼                 ▼
+    ┌──────────────────────────────┐  ┌──────────────────────────────┐
+    │  @pll/server (Fastify :3001) │  │  exportStatic.ts             │
+    │  /api/* (20+ endpoints)      │  │  -> /data/**/*.json          │
+    │  Admin + live queries        │  │  -> GitHub Pages (primary)   │
+    └──────────────┬───────────────┘  └──────────────┬───────────────┘
+                   │ JSON                             │ static files
+                   ▼                                  ▼
+    ┌──────────────────────────────┐  ┌──────────────────────────────┐
+    │  @pll/web (dev, Vite :5173)  │  │  GitHub Pages (production)   │
+    │  hash router + D3 charts     │  │  davevoyles.github.io/       │
+    └──────────────────────────────┘  │  Philly-Lax-Viz/             │
+                                      └──────────────────────────────┘
 ```
 
 ## Package map

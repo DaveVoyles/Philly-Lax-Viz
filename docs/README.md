@@ -30,7 +30,8 @@ Start here when joining the project cold:
 | 4 | [runbooks/source-priority.md](./runbooks/source-priority.md) | Trust hierarchy across data sources; when to invoke each one |
 | 5 | [runbooks/deploy-to-pages.md](./runbooks/deploy-to-pages.md) | How to deploy code and data changes to the live site |
 | 6 | [runbooks/local-data-import.md](./runbooks/local-data-import.md) | Importing external data (spreadsheets, corrections) safely |
-| 7 | [improvements/00-INDEX.md](./improvements/00-INDEX.md) | Prioritized RFC backlog; choose your next wave from here |
+| 7 | [runbooks/correction-workflow.md](./runbooks/correction-workflow.md) | Community corrections lifecycle: submission, outlier detection, auto-approval |
+| 8 | [improvements/00-INDEX.md](./improvements/00-INDEX.md) | Prioritized RFC backlog; choose your next wave from here |
 
 ---
 
