@@ -1,5 +1,6 @@
 import { onRoute, startRouter, type RouteMatch } from './router.js';
 import { mountSearchBox } from './components/searchBox.js';
+import { mountNavGlow } from './components/navGlow.js';
 import { setCanonicalUrl } from './util/ogMeta.js';
 import { setPageTitle } from './util/pageTitle.js';
 import { clearJsonLd } from './util/jsonLd.js';
@@ -130,6 +131,9 @@ function mountShell(app: HTMLElement): {
   // Hamburger toggle for mobile.
   const hamburger = app.querySelector<HTMLButtonElement>('.nav-hamburger');
   const mainNav = app.querySelector<HTMLElement>('#main-nav');
+
+  // Mount canvas-based glow + particle effect on nav links.
+  if (mainNav) mountNavGlow(mainNav);
   if (hamburger && mainNav) {
     hamburger.addEventListener('click', (e) => {
       e.stopPropagation();
