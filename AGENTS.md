@@ -169,6 +169,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 | Server routes | `packages/server/src/routes/` |
 | Server queries | `packages/server/src/queries/` |
 | Web views | `packages/web/src/views/` |
+| Dashboard view modules | `packages/web/src/views/dashboard/` (extracted dashboard sub-modules: freshness, hype, leaders, teams, recentGames, errors) |
 | Web charts (D3) | `packages/web/src/charts/` |
 | Web shared components | `packages/web/src/components/` |
 | Web utilities | `packages/web/src/util/` |
@@ -185,7 +186,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 `teams.ts`, `games.ts`, `players.ts`, `commitments.ts`, `schedule.ts`, `rankings.ts`, `laxnumbersRatings.ts`, `h2h.ts`, `coachDashboard.ts`, `corrections.ts`, `upload.ts`, `hudl.ts`, `search.ts`, `dataExport.ts`, `sources.ts`
 
 **Key web views** (all under `packages/web/src/views/`):
-`dashboard.ts`, `teamDetail.ts`, `gameDetail.ts`, `playerDetail.ts`, `commitments.ts`, `leaders.ts`, `topTeams.ts`, `schedule.ts`, `compare.ts`, `h2h.ts`, `playerCompare.ts`, `constellation.ts`, `dataQuality.ts`, `sources.ts`, `coachDashboard.ts`, `coachUpload.ts`, `adminCorrections.ts`, `adminHudl.ts`
+`adminCorrections.ts`, `adminHudl.ts`, `coachDashboard.ts`, `coachUpload.ts`, `commitments.ts`, `compare.ts`, `constellation.ts`, `dashboard.ts`, `dataQuality.ts`, `gameDetail.ts`, `h2h.ts`, `leaders.ts`, `playerCompare.ts`, `playerDetail.ts`, `ratings.ts`, `schedule.ts`, `sources.ts`, `teamDetail.ts`, `topTeams.ts`
 
 **Key CI workflows** (all under `.github/workflows/`):
 - `ingest-nightly.yml` — crawl + parse + ingest + applyCorrections + export static + deploy

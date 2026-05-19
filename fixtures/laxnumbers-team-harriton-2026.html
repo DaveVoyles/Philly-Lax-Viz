@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang = "en">
+<head>
+<base href="/">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><!-- InMobi Choice. Consent Manager Tag v3.0 (for TCF 2.2) -->
+<script type="text/javascript" async=true>
+(function() {
+  var host = 'laxnumbers.com';
+  var element = document.createElement('script');
+  var firstScript = document.getElementsByTagName('script')[0];
+  var url = 'https://cmp.inmobi.com'
+    .concat('/choice/', 'X70W-gya10Q6h', '/', host, '/choice.js?tag_version=V3');
+  var uspTries = 0;
+  var uspTriesLimit = 3;
+  element.async = true;
+  element.type = 'text/javascript';
+  element.src = url;
+
+  firstScript.parentNode.insertBefore(element, firstScript);
+
+  function makeStub() {
+    var TCF_LOCATOR_NAME = '__tcfapiLocator';
+    var queue = [];
+    var win = window;
+    var cmpFrame;
+
+    function addFrame() {
+      var doc = win.document;
+      var otherCMP = !!(win.frames[TCF_LOCATOR_NAME]);
+
+      if (!otherCMP) {
+        if (doc.body) {
+          var iframe = doc.createElement('iframe');
+
+          iframe.style.cssText = 'display:none';
+          iframe.name = TCF_LOCATOR_NAME;
+          doc.body.appendChild(iframe);
+        } else {
+          setTimeout(addFrame, 5);
+        }
+      }
+      return !otherCMP;
+    }
+
+    function tcfAPIHandler() {
+      var gdprApplies;
+      var args = arguments;
+
+      if (!args.length) {
+        return queue;
+      } else if (args[0] === 'setGdprApplies') {
+        if (
+          args.length > 3 &&
+          args[2] === 2 &&
+          typeof args[3] === 'boolean'
+        ) {
+          gdprApplies = args[3];
+          if (typeof args[2] === 'function') {
+            args[2]('set', true);
+          }
+        }
+      } else if (args[0] === 'ping') {
+        var retr = {
+          gdprApplies: gdprApplies,
+          cmpLoaded: false,
+          cmpStatus: 'stub'
+        };
+
+        if (typeof args[2] === 'function') {
+          args[2](retr);
+        }
+      } else {
+        if(args[0] === 'init' && typeof args[3] === 'object') {
+          args[3] = Object.assign(args[3], { tag_version: 'V3' });
+        }
+        queue.push(args);
+      }
+    }
+
+    function postMessageEventHandler(event) {
+      var msgIsString = typeof event.data === 'string';
+      var json = {};
+
+      try {
+        if (msgIsString) {
+          json = JSON.parse(event.data);
+        } else {
+          json = event.data;
+        }
+      } catch (ignore) {}
+
+      var payload = json.__tcfapiCall;
+
+      if (payload) {
+        window.__tcfapi(
+          payload.command,
+          payload.version,
+          function(retValue, success) {
+            var returnMsg = {
+              __tcfapiReturn: {
+                returnValue: retValue,
+                success: success,
+                callId: payload.callId
+              }
+            };
+            if (msgIsString) {
+              returnMsg = JSON.stringify(returnMsg);
+            }
+            if (event && event.source && event.source.postMessage) {
+              event.source.postMessage(returnMsg, '*');
+            }
+          },
+          payload.parameter
+        );
+      }
+    }
+
+    while (win) {
+      try {
+        if (win.frames[TCF_LOCATOR_NAME]) {
+          cmpFrame = win;
+          break;
+        }
+      } catch (ignore) {}
+
+      if (win === window.top) {
+        break;
+      }
+      win = win.parent;
+    }
+    if (!cmpFrame) {
+      addFrame();
+      win.__tcfapi = tcfAPIHandler;
+      win.addEventListener('message', postMessageEventHandler, false);
+    }
+  };
+
+  makeStub();
+
+  var uspStubFunction = function() {
+    var arg = arguments;
+    if (typeof window.__uspapi !== uspStubFunction) {
+      setTimeout(function() {
+        if (typeof window.__uspapi !== 'undefined') {
+          window.__uspapi.apply(window.__uspapi, arg);
+        }
+      }, 500);
+    }
+  };
+
+  var checkIfUspIsReady = function() {
+    uspTries++;
+    if (window.__uspapi === uspStubFunction && uspTries < uspTriesLimit) {
+      console.warn('USP is not accessible');
+    } else {
+      clearInterval(uspInterval);
+    }
+  };
+
+  if (typeof window.__uspapi === 'undefined') {
+    window.__uspapi = uspStubFunction;
+    var uspInterval = setInterval(checkIfUspIsReady, 6000);
+  }
+})();
+</script>
+<!-- End InMobi Choice. Consent Manager Tag v3.0 (for TCF 2.2) -->
+
+
+<!-- Google Maps -->
+<script type="text/javascript"
+        src="https://maps.google.com/maps/api/js?key=AIzaSyCrRTxVXJ9Yl7_YMdlrv8GrUZqQBatRqo8"></script>
+
+
+<!--  jQuery 1.7+  -->
+<!--<script src="jquery-1.9.1.min.js"></script>-->
+<script
+        src="https://code.jquery.com/jquery-3.2.1.min.js"
+        integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+        crossorigin="anonymous"></script>
+
+<link rel="stylesheet" href="css/layout.css" type="text/css"/>
+<link rel="stylesheet" type="text/css" href="css/modal.css"/>
+<link rel="stylesheet" type="text/css" href="css/scoreboard.css"/>
+<link rel="stylesheet" type="text/css" href="css/mylax-scoreboard.css?v=20230220"/>
+<style type='text/css'>
+    .scrollholder {
+        max-height: none;
+        overflow-y: hidden;
+    }
+
+    .tableheads {
+        border-style: none;
+    }
+
+</style>
+
+<!-- ReCaptcha -->
+<script src='https://www.google.com/recaptcha/api.js' async defer></script>
+
+<!-- Google Auto Ads -->
+<!--<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>-->
+<!--<script>-->
+<!--    if (document.documentElement.clientWidth < 960) {-->
+<!--        (adsbygoogle = window.adsbygoogle || []).push({-->
+<!--            google_ad_client: "ca-pub-6915156185914315",-->
+<!--            enable_page_level_ads: true,-->
+<!--            overlays: {bottom: true}-->
+<!--        });-->
+<!--    }-->
+<!--</script>-->
+
+<!-- Owl Carousel -->
+
+<script src="js/owl-carousel/bundle.js"></script>
+
+<!-- End Carousel -->
+
+<!-- Google Adsense Verification -->
+<meta name="google-adsense-account" content="ca-pub-6915156185914315">
+
+<!-- Google Analytics -->
+<!-- v4 - Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-KNG5MEKS3Z"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-KNG5MEKS3Z');
+</script>
+<title>Harriton Boys High School Lacrosse Team Information, Schedule & Scores - LaxNumbers</title>
+
+<link rel='stylesheet' type='text/css' href='css/mhr-v2.css?v=20260415'>
+<style>
+table {
+ min-width : 90%;
+ margin: 0 auto;
+}
+</style>
+
+<link rel="stylesheet" href="https://a.pub.network/core/pubfig/cls.css">
+<script data-cfasync="false" type="text/javascript">
+  var freestar = freestar || {};
+  freestar.queue = freestar.queue || [];
+  freestar.config = freestar.config || {};
+  freestar.config.enabled_slots = [];
+  freestar.initCallback = function () { (freestar.config.enabled_slots.length === 0) ? freestar.initCallbackCalled = false : freestar.newAdSlots(freestar.config.enabled_slots) 
+}
+</script>
+<script src="https://a.pub.network/laxnumbers-com/pubfig.min.js" async></script>
+<script type="text/javascript" src="js/MHRAds.js?v=1.0.103"></script>
+
+<script type="text/javascript">
+
+
+
+
+
+(function () {
+
+    
+   MHRAds.ads = [
+    {
+        "name": "Rankings Powered By: STATDOG",
+        "url": "https:\/\/statdog.live",
+        "freq": 1,
+        "slot": "rankings-powered-by",
+        "img": "\/images\/ads\/STATDOG_365x140.png",
+        "height": 140,
+        "width": 365
+    },
+    {
+        "name": "Rankings Powered By: STATDOG",
+        "url": "https:\/\/statdog.live",
+        "freq": 1,
+        "slot": "rankings-powered-by",
+        "img": "\/images\/ads\/STATDOG_700x150.jpg",
+        "height": 150,
+        "width": 700
+    },
+    {
+        "slot": "banner",
+        "name": "freestar",
+        "freq": 9
+    },
+    {
+        "slot": "in-context",
+        "name": "freestar",
+        "freq": 4
+    },
+    {
+        "slot": "left-column",
+        "name": "freestar",
+        "freq": 1
+    }
+];
+
+
+   MHRAds.slotParams = {
+        "banner" : {
+             "style" : "display:inline-block;width:728px;height:90px"
+           , "data-ad-client" : "ca-pub-6915156185914315"
+           , "data-ad-slot" : "4732895784"
+        }
+     ,  "left-column" : {
+            "class" : "adsbygoogle left-col-google-ad"
+         ,  "data-ad-client": "ca-pub-6915156185914315"
+         ,  "data-ad-slot": "6019248094"
+       }
+   };
+
+   MHRAds.init();
+
+})();
+</script>
+<script type="text/javascript" src="js/LNAccess.js"></script>
+<script type="text/javascript">
+LNAccess( "\/team_info.php" );
+</script>
+<style>
+    .team-season-menu {
+        position: absolute;
+        margin: 0;
+        padding: 0.8rem;
+        border: solid 1px #ddd;
+        background: #f8f8f8;
+        box-shadow: 0px 4px 7px 0px rgba(89,89,89,0.38);
+        z-index: 400;
+        display: none;
+    }
+    .team-season-menu-open {
+        display: block;
+    }
+    .team-season-trigger {
+        background: none;
+        appearance: none;
+        border-style: none;
+        border-style: none !important;
+        box-shadow: unset !important;
+        padding: 0.25rem !important;
+    }
+    .season-nav {
+        display: flex;
+    }
+    .season-nav li a {
+        padding: 3px 10px !important;
+    }
+    .season-nav li:last-of-type {
+        flex-grow: 1;
+        text-align: right;
+    }
+    .season-nav li:last-of-type:hover {
+        background: unset;
+        box-shadow: unset;
+    }
+    .lr-max-key {
+        margin-top: 2rem;
+        max-width: 560px;
+        border: solid 1px #aaa;
+    }
+    .lr-max-key .scrollholder {
+        border-style: none;
+    }
+    .lr-max-key .tablecontainer {
+        border-style: none;
+    }
+    .lr-max-key table {
+        border-style: none;
+    }
+    .lr-max-key h5 {
+        margin: 0;
+        padding: 0.25rem 0.5rem;
+        background: #ddd;
+        border-bottom: solid 1px #aaa;
+    }
+    .lr-max-key th {
+        background: #ddd;
+        color: #002c61;
+    }
+    .lr-max-key td {
+        text-align: center;
+        white-space: nowrap;
+    }
+</style>
+</head>
+<body>
+
+<nav class="mobile-nav closed">
+<button id="mobile-menu-button" class="mobile-menu-button">
+    <span></span>
+    <span></span>
+    <span></span>
+</button>
+<div>
+<!--				<div id = "nav_left" class = "col"></div>
+				
+				<div id = "nav_centre" class = "col"> -->
+				<ul id="main-navigation-6a0cc376ef0bc5.36633427" class='nav-list'>
+                    <li class="nested"><a href="index.php"><img src="images/logo-LaxNumbers.png"></a></li>
+                    <li class="nested"><a href="current-rankings/boys">Boys HS</a>
+                        <ul>
+                            <li><a href="current-rankings/boys">Rankings</a></li>
+                            <li><a href="scoreboard/0">Schedule/Results</a></li>
+                        </ul>
+                    </li>
+                    <li class="nested"><a href="current-rankings/girls">Girls HS</a>
+                        <ul>
+                            <li><a href="current-rankings/girls">Rankings</a></li>
+                            <li><a href="scoreboard/1">Schedule/Results</a></li>
+                        </ul>
+                    </li>
+                    <li class="nested"><a href="recruits.php">Recruits</a>
+                        <ul>
+                            <li><a href="/recruits-request">Add Recruit</a></li>
+                        </ul>
+                    </li>
+                    <!--<li><a href="http://www.laxbytes.com/RECRUITS/recruits.php" target="_blank">Recruits</a>-->
+                    <li class="nested"><a href="current-rankings/college">Mens College</a>
+                        <ul>
+                            <li><a href="current-rankings/college">Rankings</a></li>
+                            <li><a href="scoreboard/401">Schedule/Results</a></li>
+                        </ul>
+                    </li>
+                    <li class="nested"><a href="current-rankings/womens">Womens College</a>
+                        <ul>
+                            <li><a href="current-rankings/womens">Rankings</a></li>
+                            <li><a href="scoreboard/501">Schedule/Results</a></li>
+                        </ul>
+                    </li>
+                    <li class="nested"><a>LaxRecords</a>
+                        <ul>
+                            <li class="nested"><a>Player Records</a>
+                                <ul class="child row-1">
+                                    <li><a href="player_stats.php?type=01">All Time Records</a></li>
+                                    <li><a href="player_stats.php?type=31">Most Points - Career</a></li>
+                                    <li><a href="player_stats.php?type=21">Most Points - Season</a></li>
+                                    <li><a href="player_stats.php?type=11">Most Points - Game</a></li>
+                                    <li><a href="player_stats.php?type=32">Most Goals - Career</a></li>
+                                    <li><a href="player_stats.php?type=22">Most Goals - Season</a></li>
+                                    <li><a href="player_stats.php?type=12">Most Goals - Game</a></li>
+                                    <li><a href="player_stats.php?type=33">Most Assists - Career</a></li>
+                                    <li><a href="player_stats.php?type=23">Most Assists - Season</a></li>
+                                    <li><a href="player_stats.php?type=13">Most Assists - Game</a></li>
+                                    <li><a href="player_stats.php?type=34">Most Face-off Wins - Career</a></li>
+                                    <li><a href="player_stats.php?type=24">Most Face-off Wins - Season</a></li>
+                                    <li><a href="player_stats.php?type=14">Most Face-off Wins - Game</a></li>
+                                    <li><a href="player_stats.php?type=35">Most Saves - Career</a></li>
+                                    <li><a href="player_stats.php?type=25">Most Saves - Season</a></li>
+                                    <li><a href="player_stats.php?type=15">Most Saves - Game</a></li>
+                                </ul>
+                            </li>
+                            <li class="nested"><a href="">Coach Records</a>
+                                <ul class="child row-2">
+                                    <li><a href="coach_stats.php?type=01">Career Wins</a></li>
+                                    <li><a href="coach_stats.php?type=02">Career Championship</a></li>
+                                </ul>
+                            </li>
+                            <li><a href="/laxrecords_submission.php">Submit a Record</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="reportscores.php">Report Scores</a></li>
+                    <li><a href="teamofficial.php">Sign Up</a></li>
+                    <li class = "end"><a href="login.php">Login</a></li>
+				</ul>
+<!--				</div>
+				<div id = "nav_right" class = "col"></div> -->
+
+                <script type='text/javascript'>
+                    (function() {
+                        var nav = document.getElementById( "main-navigation-6a0cc376ef0bc5.36633427" ),
+                            li = nav.getElementsByTagName('li'),
+                            par = nav.parentNode; 
+                        if( /\btop-nav\b/.test(par.className) ){
+                            for(var i = 0; i < li.length; i++) {
+                                var ul = li[i].getElementsByTagName('ul');
+                                if(ul.length) {
+                                    li[i].onmouseover = function(e) {
+                                        var ul = this.getElementsByTagName('ul')[0];
+                                        ul.style.display = 'block';  
+                                    } 
+                                    li[i].onmouseout = function(e) {
+                                        var ul = this.getElementsByTagName('ul')[0];
+                                        ul.style.display = 'none';  
+                                    } 
+                                }
+                            }
+                        }
+                    })();
+                </script>
+
+</div>
+</nav>
+<div class="column">
+
+<nav class='top-nav'>
+<!-- PLACE THIS SECTION INSIDE OF YOUR BODY TAGS -->
+<!-- Tag ID: laxnumbers_static_pushdown -->
+<div align="center" data-freestar-ad="__320x50 __970x90" id="laxnumbers_static_pushdown">
+  <script data-cfasync="false" type="text/javascript">
+    freestar.config.enabled_slots.push({ placementName: "laxnumbers_static_pushdown", slotId: "laxnumbers_static_pushdown" });
+  </script>
+</div>
+
+    <!--<div class='nav-ad'>-->
+        <!--<div class="top-ad">-->
+            <!--&lt;!&ndash;&lt;!&ndash; google ad could go here &ndash;&gt;&ndash;&gt;-->
+              <!--&lt;!&ndash;<script>&ndash;&gt;-->
+                  <!--&lt;!&ndash;(function () {&ndash;&gt;-->
+                         <!--&lt;!&ndash;MHRAds.show( 'banner' ) ;&ndash;&gt;-->
+                  <!--&lt;!&ndash;})()&ndash;&gt;-->
+             <!--&lt;!&ndash;</script>&ndash;&gt;-->
+        <!--</div>-->
+    <!--</div>--><!--				<div id = "nav_left" class = "col"></div>
+				
+				<div id = "nav_centre" class = "col"> -->
+				<ul id="main-navigation-6a0cc376ef0cd0.11914337" class='nav-list'>
+                    <li class="nested"><a href="index.php"><img src="images/logo-LaxNumbers.png"></a></li>
+                    <li class="nested"><a href="current-rankings/boys">Boys HS</a>
+                        <ul>
+                            <li><a href="current-rankings/boys">Rankings</a></li>
+                            <li><a href="scoreboard/0">Schedule/Results</a></li>
+                        </ul>
+                    </li>
+                    <li class="nested"><a href="current-rankings/girls">Girls HS</a>
+                        <ul>
+                            <li><a href="current-rankings/girls">Rankings</a></li>
+                            <li><a href="scoreboard/1">Schedule/Results</a></li>
+                        </ul>
+                    </li>
+                    <li class="nested"><a href="recruits.php">Recruits</a>
+                        <ul>
+                            <li><a href="/recruits-request">Add Recruit</a></li>
+                        </ul>
+                    </li>
+                    <!--<li><a href="http://www.laxbytes.com/RECRUITS/recruits.php" target="_blank">Recruits</a>-->
+                    <li class="nested"><a href="current-rankings/college">Mens College</a>
+                        <ul>
+                            <li><a href="current-rankings/college">Rankings</a></li>
+                            <li><a href="scoreboard/401">Schedule/Results</a></li>
+                        </ul>
+                    </li>
+                    <li class="nested"><a href="current-rankings/womens">Womens College</a>
+                        <ul>
+                            <li><a href="current-rankings/womens">Rankings</a></li>
+                            <li><a href="scoreboard/501">Schedule/Results</a></li>
+                        </ul>
+                    </li>
+                    <li class="nested"><a>LaxRecords</a>
+                        <ul>
+                            <li class="nested"><a>Player Records</a>
+                                <ul class="child row-1">
+                                    <li><a href="player_stats.php?type=01">All Time Records</a></li>
+                                    <li><a href="player_stats.php?type=31">Most Points - Career</a></li>
+                                    <li><a href="player_stats.php?type=21">Most Points - Season</a></li>
+                                    <li><a href="player_stats.php?type=11">Most Points - Game</a></li>
+                                    <li><a href="player_stats.php?type=32">Most Goals - Career</a></li>
+                                    <li><a href="player_stats.php?type=22">Most Goals - Season</a></li>
+                                    <li><a href="player_stats.php?type=12">Most Goals - Game</a></li>
+                                    <li><a href="player_stats.php?type=33">Most Assists - Career</a></li>
+                                    <li><a href="player_stats.php?type=23">Most Assists - Season</a></li>
+                                    <li><a href="player_stats.php?type=13">Most Assists - Game</a></li>
+                                    <li><a href="player_stats.php?type=34">Most Face-off Wins - Career</a></li>
+                                    <li><a href="player_stats.php?type=24">Most Face-off Wins - Season</a></li>
+                                    <li><a href="player_stats.php?type=14">Most Face-off Wins - Game</a></li>
+                                    <li><a href="player_stats.php?type=35">Most Saves - Career</a></li>
+                                    <li><a href="player_stats.php?type=25">Most Saves - Season</a></li>
+                                    <li><a href="player_stats.php?type=15">Most Saves - Game</a></li>
+                                </ul>
+                            </li>
+                            <li class="nested"><a href="">Coach Records</a>
+                                <ul class="child row-2">
+                                    <li><a href="coach_stats.php?type=01">Career Wins</a></li>
+                                    <li><a href="coach_stats.php?type=02">Career Championship</a></li>
+                                </ul>
+                            </li>
+                            <li><a href="/laxrecords_submission.php">Submit a Record</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="reportscores.php">Report Scores</a></li>
+                    <li><a href="teamofficial.php">Sign Up</a></li>
+                    <li class = "end"><a href="login.php">Login</a></li>
+				</ul>
+<!--				</div>
+				<div id = "nav_right" class = "col"></div> -->
+
+                <script type='text/javascript'>
+                    (function() {
+                        var nav = document.getElementById( "main-navigation-6a0cc376ef0cd0.11914337" ),
+                            li = nav.getElementsByTagName('li'),
+                            par = nav.parentNode; 
+                        if( /\btop-nav\b/.test(par.className) ){
+                            for(var i = 0; i < li.length; i++) {
+                                var ul = li[i].getElementsByTagName('ul');
+                                if(ul.length) {
+                                    li[i].onmouseover = function(e) {
+                                        var ul = this.getElementsByTagName('ul')[0];
+                                        ul.style.display = 'block';  
+                                    } 
+                                    li[i].onmouseout = function(e) {
+                                        var ul = this.getElementsByTagName('ul')[0];
+                                        ul.style.display = 'none';  
+                                    } 
+                                }
+                            }
+                        }
+                    })();
+                </script>
+</nav>
+<div id="column-wrapper" class="flex">
+
+<div id="left-column">
+    <div class="left-column sticky-column">
+
+    <!-- Tag ID: laxnumbers_skyscraper_left -->
+<div align="center" data-freestar-ad="__160x600" id="laxnumbers_skyscraper_left">
+  <script data-cfasync="false" type="text/javascript">
+        freestar.config.enabled_slots.push({ placementName: "laxnumbers_skyscraper_left", slotId: "laxnumbers_skyscraper_left" });
+  </script>
+</div>
+
+    </div>
+</div>
+<div class="center-right-columns">
+    <div id="main-column" class='main-wrapper'>
+        <main id="main-content">
+<h4 class="sitestyle6">Harriton</h4>
+<div class="team-assoc-info">
+<div class="desc-container">
+<ul id="team-season-list" class="season-nav nav-list">
+    <li class="nav-list-selected">
+        <a href="/team_info.php?y=2026&amp;t=13039">2026</a>
+    </li>
+    <li >
+        <a href="/team_info.php?y=2025&amp;t=13039">2025</a>
+    </li>
+    <li >
+        <a href="/team_info.php?y=2024&amp;t=13039">2024</a>
+    </li>
+    <li >
+        <a href="/team_info.php?y=2023&amp;t=13039">2023</a>
+    </li>
+    <li >
+        <a href="/team_info.php?y=2022&amp;t=13039">2022</a>
+    </li>
+    <li >
+        <a href="/team_info.php?y=2021&amp;t=13039">2021</a>
+    </li>
+    <li >
+        <a href="/team_info.php?y=2020&amp;t=13039">2020</a>
+    </li>
+    <li >
+        <a href="/team_info.php?y=2019&amp;t=13039">2019</a>
+    </li>
+    <li >
+        <a href="/team_info.php?y=2018&amp;t=13039">2018</a>
+    </li>
+    <li >
+        <a href="/team_info.php?y=2017&amp;t=13039">2017</a>
+    </li>
+    <li >
+        <a href="/team_info.php?y=2016&amp;t=13039">2016</a>
+    </li>
+    <li >
+        <a href="/team_info.php?y=2015&amp;t=13039">2015</a>
+    </li>
+    <li >
+        <a href="/team_info.php?y=2014&amp;t=13039">2014</a>
+    </li>
+    <li >
+        <a href="/team_info.php?y=2013&amp;t=13039">2013</a>
+    </li>
+    <li>
+		<button class="team-season-trigger" id="team-season-trigger" aria-label="More seasons" aria-expanded="false" aria-haspopup="true">
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
+			  <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/>
+			</svg>
+		</button>
+	</li>
+</ul>
+<div class="team-season-menu" id="team-season-menu">
+<ul>
+    <li>
+        <a href="/team_info.php?y=2026&amp;t=13039">2026</a>
+    </li>
+    <li>
+        <a href="/team_info.php?y=2025&amp;t=13039">2025</a>
+    </li>
+    <li>
+        <a href="/team_info.php?y=2024&amp;t=13039">2024</a>
+    </li>
+    <li>
+        <a href="/team_info.php?y=2023&amp;t=13039">2023</a>
+    </li>
+    <li>
+        <a href="/team_info.php?y=2022&amp;t=13039">2022</a>
+    </li>
+    <li>
+        <a href="/team_info.php?y=2021&amp;t=13039">2021</a>
+    </li>
+    <li>
+        <a href="/team_info.php?y=2020&amp;t=13039">2020</a>
+    </li>
+    <li>
+        <a href="/team_info.php?y=2019&amp;t=13039">2019</a>
+    </li>
+    <li>
+        <a href="/team_info.php?y=2018&amp;t=13039">2018</a>
+    </li>
+    <li>
+        <a href="/team_info.php?y=2017&amp;t=13039">2017</a>
+    </li>
+    <li>
+        <a href="/team_info.php?y=2016&amp;t=13039">2016</a>
+    </li>
+    <li>
+        <a href="/team_info.php?y=2015&amp;t=13039">2015</a>
+    </li>
+    <li>
+        <a href="/team_info.php?y=2014&amp;t=13039">2014</a>
+    </li>
+    <li>
+        <a href="/team_info.php?y=2013&amp;t=13039">2013</a>
+    </li>
+</ul>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var triggerWidth = 25;
+    var btnWidth = 48;
+    var d = document;
+    var teamSeasons = [2026,2025,2024,2023,2022,2021,2020,2019,2018,2017,2016,2015,2014,2013];
+    var teamSeasonList = d.getElementById("team-season-list");
+    var teamSeasonMenu = d.getElementById("team-season-menu");
+    var teamSeasonTrigger = d.getElementById("team-season-trigger");
+    var menuHover = false;
+    var triggerHover = false;
+    var menuOpen = false;
+
+    function setMenuPosition() {
+        var triggerBox = teamSeasonTrigger.getBoundingClientRect();
+        teamSeasonMenu.style.top = (triggerBox.height + triggerBox.top + window.scrollY) + "px";
+        teamSeasonMenu.style.left = (triggerBox.left - btnWidth + 15) + "px";
+    }
+
+    function openMenu() {
+        setMenuPosition();
+        menuOpen = true;
+        teamSeasonMenu.className = "team-season-menu team-season-menu-open";
+        teamSeasonTrigger.setAttribute( "aria-expanded", "true" );
+    }
+
+    function closeMenu() {
+        menuOpen = false;
+        teamSeasonMenu.className = "team-season-menu";
+        teamSeasonTrigger.setAttribute( "aria-expanded", "false" );
+    }
+
+    function toggleMenu() {
+        setMenuPosition();
+        menuOpen = !menuOpen;
+        teamSeasonMenu.className = "team-season-menu" + (menuOpen ? " team-season-menu-open" : "");
+        teamSeasonTrigger.setAttribute( "aria-expanded", teamSeasonMenu.open );
+    }
+
+    function resizeHandler() {
+        var width;
+        var menuLen;
+        var listItems = teamSeasonList.getElementsByTagName("li");
+        var menuItems = teamSeasonMenu.getElementsByTagName("li");
+
+        for( var i = 0; i < listItems.length-1; i++ )
+            listItems[i].style.display = "none";
+
+        width = teamSeasonList.clientWidth;
+        menuLen = Math.max( Math.floor( width / btnWidth ), 0);
+
+        // Make space for the trigger if it's displayed.
+        // Otherwise, fit as many seasons in the top bar as possible.
+        if( menuLen < menuItems.length ){
+            width = teamSeasonList.clientWidth - triggerWidth;
+            menuLen = Math.max( Math.floor( width / btnWidth ), 0);
+        }
+
+        for( var i = 0; i < menuLen && i < listItems.length - 1; i++ ) {
+            listItems[i].style.display = "inline-block";
+            menuItems[i].style.display = "none";
+        }
+
+        for( var i = menuLen; i < menuItems.length; i++ ) {
+            menuItems[i].style.display = "list-item";
+        }
+        if( menuItems.length > menuLen ) {
+            listItems[listItems.length - 1].style.display = "inline-block";
+        }else{
+            listItems[listItems.length - 1].style.display = "none";
+        }
+        setMenuPosition();
+	}
+
+    window.addEventListener("resize", resizeHandler);
+    window.addEventListener("scroll", setMenuPosition);
+    resizeHandler();
+
+    teamSeasonTrigger.addEventListener("mouseenter", function() {
+        triggerHover = true;
+        openMenu();
+    });
+    teamSeasonTrigger.parentNode.addEventListener("mouseleave", function() {
+        triggerHover = false;
+        setTimeout( function () {
+            if( !triggerHover && !menuHover )
+                closeMenu();
+        }, 25);
+    });
+    teamSeasonMenu.addEventListener("mouseenter", function() {
+        menuHover = true;
+    });
+    teamSeasonMenu.addEventListener("mouseleave", function() {
+        menuHover = false;
+        setTimeout( function () {
+            if( !triggerHover && !menuHover )
+                closeMenu();
+        }, 25);
+    });
+    teamSeasonTrigger.addEventListener("click", toggleMenu);
+
+});
+</script>
+<h5>Team Info</h5>
+<div class="desc-container-table">
+<table>
+    <tr>
+        <th>Rating</th>
+        <td>73.66</td>
+        <th>Mascot</th>
+        <td>Rams</td>
+    </tr>
+    <tr>
+        <th>Rankings</th>
+        <td>
+            <ul>
+        
+	    	<li><a href="/ratings.php?y=2026&v=3000"><b>1432<sup>nd</sup></b> - North America</a></li>
+	    	<li><a href="/ratings.php?y=2026&v=3002"><b>352<sup>nd</sup></b> - USA Mid-Atlantic</a></li>
+	    	<li><a href="/ratings.php?y=2026&v=3453"><b>103<sup>rd</sup></b> - Pennsylvania</a></li>
+	    	<li><a href="/ratings.php?y=2026&v=3454"><b>55<sup>th</sup></b> - PA East</a></li>
+            </ul>
+        </td>
+        <th>Location</th>
+        <td><form method="GET" action="/reportscores.php"><input type='hidden' name='t' value='13039'><input type="image" class="info-add-button" src="/images/plus-sign.png"></form></td>        </td>
+    </tr>
+    <tr>
+        <th>Record</th>
+        <td>5-13-0</td>
+        <th>Head Coach</th>
+        <td>Cassidy Higdon</td>
+    </tr>
+    <tr>
+        <th>Goals (GF-GA)</th>
+        <td>133-226</td>
+        <th>Website</th>
+        <td><a href="https://harritonrams.digitalsports.com/pages/schedule/ms.php?team_slug=boys-lacrosse" target="_blank" title="https://harritonrams.digitalsports.com/pages/schedule/ms.php?team_slug=boys-lacrosse">https://harritonrams.d&hellip;</a></td>
+    </tr>
+    <tr>
+        <th>Division(s)</th>
+        <td>
+            <ul>
+                <li><a href="/division_info.php?y=2026&amp;d=1340">PA - Central</a></li>
+                <li><a href="/division_info.php?y=2026&amp;d=2031">PA - District I</a></li>
+            </ul>
+        </td>
+        <th>Social Media</th>
+        <td id="social-media">
+<form method="GET" action="/reportscores.php"><input type='hidden' name='t' value='13039'><input type="image" class="info-add-button" src="/images/plus-sign.png"></form>        </td>
+    </tr>
+</table>
+</div>
+</div>
+<div class="desc-img-edit active">
+<div class="info-page-logo">
+    <a href="logo_upload.php?t=13039">
+        <img title="Click here to upload a logo for this team" alt="Upload Your Logo" src="images/logos/upload-your-logo.png">
+    </a>
+</div>
+</div>
+</div>
+<ul class="info-page nav-list" id="nav-list">
+    <li class="nav-list-selected"><a href="/team_info.php?y=2026&t=13039">Scores</a></li>
+    <li ><a href="/team_info.php?y=2026&t=13039&s=1">Rating Math</a></li>
+    <li ><a href="/team_info.php?y=2026&t=13039&s=2">Recruits</a></li>
+    <li ><a href="/team_info.php?y=2026&t=13039&s=3">Player Records</a></li>
+    <li ><a href="/team_info.php?y=2026&t=13039&s=4">Coach Records</a></li>
+</ul>
+<div class="info-page-body"><div class ='tablecontainer'>
+<div class = 'tableheads targ'></div>
+<div class = 'scrollholder'>
+<table class='linked_table' border="1" style="border-collapse: collapse" width="94%" cellspacing="0" cellpadding="3">
+  <tr>
+  <thead>
+    <th bgcolor="#002c61"><font face="Arial" color="#FFFFFF">Date</font></td>
+    <th bgcolor="#002c61"><font face="Arial" color="#FFFFFF">Time</font></td>
+    <th bgcolor="#002c61"><font face="Arial" color="#FFFFFF">Opponent</font></td>
+    <th bgcolor="#002c61"><font face="Arial" color="#FFFFFF">Location</font></td>
+    <th bgcolor="#002c61"><font face="Arial" color="#FFFFFF">Result</font></td>
+    <th bgcolor="#002c61"><font face="Arial" color="#FFFFFF">Fix</font></td>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-03-17</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>18:00</span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><a href="team_info.php?y=2026&t=13080">Phoenixville</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>16 - 1</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=34370"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-03-19</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>16:00</span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><a href="team_info.php?y=2026&t=13030">Cardinal OHara</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>4 - 12</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=33209"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-03-21</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><em class='at-vs-ind'>at</em> <a href="team_info.php?y=2026&t=13025">New Hope-Solebury</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>8 - 5</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=38419"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-03-24</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><a href="team_info.php?y=2026&t=13044">Radnor</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>5 - 18</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=38420"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-03-26</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><em class='at-vs-ind'>at</em> <a href="team_info.php?y=2026&t=13041">Lower Merion</a></span></td>
+    <td align=left><SPAN class=sitestyle1></span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>5 - 4</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=38421"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-03-30</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>10:00</span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><em class='at-vs-ind'>at</em> <a href="team_info.php?y=2026&t=10329">Aspen</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>5 - 13</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=31418"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-03-31</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>15:30</span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><em class='at-vs-ind'>at</em> <a href="team_info.php?y=2026&t=10698">St John Paul II Academy</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>2 - 13</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=14723"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-04-07</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><a href="team_info.php?y=2026&t=13040">Haverford HS</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>9 - 14</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=40562"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-04-09</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><a href="team_info.php?y=2026&t=13048">Upper Darby</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>14 - 1</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=40563"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-04-14</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><em class='at-vs-ind'>at</em> <a href="team_info.php?y=2026&t=13047">Strath Haven</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>7 - 15</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=38422"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-04-16</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><a href="team_info.php?y=2026&t=13046">Springfield-Delco</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>1 - 20</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=40554"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-04-21</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><em class='at-vs-ind'>at</em> <a href="team_info.php?y=2026&t=13043">Penncrest</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>0 - 18</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=38417"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-04-23</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><a href="team_info.php?y=2026&t=13042">Marple Newtown</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>4 - 18</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=40564"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-04-28</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><em class='at-vs-ind'>at</em> <a href="team_info.php?y=2026&t=13037">Conestoga</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>7 - 14</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=38423"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-04-30</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><em class='at-vs-ind'>at</em> <a href="team_info.php?y=2026&t=13038">Garnet Valley</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>9 - 17</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=40565"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-05-01</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><em class='at-vs-ind'>at</em> <a href="team_info.php?y=2026&t=13104">Central Bucks South</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>9 - 17</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=40566"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-05-05</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><a href="team_info.php?y=2026&t=13045">Ridley</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>8 - 22</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=40567"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  <tr>
+    <td nowrap align=center><SPAN class=sitestyle1>2026-05-06</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1></span></td>
+    <td nowrap align=left><SPAN class=sitestyle1><a href="team_info.php?y=2026&t=13084">Upper Merion</a></span></td>
+    <td align=left><SPAN class=sitestyle1>n/a</span></td>
+    <td nowrap align=center><SPAN class=sitestyle1>20 - 4</span></td>
+    <td nowrap align=center><a href="/fix_score.php?g=38424"><img src="/images/select.png" border=0></a></td>
+  </tr>
+  </tbody>
+</table>
+
+</div>
+</div>
+<br><p><SPAN class=sitestyle9>2026 Season Totals for the Harriton &nbsp; &nbsp; &nbsp; (<a href="/reportscores.php">Report missing game scores</a>)</span></p>
+
+<p><SPAN class=sitestyle5>Current Season Record - All Games (W-L-T): 5-13-0 &nbsp;&nbsp;&nbsp;GF=133 GA=226</span><br><br>
+</div>
+        </main>
+    </div>
+    <div id="right-column" class="right-column">
+        <div class="sticky-column">
+<section class='links-widget'>
+<a href="http://laxpower2.com" target="_blank"><img src="/images/ads/d1field_laxpower2.png" height=240 width=300></a>
+</section><!-- PLACE THIS SECTION INSIDE OF YOUR BODY TAGS -->
+<!-- Tag ID: laxnumbers_medrec_right -->
+    <div align="center" data-freestar-ad="__300x250" id="laxnumbers_medrec_right">
+        <script data-cfasync="false" type="text/javascript">
+            freestar.config.enabled_slots.push({ placementName: "laxnumbers_medrec_right", slotId: "laxnumbers_medrec_right" });
+        </script>
+    </div>
+<!-- Tag ID: laxnumbers_medrec_right_2 -->
+    <div align="center" data-freestar-ad="__300x250" id="laxnumbers_medrec_right_2">
+        <script data-cfasync="false" type="text/javascript">
+            freestar.config.enabled_slots.push({ placementName: "laxnumbers_medrec_right_2", slotId: "laxnumbers_medrec_right_2" });
+        </script>
+    </div>
+      <a class="twitter-timeline" href="https://twitter.com/laxrankings" data-height="500">Tweets by @laxrankings</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+        </div>
+    </div>
+</div>
+</div>
+<footer>
+    				<div id = "footer_content">
+					
+					<p>&copy; 2026 LaxNumbers.com</p>
+					<hr style="width:82%; margin-bottom:0px;" />
+				<ul>
+					<li><a href="about.php">About</a></li>
+					<li><a href="history.php">News</a></li>
+					<li><a href="faq.php">FAQ</a></li>
+					<li><a href="sponsorship.php">Advertise</a></li>
+					<li class = "end"><a href="contact_us.php">Contact</a></li>
+
+				</ul>
+
+<br>
+
+					
+				</div>
+
+</footer>
+</div>
+<!-- Mobile Nav --> 
+<script type="text/javascript">
+(function() {
+    var nav_button = document.getElementById("mobile-menu-button"),
+        nav = nav_button.parentNode;
+    nav_button.addEventListener("click",function() {
+        if ( nav.className.match(/\bclosed\b/) ) {
+            nav.className = nav.className.replace(/\bclosed\b/, "open");
+        }else { 
+            nav.className = nav.className.replace(/\bopen\b/, "closed"); 
+        }
+    },false);
+})();
+</script>
+</body>
+</html>

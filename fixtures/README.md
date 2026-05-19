@@ -10,8 +10,9 @@ HTML snapshots used by parser & pipeline tests. Refresh by re-saving the live pa
 | `summaries-sample.html` | phillylacrosse.com RSS game-summary post (HTML body of a single feed item) | 2026-04-22 | `packages/ingest/src/parsers/__tests__/summariesPost.test.ts`, `packages/ingest/src/pipelines/__tests__/summaries.test.ts` |
 | `piaa-d1-rankings.snapshot.html` | piaad1.org rankings page snapshot (full page) | 2026-04-22 | `packages/ingest/src/__tests__/piaa.test.ts` |
 | `maxpreps-pa-schools.snapshot.html` | maxpreps.com Pennsylvania schools listing (full page) | 2026-04-22 | `packages/ingest/src/__tests__/maxprepsSchools.test.ts` |
+| `laxnumbers-team-harriton-2026.html` | laxnumbers.com team page for Harriton 2026 season (full page) | 2026-05-19 | parser fixture capture |
 
-All four fixtures captured 2026-04-22 (per filesystem mtime; repo has no git history yet).
+The first four fixtures were captured 2026-04-22 (per filesystem mtime; repo has no git history yet).
 
 ## How to refresh
 
