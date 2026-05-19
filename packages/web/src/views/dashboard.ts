@@ -18,7 +18,6 @@ import { renderMarginHistogram } from '../charts/marginHistogram.js';
 import type { ChartHandle } from '../charts/types.js';
 import { renderEmptyState } from '../components/emptyState.js';
 import { renderGameThumb } from '../components/postImage.js';
-import { mountParticleHero, type ParticleHeroHandle } from '../components/particleHero.js';
 import { mountTeamCardGlow, type GlowHandle } from '../components/teamCardGlow.js';
 import { mountHypeCard, type HypeCardHandle, type HypePlayerData } from '../components/hypeCard.js';
 import { shouldAnimate, shouldMountWebGL } from '../util/motionPrefs.js';
@@ -46,9 +45,9 @@ let recentGamesLastUpdated: Date | null = null;
 let recentGamesSignature = '';
 
 // WebGL effect handles — cleaned up on route teardown.
-let particleHeroHandle: ParticleHeroHandle | null = null;
 let glowHandle: GlowHandle | null = null;
 let hypeCardHandle: HypeCardHandle | null = null;
+let teamHypeCardHandle: HypeCardHandle | null = null;
 
 function ensureDashboardLiveStyles(): void {
   if (document.getElementById(DASHBOARD_LIVE_STYLE_ID)) return;
@@ -101,9 +100,9 @@ function destroyDashboardCharts(): void {
   recentGamesLastUpdated = null;
   recentGamesSignature = '';
   // Tear down WebGL effects
-  if (particleHeroHandle) { particleHeroHandle.destroy(); particleHeroHandle = null; }
   if (glowHandle) { glowHandle.destroy(); glowHandle = null; }
   if (hypeCardHandle) { hypeCardHandle.destroy(); hypeCardHandle = null; }
+  if (teamHypeCardHandle) { teamHypeCardHandle.destroy(); teamHypeCardHandle = null; }
 }
 
 export function destroy(): void {
@@ -143,14 +142,6 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
 
   disclaimer.append(disclaimerIcon, disclaimerText, author);
   root.appendChild(disclaimer);
-
-  // WebGL particle hero banner (above team grid)
-  const heroHost = document.createElement('div');
-  heroHost.style.marginTop = '1.5rem';
-  root.appendChild(heroHost);
-  if (shouldMountWebGL()) {
-    particleHeroHandle = mountParticleHero(heroHost);
-  }
 
   // Hype cards row — Team of the Week + Player of the Week, side by side
   const hypeRow = document.createElement('div');
@@ -424,18 +415,26 @@ async function loadTeamHypeCard(host: HTMLElement): Promise<void> {
     if (!top) return;
     const wins = teamWins(top);
     const losses = teamLosses(top);
-    const logoSrc = top.logoUrl ? top.logoUrl : '';
-    const card = document.createElement('a');
-    card.href = `#/teams/${top.id}`;
-    card.style.cssText = 'display:block; padding:1rem 1.25rem; border-radius:12px; background:#0e1119; border:2px solid #4ea1ff; text-decoration:none; color:inherit;';
-    card.innerHTML = `
-      <span style="color:#4ea1ff;font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">&#127942; Team of the Week</span>
-      <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.25rem;">
-        ${logoSrc ? `<img src="${logoSrc}" alt="${top.name} logo" style="width:28px;height:28px;object-fit:contain;border-radius:50%;" />` : ''}
-        <span style="font-size:1.1rem;font-weight:700;color:#e5e7eb;">${top.name}</span>
-      </div>
-      <div style="font-size:1.5rem;font-weight:700;color:#4ea1ff;margin-top:0.4rem;">${wins}-${losses} <span style="font-size:0.8rem;font-weight:400;color:#9ca3af;">Record</span></div>`;
-    host.appendChild(card);
+    const data: HypePlayerData = {
+      playerName: top.name,
+      teamName: `${wins}-${losses} Record`,
+      teamLogoUrl: top.logoUrl ?? undefined,
+      statLabel: 'Wins',
+      statValue: wins,
+      secondaryStat: losses > 0 ? { label: 'Losses', value: losses } : undefined,
+      playerHref: `#/teams/${top.id}`,
+    };
+    if (shouldMountWebGL()) {
+      teamHypeCardHandle = mountHypeCard(host, data, { kicker: '\uD83C\uDFC6 Team of the Week', accentColor: '#4ea1ff' });
+    } else {
+      const card = document.createElement('a');
+      card.href = data.playerHref;
+      card.style.cssText = 'display:block; padding:1rem 1.25rem; border-radius:12px; background:#0e1119; border:2px solid #4ea1ff; text-decoration:none; color:inherit;';
+      card.innerHTML = `<span style="color:#4ea1ff;font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">&#127942; Team of the Week</span>
+        <div style="font-size:1.1rem;font-weight:700;color:#e5e7eb;margin-top:0.25rem;">${top.name}</div>
+        <div style="font-size:0.8rem;color:#9ca3af;">${wins}-${losses} Record</div>`;
+      host.appendChild(card);
+    }
   } catch {
     // Silent — team hype card is optional
   }
@@ -960,6 +959,7 @@ function buildRecentGamesTable(
     const th = document.createElement('th');
     th.textContent = col.label;
     if (col.secondary) th.classList.add('col-secondary');
+    if (col.label === 'Matchup') th.style.textAlign = 'center';
     trh.appendChild(th);
   }
   thead.appendChild(trh);
@@ -999,15 +999,16 @@ function buildRecentGamesTable(
     const away = teamById.get(g.awayTeamId);
     const home = teamById.get(g.homeTeamId);
     const tdMatch = document.createElement('td');
+    tdMatch.style.textAlign = 'center';
     const matchupWrap = document.createElement('span');
     matchupWrap.className = 'matchup';
-    matchupWrap.style.cssText = 'display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:.4rem; min-width:0;';
+    matchupWrap.style.cssText = 'display:inline-grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:.4rem; width:100%;';
     const awayBadge = renderTeamBadge({
       name: away?.name ?? `Team #${g.awayTeamId}`,
       logoUrl: away?.logoUrl ?? null,
       size: 'md',
     });
-    awayBadge.style.justifySelf = 'end';
+    awayBadge.style.justifySelf = 'start';
     matchupWrap.appendChild(awayBadge);
     const at = document.createElement('span');
     at.className = 'muted';
