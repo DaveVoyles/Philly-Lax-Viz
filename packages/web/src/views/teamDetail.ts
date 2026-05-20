@@ -422,19 +422,19 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       postponed: g.postponed,
     }));
     if (population.length >= 2) {
-      const strengthSection = document.createElement('div');
-      strengthSection.style.cssText = 'display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; margin:1.25rem 0;';
+      const strengthSection = document.createElement('section');
+      strengthSection.style.cssText = 'margin:1.5rem 0;';
 
-      const radarWrap = document.createElement('div');
-      radarWrap.style.cssText = 'flex:0 0 auto; max-width:360px;';
       const radarHeader = document.createElement('h3');
       radarHeader.textContent = 'Team Strength';
-      radarHeader.style.cssText = 'margin:0 0 0.25rem; font-size:0.95rem;';
-      radarWrap.appendChild(radarHeader);
+      radarHeader.style.cssText = 'margin:0 0 0.75rem; font-size:1rem;';
+      strengthSection.appendChild(radarHeader);
+
+      // Radar chart — centered, generous size
       const radarHost = document.createElement('div');
       radarHost.className = 'team-radar-host';
-      radarWrap.appendChild(radarHost);
-      strengthSection.appendChild(radarWrap);
+      radarHost.style.cssText = 'max-width:420px; margin:0 auto;';
+      strengthSection.appendChild(radarHost);
 
       const radarData = {
         team: toTeamLike(focalRow),
@@ -442,25 +442,23 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
         opponents,
       };
       trackChart(renderTeamRadarChart(radarHost, radarData, {
-        width: 320,
-        height: 320,
-        margin: { top: 30, right: 60, bottom: 30, left: 60 },
+        width: 400,
+        height: 400,
+        margin: { top: 40, right: 70, bottom: 40, left: 70 },
       }));
 
-      // Visible stats table beside the radar
-      const tableWrap = document.createElement('div');
-      tableWrap.style.cssText = 'flex:1 1 200px; min-width:200px;';
+      // Stats table — full width below the chart
       const axes = computeRadarAxes(radarData.team, population, opponents);
       if (axes.length > 0) {
         const tbl = document.createElement('table');
         tbl.className = 'team-strength-table';
-        tbl.style.cssText = 'width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;';
+        tbl.style.cssText = 'width:100%; max-width:500px; border-collapse:collapse; font-size:0.85rem; margin:1rem auto 0;';
         const thead = document.createElement('thead');
         const trh = document.createElement('tr');
-        for (const col of ['Metric', 'Value', 'Pctile']) {
+        for (const col of ['Metric', 'Value', 'Percentile']) {
           const th = document.createElement('th');
           th.textContent = col;
-          th.style.cssText = 'text-align:left; padding:0.3rem 0.5rem; border-bottom:1px solid var(--border,#333);';
+          th.style.cssText = 'text-align:left; padding:0.4rem 0.75rem; border-bottom:1px solid var(--border,#333);';
           trh.appendChild(th);
         }
         thead.appendChild(trh);
@@ -470,23 +468,22 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
           const tr = document.createElement('tr');
           const tdLabel = document.createElement('td');
           tdLabel.textContent = ax.label;
-          tdLabel.style.cssText = 'padding:0.3rem 0.5rem;';
+          tdLabel.style.cssText = 'padding:0.4rem 0.75rem;';
           tr.appendChild(tdLabel);
           const tdVal = document.createElement('td');
           tdVal.textContent = ax.display;
-          tdVal.style.cssText = 'padding:0.3rem 0.5rem;';
+          tdVal.style.cssText = 'padding:0.4rem 0.75rem;';
           tr.appendChild(tdVal);
           const tdPct = document.createElement('td');
           const pct = Math.round(ax.percentile * 100);
           tdPct.textContent = `${pct}th`;
-          tdPct.style.cssText = `padding:0.3rem 0.5rem; font-weight:600; color:${pct >= 75 ? '#22c55e' : pct >= 50 ? '#eab308' : '#ef4444'};`;
+          tdPct.style.cssText = `padding:0.4rem 0.75rem; font-weight:600; color:${pct >= 75 ? '#22c55e' : pct >= 50 ? '#eab308' : '#ef4444'};`;
           tr.appendChild(tdPct);
           tbody.appendChild(tr);
         }
         tbl.appendChild(tbody);
-        tableWrap.appendChild(tbl);
+        strengthSection.appendChild(tbl);
       }
-      strengthSection.appendChild(tableWrap);
       root.appendChild(strengthSection);
     }
   }
