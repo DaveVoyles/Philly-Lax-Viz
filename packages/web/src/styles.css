@@ -466,13 +466,14 @@ table.stat tbody tr.row-link:focus { outline: 2px solid var(--accent); outline-o
   margin: 0.5rem 0 1.25rem;
 }
 .record-callout {
+  flex: 1 1 0;
+  min-width: 180px;
   padding: 0.6rem 1rem;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--table-stripe);
   display: flex;
   flex-direction: column;
-  min-width: 120px;
 }
 .callout-label { font-size: 0.8em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .callout-value { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
@@ -688,13 +689,8 @@ a.piaa-badge-link { text-decoration: none; cursor: pointer; }
 a.piaa-badge-link:hover { text-decoration: none; }
 
 .piaa-validation-panel {
-  border: 1px solid var(--border);
   border-left-width: 4px;
-  border-radius: 6px;
-  padding: 0.6rem 0.85rem;
-  margin: 0.5rem 0 1rem;
-  background: var(--table-stripe);
-  font-size: 0.95rem;
+  margin: 0;
 }
 .piaa-validation-panel--match     { border-left-color: #15803d; }
 .piaa-validation-panel--close     { border-left-color: #b45309; }

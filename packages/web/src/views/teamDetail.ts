@@ -349,15 +349,14 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     }
   })();
 
-  // PIAA cross-validation panel — replaces the Wave 7 ad-hoc note.
-  // Uses the server-computed `piaaValidation` block so the badge here matches
-  // the dashboard cards exactly.
+  // PIAA cross-validation panel — rendered as a card inside the callout row
+  // so all three (PIAA Record, PhillyLacrosse coverage, validation) sit side-by-side.
   const validation = detail.team.piaaValidation ?? null;
   if (piaa && validation && validation.status !== 'unmapped') {
     const panel = document.createElement('div');
-    panel.className = `piaa-validation-panel piaa-validation-panel--${validation.status}`;
+    panel.className = `record-callout piaa-validation-panel piaa-validation-panel--${validation.status}`;
     const heading = document.createElement('strong');
-    heading.style.cssText = 'display:flex; align-items:center; gap:.4rem;';
+    heading.style.cssText = 'display:flex; align-items:center; gap:.4rem; font-size:0.85rem;';
     const inlineBadge = renderPiaaBadge({
       validation,
       derived,
@@ -372,7 +371,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
 
     const sub = document.createElement('div');
     sub.className = 'muted';
-    sub.style.cssText = 'font-size:.9rem; margin-top:.25rem;';
+    sub.style.cssText = 'font-size:.8rem; margin-top:.25rem;';
     const ourWl = `${derived.wins}-${derived.losses}`;
     const piaaWl = `${piaa.wins}-${piaa.losses}`;
     const classBits = [piaa.classification ? `Class ${piaa.classification}` : null]
@@ -389,7 +388,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     link.textContent = 'verify on PIAA D1 →';
     sub.appendChild(link);
     panel.appendChild(sub);
-    root.appendChild(panel);
+    callouts.appendChild(panel);
   }
 
   const coverage = detail.team.coverage ?? null;
