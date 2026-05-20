@@ -83,7 +83,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
 
   const templateLink = document.createElement('a');
   templateLink.href = '/data/upload-template.xlsx';
-  templateLink.textContent = 'Download upload template';
+  templateLink.textContent = 'Download template';
   templateLink.className = 'coach-upload__template';
   formCard.appendChild(templateLink);
 
