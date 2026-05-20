@@ -1105,6 +1105,41 @@ a.piaa-badge-link:hover { text-decoration: none; }
   display: none;
 }
 
+/* Hide the screen-reader-only table inside the radar component */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Team Strength 2-column layout: radar + stats table side-by-side */
+.strength-row {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+.strength-row .team-radar-host {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.strength-row .team-strength-table {
+  flex: 1 1 0;
+  min-width: 0;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+@media (max-width: 768px) {
+  .strength-row {
+    flex-direction: column;
+  }
+}
+
 @media (max-width: 768px) {
   html,
   body {

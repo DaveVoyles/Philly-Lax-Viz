@@ -429,11 +429,14 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
       radarHeader.style.cssText = 'margin:0 0 0.75rem; font-size:1rem;';
       strengthSection.appendChild(radarHeader);
 
-      // Radar chart — centered, generous size
+      // Three-column flex row: radar chart + Axis table + Metric table
+      const strengthRow = document.createElement('div');
+      strengthRow.className = 'strength-row';
+
+      // Column 1: Radar chart
       const radarHost = document.createElement('div');
       radarHost.className = 'team-radar-host';
-      radarHost.style.cssText = 'max-width:420px; margin:0 auto;';
-      strengthSection.appendChild(radarHost);
+      strengthRow.appendChild(radarHost);
 
       const radarData = {
         team: toTeamLike(focalRow),
@@ -441,48 +444,49 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
         opponents,
       };
       trackChart(renderTeamRadarChart(radarHost, radarData, {
-        width: 400,
-        height: 400,
-        margin: { top: 40, right: 70, bottom: 40, left: 70 },
+        width: 340,
+        height: 340,
+        margin: { top: 35, right: 60, bottom: 35, left: 60 },
       }));
 
-      // Stats table — full width below the chart
+      // Column 2: Metric / Value / Percentile (colored)
       const axes = computeRadarAxes(radarData.team, population, opponents);
       if (axes.length > 0) {
-        const tbl = document.createElement('table');
-        tbl.className = 'team-strength-table';
-        tbl.style.cssText = 'width:100%; max-width:500px; border-collapse:collapse; font-size:0.85rem; margin:1rem auto 0;';
-        const thead = document.createElement('thead');
-        const trh = document.createElement('tr');
+        const metricTbl = document.createElement('table');
+        metricTbl.className = 'team-strength-table';
+        const metricThead = document.createElement('thead');
+        const metricTrh = document.createElement('tr');
         for (const col of ['Metric', 'Value', 'Percentile']) {
           const th = document.createElement('th');
           th.textContent = col;
-          th.style.cssText = 'text-align:left; padding:0.4rem 0.75rem; border-bottom:1px solid var(--border,#333);';
-          trh.appendChild(th);
+          th.style.cssText = 'text-align:left; padding:0.4rem 0.6rem; border-bottom:1px solid var(--border,#333);';
+          metricTrh.appendChild(th);
         }
-        thead.appendChild(trh);
-        tbl.appendChild(thead);
-        const tbody = document.createElement('tbody');
+        metricThead.appendChild(metricTrh);
+        metricTbl.appendChild(metricThead);
+        const metricTbody = document.createElement('tbody');
         for (const ax of axes) {
           const tr = document.createElement('tr');
           const tdLabel = document.createElement('td');
           tdLabel.textContent = ax.label;
-          tdLabel.style.cssText = 'padding:0.4rem 0.75rem;';
+          tdLabel.style.cssText = 'padding:0.4rem 0.6rem;';
           tr.appendChild(tdLabel);
           const tdVal = document.createElement('td');
           tdVal.textContent = ax.display;
-          tdVal.style.cssText = 'padding:0.4rem 0.75rem;';
+          tdVal.style.cssText = 'padding:0.4rem 0.6rem;';
           tr.appendChild(tdVal);
           const tdPct = document.createElement('td');
           const pct = Math.round(ax.percentile * 100);
           tdPct.textContent = `${pct}th`;
-          tdPct.style.cssText = `padding:0.4rem 0.75rem; font-weight:600; color:${pct >= 75 ? '#22c55e' : pct >= 50 ? '#eab308' : '#ef4444'};`;
+          tdPct.style.cssText = `padding:0.4rem 0.6rem; font-weight:600; color:${pct >= 75 ? '#22c55e' : pct >= 50 ? '#eab308' : '#ef4444'};`;
           tr.appendChild(tdPct);
-          tbody.appendChild(tr);
+          metricTbody.appendChild(tr);
         }
-        tbl.appendChild(tbody);
-        strengthSection.appendChild(tbl);
+        metricTbl.appendChild(metricTbody);
+        strengthRow.appendChild(metricTbl);
       }
+
+      strengthSection.appendChild(strengthRow);
       root.appendChild(strengthSection);
     }
   }
