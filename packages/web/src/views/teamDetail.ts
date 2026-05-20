@@ -532,11 +532,16 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   topScorersGlossary.innerHTML = `Points${glossaryIcon('Points')} = Goals${glossaryIcon('Goals')} + Assists${glossaryIcon('Assists')}`;
   root.appendChild(topScorersGlossary);
 
+  // Side-by-side: Top Scorers chart + Season scoring trend
+  const chartsRow = document.createElement('div');
+  chartsRow.style.cssText = 'display:flex; gap:2rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:1.5rem;';
+
   const topScorersSlot = document.createElement('div');
   topScorersSlot.dataset['chart'] = 'topScorers';
   topScorersSlot.className = 'chart-slot';
+  topScorersSlot.style.cssText = 'flex:1 1 360px; min-width:300px; max-width:720px;';
   observeChartReveal(topScorersSlot);
-  root.appendChild(topScorersSlot);
+  chartsRow.appendChild(topScorersSlot);
   void loadTopScorers(topScorersSlot, teamId);
 
   const gamesHeader = document.createElement('h2');
@@ -565,16 +570,22 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   // chart for fresh-roster teams or pre-season views.
   const trendPoints = extractScoreTrend(detail.games, teamId);
   if (trendPoints.length > 0) {
-    const trendHeader = document.createElement('h2');
-    trendHeader.textContent = 'Season scoring trend';
-    root.appendChild(trendHeader);
+    const trendWrap = document.createElement('div');
+    trendWrap.style.cssText = 'flex:1 1 300px; min-width:280px; max-width:720px;';
+    const trendLabel = document.createElement('h3');
+    trendLabel.textContent = 'Season scoring trend';
+    trendLabel.style.cssText = 'margin:0 0 0.5rem; font-size:0.95rem;';
+    trendWrap.appendChild(trendLabel);
 
     const trendCanvas = document.createElement('canvas');
     trendCanvas.className = 'team-score-trend';
     trendCanvas.dataset['chart'] = 'teamScoreTrend';
-    root.appendChild(trendCanvas);
+    trendWrap.appendChild(trendCanvas);
     trackChart(renderTeamScoreTrend(trendCanvas, trendPoints));
+    chartsRow.appendChild(trendWrap);
   }
+
+  root.appendChild(chartsRow);
 
   root.appendChild(wrapResponsive(buildGamesTable(detail.games, teamId, teamsById)));
 }
