@@ -79,6 +79,9 @@ COPY --from=builder --chown=app:app /app/packages/server        ./packages/serve
 # SQLite reliably; using ephemeral copy-on-start as a workaround).
 COPY --chown=app:app data/lacrosse.db /app/seed/lacrosse.db
 
+# Bundle team logos so the /logos/* static route works.
+COPY --chown=app:app data/logos /app/data/logos
+
 USER app
 
 EXPOSE 8080
