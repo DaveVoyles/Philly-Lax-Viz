@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
-# Upload the local SQLite DB to Azure File Share and optionally trigger
-# a GitHub Pages redeploy so the live site reflects local changes.
+# Upload the local SQLite DB to Azure File Share.
+# The SWA + ACA deployments pick up DB changes automatically on next request.
 #
 # Usage:
-#   ./scripts/db-upload.sh            # upload only
-#   ./scripts/db-upload.sh --deploy   # upload + trigger Pages workflow
+#   ./scripts/db-upload.sh
 #
 # Prerequisites:
 #   - az CLI authenticated (az login)
-#   - gh CLI authenticated (gh auth status)
 
 set -euo pipefail
 
@@ -33,9 +31,3 @@ az storage file upload \
   --only-show-errors
 
 echo "Upload complete ($(du -h "$DB_PATH" | cut -f1))."
-
-if [[ "${1:-}" == "--deploy" ]]; then
-  echo "Triggering GitHub Pages workflow..."
-  gh workflow run pages.yml --ref main
-  echo "Pages workflow dispatched. Monitor with: gh run list --workflow=pages.yml"
-fi

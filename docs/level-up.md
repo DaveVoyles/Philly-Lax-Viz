@@ -31,8 +31,7 @@ Agents should understand what they can do autonomously and what requires human a
 | **NameCheap DNS** | NameCheap API (`namecheap.domains.dns.*`) | Requires `NAMECHEAP_API_KEY`, `NAMECHEAP_API_USER`, and IP whitelisting. Agent can set A/CNAME/TXT records programmatically. |
 | **Hudl login + scrape** | Playwright via `syncHudl.ts` | Already built. Agent runs `--headed` for first-time selector discovery, then `--dry-run` to validate before writing. |
 | **Azure Container App config** | `update-azure-config.yml` GitHub Actions workflow | Agent dispatches workflow via `gh workflow run`. No direct `az` CLI write access from local machine. |
-| **GitHub Pages deploy** | `gh workflow run pages.yml --ref main` | Standard post-push step. |
-| **DB upload to Azure** | `pnpm db:deploy` (wraps `scripts/db-upload.sh`) | Requires `AZURE_STORAGE_CONNECTION_STRING` in env. |
+| **DB upload to Azure** | `pnpm db:upload` (wraps `scripts/db-upload.sh`) | Requires `az` CLI auth. Uploads local DB to Azure File Share. |
 | **Spreadsheet parsing** | `applyHarritonWorkbook.ts` patterns | Agent can read `.xlsx` files, parse sheets, map columns, write to DB. |
 | **YouTube API polling** | YouTube Data API v3 (`search.list` with `eventType=live`) | Requires `YOUTUBE_API_KEY`. Can check if a channel is live. |
 | **CI workflow dispatch** | `gh workflow run <workflow>.yml` | Any workflow with `workflow_dispatch` trigger. |

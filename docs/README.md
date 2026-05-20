@@ -46,28 +46,28 @@ External Sources
   |- maxpreps.com (HTML)        team logos
   +- laxnumbers.com (API)       PA-wide supplementary stats
 
-         | crawl.ts / syncPiaa.ts / syncLogos.ts
+          | crawl.ts / syncPiaa.ts / syncLogos.ts
          v
   data/lacrosse.db  (SQLite, 4 packages as monorepo)
 
          | ingest-nightly.yml (GitHub Actions)
          v
-  Azure Container App  <->  Fastify API (/api/*)
   Azure File Share          live DB storage
 
-         | pages.yml + exportStatic.ts
+         | deploy.yml (push to main)
          v
-  packages/web/public/data/**/*.json  ->  GitHub Pages (static SPA)
+  Azure Static Web App      phillylaxstats.com (Vite SPA)
+  Azure Container App  <->  Fastify API (api.phillylaxstats.com)
 ```
 
-Two deployment targets:
+Single deployment target — Azure SWA serves the web client, ACA serves the API:
 
-| Target | Data source | Live API |
-|--------|-------------|----------|
-| GitHub Pages (primary, user-facing) | Pre-built JSON snapshots | No — `staticLoader.ts` |
-| Azure Container App (admin/dev) | Live SQLite via Fastify | Yes |
+| Component | URL | Data source |
+|-----------|-----|-------------|
+| Web (SPA) | `https://www.phillylaxstats.com` | Live API calls |
+| API | `https://api.phillylaxstats.com` | SQLite on Azure File Share |
 
-**After local-only data changes** (workbook imports, manual corrections, dedup): run `pnpm db:deploy` to upload the local DB to Azure and trigger a Pages redeploy. The nightly CI handles this automatically for RSS-sourced data, but ad-hoc local scripts require this manual sync step.
+**After local-only data changes** (workbook imports, manual corrections, dedup): run `pnpm db:upload` to sync the local DB to Azure File Share. The nightly CI handles this automatically for RSS-sourced data, but ad-hoc local scripts require this manual sync step.
 
 ---
 

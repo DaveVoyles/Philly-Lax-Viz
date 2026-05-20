@@ -7,7 +7,7 @@
 
 ## The Problem
 
-The live GitHub Pages site does **not** use the local DB. It exports from the Azure File Share copy.
+The live site (Azure SWA + ACA) uses the DB from Azure File Share, not your local copy.
 If you only run a local script, the data stays local and never reaches the live site.
 
 ---
@@ -25,8 +25,8 @@ pnpm --filter @pll/ingest exec tsx src/scripts/applyHarritonWorkbook.ts \
 # 3. Verify locally
 sqlite3 data/lacrosse.db ".mode column" "SELECT name, SUM(goals) FROM players p JOIN player_stats ps ON ps.player_id = p.id WHERE p.team_id = 80 GROUP BY p.id ORDER BY 2 DESC LIMIT 5"
 
-# 4. Sync to Azure and deploy to live site
-pnpm db:deploy
+# 4. Sync to Azure
+pnpm db:upload
 ```
 
 ---
@@ -50,9 +50,8 @@ All scripts live in `packages/ingest/src/scripts/`.
 After running any import:
 
 - [ ] Query the local DB to confirm data looks correct
-- [ ] Run `pnpm db:deploy` (uploads to Azure + triggers Pages)
-- [ ] Wait for Pages workflow to complete: `gh run list --workflow=pages.yml --limit=1`
-- [ ] Spot-check the live site JSON: `curl -s "https://davevoyles.github.io/Philly-Lax-Viz/data/2026/teams/<ID>.json" | python3 -m json.tool | head -30`
+- [ ] Run `pnpm db:upload` (uploads to Azure File Share)
+- [ ] Spot-check the live site: `curl -s "https://api.phillylaxstats.com/api/teams" | python3 -m json.tool | head -30`
 
 ---
 
@@ -60,7 +59,7 @@ After running any import:
 
 | Mistake | Consequence | Prevention |
 |---------|-------------|------------|
-| Forgot `pnpm db:deploy` | Data only in local DB, not on live site | Always run after any local DB write |
+| Forgot `pnpm db:upload` | Data only in local DB, not on live site | Always run after any local DB write |
 | Ran with `--dry-run` only | Nothing was written | Remove `--dry-run` flag for real import |
 | Didn't back up first | Can't undo bad import | Always `cp` before destructive scripts |
 | Ran against test DB | Changes in wrong file | Ensure `--db=data/lacrosse.db` not `.test.db` |

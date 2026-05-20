@@ -115,10 +115,7 @@ too many corrections today. Please try again tomorrow."
 https://phillylaxstats.com/api/corrections
 ```
 
-**This call is NOT gated by `IS_STATIC`.** Corrections submitted from the
-GitHub Pages static site still hit the live Azure API. The static build
-exports no corrections data to `public/data/`; the correction write path
-is always live.
+**Corrections always hit the live Azure API** at `api.phillylaxstats.com`.
 
 The payload fields sent:
 
@@ -281,24 +278,17 @@ Calls:
 - `GET /api/corrections/recent` -- returns up to 50 rows with
   `status IN ('approved', 'outlier')`, ordered by `submitted_at DESC`
 
-These read routes use `request()` in `api.ts`, which IS gated by `IS_STATIC`
-(falls back to `staticFetch`). Because no corrections snapshot is exported
-to `public/data/`, the admin view is effectively unavailable in static mode.
-Use the live site or local dev server to access it.
+These read routes use `request()` in `api.ts` which calls the live API.
 
 ---
 
-## 9. Static vs. Live Distinction
+## 9. Deployment Note
 
-| Action                       | GitHub Pages (IS_STATIC) | Azure live site |
-|------------------------------|--------------------------|-----------------|
-| Submit correction            | Works (hits Azure API)   | Works           |
-| View flagged/recent (admin)  | Not available            | Works           |
-| Nightly apply runs           | N/A (CI only)            | N/A (CI only)   |
-
-The correction submission path bypasses `IS_STATIC` by using `apiUrl()` to
-construct an absolute URL to the Azure backend. This is intentional and
-documented in `AGENTS.md` §11.
+| Action                       | Behavior |
+|------------------------------|----------|
+| Submit correction            | Hits live API at `api.phillylaxstats.com` |
+| View flagged/recent (admin)  | Reads from live API |
+| Nightly apply runs           | CI-only (ingest-nightly.yml) |
 
 ---
 

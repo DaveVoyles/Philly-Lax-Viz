@@ -44,19 +44,19 @@ External Sources
        ▼
   Azure File Share  ←→  Fastify API server (Azure Container App)
                               │ /api/* endpoints
-       │ pages.yml
+       │ deploy.yml (push to main)
        ▼
-  exportStatic.ts  →  /data/**/*.json  →  GitHub Pages (static SPA)
+  Azure Static Web App (phillylaxstats.com)
 ```
 
-**Two deployment targets:**
+**Deployment architecture:**
 
-| Target | URL | Data source | Live API? |
-|--------|-----|-------------|-----------|
-| GitHub Pages | https://phillylaxstats.com | Pre-built static JSON | No — `staticLoader.ts` maps `/api/*` to JSON files |
-| Azure Container App | https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io | Live SQLite via Fastify | Yes — full `/api/*` |
+| Component | URL | Role |
+|-----------|-----|------|
+| Web (SWA) | https://www.phillylaxstats.com | Vite SPA, all data via live API |
+| API (ACA) | https://api.phillylaxstats.com | Fastify, SQLite on Azure File Share |
 
-GitHub Pages is the **primary user-facing deployment** at `phillylaxstats.com`. The Azure Container App is used for DB storage (Azure File Share) and as a live API endpoint for coach uploads, commitment submissions, and admin tools.
+The web client calls the API directly — there is no static JSON export layer.
 
 ---
 
@@ -310,57 +310,11 @@ This is additive — it supplements phillylacrosse.com data, not replaces it.
 17. Post anomaly delta to Discord (if webhook configured)
 18. Azure logout
 
-### What triggers the Pages deploy
-
-`pages.yml` runs via `workflow_run` (triggered when `ingest-nightly.yml` completes). It:
-1. Downloads `lacrosse.db` from Azure File Share
-2. Runs `exportStatic.ts` to generate all `/data/**/*.json` files
-3. Builds the Vite web bundle
-4. Deploys to GitHub Pages
-
 **Raw cache persistence:** `data/raw-cache/` lives on the self-hosted runner between runs. It is NOT downloaded from Azure each night — only the DB is. This means re-running on a fresh runner would start with an empty cache and would re-crawl everything.
 
 ---
 
-## 7. Static Export for GitHub Pages
-
-**Script:** `packages/server/src/scripts/exportStatic.ts`  
-**Default season:** `2026` (hardcoded in `DEFAULT_SEASON` constant at line 42)
-
-### Files generated
-
-| File path | Replaces API | Notes |
-|-----------|-------------|-------|
-| `health.json` | `GET /api/health` | DB row counts + ingest timestamps |
-| `seasons.json` | `GET /api/seasons` | Currently hardcoded `[2026]` |
-| `empty.json` | Fallback | Returns `{}` for unsupported endpoints |
-| `{season}/teams.json` | `GET /api/teams` | All teams with streak data |
-| `{season}/teams/{id}.json` | `GET /api/teams/:id` + topScorers + upcoming | Full team detail bundle |
-| `{season}/games.json` | `GET /api/games` | All season games |
-| `{season}/games/{id}.json` | `GET /api/games/:id` | Full game detail + periods + stats |
-| `{season}/players/{id}.json` | `GET /api/players/:id` | Player detail + season stats |
-| `{season}/rankings.json` | `GET /api/rankings` | Latest rankings week |
-| `{season}/leaders/players/{metric}.json` | `GET /api/leaders/players` | Per-metric player leaderboard |
-| `{season}/leaders/teams/{metric}.json` | `GET /api/leaders/teams` | Per-metric team leaderboard |
-| `{season}/leaders/sparklines/{metric}.json` | `GET /api/leaders/players/sparklines` | Per-metric sparklines |
-| `{season}/rivalries.json` | `GET /api/rivalries` | Rivalry graph nodes/edges |
-| `{season}/constellation.json` | `GET /api/players/constellation` | Constellation dataset |
-| `{season}/anomalies.json` | `GET /api/anomalies` | Data quality anomaly list |
-| `{season}/anomalies-summary.json` | `GET /api/anomalies/summary` | Anomaly summary counts |
-| `{season}/schedule.json` | `GET /api/schedule` | Full season schedule |
-| `{season}/schedule/team/{id}.json` | `GET /api/schedule/team/:id/upcoming` | Per-team upcoming games |
-| `{season}/search-index.json` | `GET /api/search` | Pre-built search index (client-filtered) |
-| `public/logos/*` | (static assets) | Copied from `data/logos/` |
-
-### How the web client switches modes
-
-- `VITE_STATIC_MODE=true` at build time → client uses `staticLoader.ts`
-- `staticLoader.ts` maps `/api/*` paths to pre-built JSON under `/data/...`
-- GitHub Pages build sets `VITE_STATIC_MODE=true`, `VITE_BASE_PATH=/Philly-Lax-Viz/`, and `VITE_API_URL` from GitHub Actions secrets
-
----
-
-## 8. Web Client & Routing
+## 7. Web Client & Routing
 
 **Router:** `packages/web/src/router.ts` (hash-based, `#/...`)
 
