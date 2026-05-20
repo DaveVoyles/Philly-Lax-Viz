@@ -580,6 +580,22 @@ table.stat th.sortable:focus { outline: 2px solid var(--accent); outline-offset:
 .chart-slot[data-chart="teamScoreTrend"] { max-width: 720px; }
 .chart-slot[data-chart="quarterByQuarter"] { max-width: 480px; }
 
+.charts-row {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+.charts-row > .chart-slot {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+}
+@media (max-width: 768px) {
+  .charts-row { flex-direction: column; }
+  .charts-row > .chart-slot { min-width: 100%; }
+}
+
 .result-w { color: #15803d; font-weight: 600; }
 .result-l { color: var(--error); font-weight: 600; }
 .result-t { color: var(--muted); font-weight: 600; }

@@ -533,12 +533,11 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
 
   // Side-by-side: Top Scorers chart + Season scoring trend
   const chartsRow = document.createElement('div');
-  chartsRow.style.cssText = 'display:flex; gap:2rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:1.5rem;';
+  chartsRow.className = 'charts-row';
 
   const topScorersSlot = document.createElement('div');
   topScorersSlot.dataset['chart'] = 'topScorers';
   topScorersSlot.className = 'chart-slot';
-  topScorersSlot.style.cssText = 'flex:1 1 360px; min-width:300px; max-width:720px;';
   observeChartReveal(topScorersSlot);
   chartsRow.appendChild(topScorersSlot);
   void loadTopScorers(topScorersSlot, teamId);
@@ -570,7 +569,8 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   const trendPoints = extractScoreTrend(detail.games, teamId);
   if (trendPoints.length > 0) {
     const trendWrap = document.createElement('div');
-    trendWrap.style.cssText = 'flex:1 1 300px; min-width:280px; max-width:720px;';
+    trendWrap.className = 'chart-slot';
+    trendWrap.dataset['chart'] = 'teamScoreTrend';
     const trendLabel = document.createElement('h3');
     trendLabel.textContent = 'Season scoring trend';
     trendLabel.style.cssText = 'margin:0 0 0.5rem; font-size:0.95rem;';
