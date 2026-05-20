@@ -1,7 +1,6 @@
 import { ApiError, getGames, getRivalries, type RivalryNode } from '../api.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { navigate } from '../router.js';
-import { IS_STATIC, staticUnavailableNode } from '../staticLoader.js';
 
 const STYLE_ID = 'rivalries-view-styles';
 const CLOSE_GAME_MARGIN = 2;
@@ -439,10 +438,6 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
     revealCards(cardEls);
   } catch (error) {
     if (myToken !== renderToken) return;
-    if (IS_STATIC) {
-      root.replaceChildren(staticUnavailableNode('Rivalries'));
-      return;
-    }
     const message = error instanceof ApiError ? `${error.status} - ${error.message}` : error instanceof Error ? error.message : 'Unknown error';
     root.replaceChildren(buildState(`Unable to load rivalries: ${message}`, true));
   }

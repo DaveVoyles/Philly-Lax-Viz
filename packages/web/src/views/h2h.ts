@@ -12,7 +12,6 @@ import {
   type H2HTeamsResponse,
   type TeamSeasonRecord,
 } from '../api.js';
-import { IS_STATIC } from '../staticLoader.js';
 
 type Mode = 'teams' | 'players';
 
@@ -131,10 +130,6 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
         a = na;
         b = nb;
         writeQuery(mode, a, b);
-        if (IS_STATIC) {
-          output.replaceChildren(staticUnavailableNode());
-          return;
-        }
         if (a !== null && b !== null) loadTeamsCompare(output, a, b);
       });
     } else {
@@ -142,19 +137,11 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
         a = na;
         b = nb;
         writeQuery(mode, a, b);
-        if (IS_STATIC) {
-          output.replaceChildren(staticUnavailableNode());
-          return;
-        }
         if (a !== null && b !== null) loadPlayersCompare(output, a, b);
       });
     }
 
     writeQuery(mode, a, b);
-    if (IS_STATIC) {
-      output.replaceChildren(staticUnavailableNode());
-      return;
-    }
     if (a !== null && b !== null) {
       if (mode === 'teams') loadTeamsCompare(output, a, b);
       else loadPlayersCompare(output, a, b);
@@ -180,14 +167,6 @@ function makeTabButton(label: string): HTMLButtonElement {
   b.style.cssText =
     'background:transparent; border:none; padding:.5rem 1rem; cursor:pointer; font-size:1rem; border-bottom:2px solid transparent;';
   return b;
-}
-
-function staticUnavailableNode(): HTMLElement {
-  const p = document.createElement('p');
-  p.className = 'muted';
-  p.textContent =
-    'Head-to-head comparisons require the live data server and are not available on this static site.';
-  return p;
 }
 
 async function mountTeamSelectors(

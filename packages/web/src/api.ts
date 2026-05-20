@@ -30,7 +30,6 @@ import {
   SEASON_QUERY_KEY,
 } from './components/seasonPicker.js';
 import { apiUrl } from './apiBase.js';
-import { IS_STATIC, staticFetch } from './staticLoader.js';
 
 export type { GamePeriod, PiaaRecord, CoachTrendsResponse, CoachScoutingReport, CoachPracticeFocus };
 
@@ -79,7 +78,6 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const baseUrl = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
-  if (IS_STATIC) return staticFetch<T>(baseUrl);
   const url = apiUrl(attachSeason(baseUrl));
   let res: Response;
   try {
@@ -605,7 +603,6 @@ export function submitCommitment(payload: CommitmentSubmission): Promise<Commitm
 }
 
 export async function submitSelfCommitment(payload: CommitmentSelfSubmission): Promise<Commitment> {
-  // Bypass IS_STATIC guard — submissions always hit the live API
   const url = apiUrl('/api/commitments/submit');
   const res = await fetch(url, {
     method: 'POST',

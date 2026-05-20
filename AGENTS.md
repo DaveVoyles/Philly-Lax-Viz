@@ -6,9 +6,9 @@ Onboarding for sub-agents joining this repo cold. Read this first; you should be
 
 TypeScript pnpm monorepo that scrapes, parses, and visualizes Philadelphia high-school boys lacrosse data from **phillylacrosse.com** (RSS scoreboards & summaries), **piaad1.org** (official PIAA District 1 rankings), **phillylaxnumbers.com** (LaxNumbers — per-game player stats), and **maxpreps.com** (team logos). Four workspace packages handle ingestion, an HTTP API, shared types, and a D3-based web client.
 
-The site is deployed two ways:
-- **GitHub Pages** (`IS_STATIC=true`) — static HTML/JS with pre-exported JSON snapshots in `packages/web/public/data/`. No live API. Graceful fallback for API-only views.
-- **Azure Container App** — live Fastify API at `https://phillylaxstats.com`. DB stored in Azure Files, mounted at `/data/`.
+The site is deployed via:
+- **Azure Static Web Apps** — Vite SPA served from Azure SWA with `/api/*` proxied to the backend
+- **Azure Container App** — live Fastify API at `https://api.phillylaxstats.com`. DB stored in Azure Files, mounted at `/data/`.
 
 ## 2. Package map
 
@@ -48,9 +48,7 @@ pnpm --filter @pll/ingest test
 pnpm --filter @pll/server dev
 pnpm --filter @pll/web build
 
-# static export (generates packages/web/public/data/ for GitHub Pages build)
-pnpm --filter @pll/web export:static
-pnpm --filter @pll/web validate:export
+# web asset maintenance
 pnpm --filter @pll/server exec tsx src/scripts/generateSitemap.ts   # refresh packages/web/public/sitemap.xml
 ```
 
@@ -77,11 +75,9 @@ Azure DB sync (after any local-only ingestion):
 
 ```bash
 pnpm db:upload                  # upload local DB to Azure File Share
-pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
-./scripts/db-upload.sh --deploy # equivalent shell invocation
 ```
 
-**Important:** After running any local-only script (workbook imports, dedup, manual corrections), you must run `pnpm db:deploy` to make changes visible on the live GitHub Pages site. The nightly CI workflow syncs automatically, but ad-hoc local imports require this manual step.
+**Important:** After running any local-only script (workbook imports, dedup, manual corrections), you must run `pnpm db:upload` to make changes visible on the live site. The nightly CI workflow syncs automatically, but ad-hoc local imports require this manual step.
 
 ## 4. Database conventions
 
@@ -141,8 +137,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 - **Don't read `.env` files** (project policy).
 - **Stay in your lane.** Lane assignments are in the current wave plan in `docs/`.
 - **Logo files are `.gif` not `.png`.** MaxPreps serves .gif logos. Storing as `.png` will break display.
-- **Every new web view must handle IS_STATIC mode.** See §10 below — blank pages on GitHub Pages are the symptom of missing guards.
-- **After any local-only DB mutation, run `pnpm db:deploy`.** The live GitHub Pages site exports from the Azure DB, not the local one. If you run a script that writes to `data/lacrosse.db` (workbook imports, dedup, manual corrections, migrations), you **must** sync to Azure with `pnpm db:deploy` or the changes will not appear on the live site. The nightly CI handles RSS-sourced data automatically, but ad-hoc local scripts do not sync themselves.
+- **After any local-only DB mutation, run `pnpm db:upload`.** The live site reads from the Azure-hosted DB. If you run a script that writes to `data/lacrosse.db` (workbook imports, dedup, manual corrections, migrations), you **must** sync to Azure with `pnpm db:upload` or the changes will not appear on the live site. The nightly CI handles RSS-sourced data automatically, but ad-hoc local scripts do not sync themselves.
 - **Azure mutations require the `AZURE_CREDENTIALS` service principal** via the `update-azure-config.yml` workflow. Local `az` CLI (`dvoyles@microsoft.com`) lacks Container App write permissions.
 
 ## 6. Runtime logs & dev servers
@@ -189,8 +184,8 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 `adminCorrections.ts`, `adminHudl.ts`, `coachDashboard.ts`, `coachUpload.ts`, `commitments.ts`, `compare.ts`, `constellation.ts`, `dashboard.ts`, `dataQuality.ts`, `gameDetail.ts`, `h2h.ts`, `leaders.ts`, `playerCompare.ts`, `playerDetail.ts`, `ratings.ts`, `rivalries.ts`, `schedule.ts`, `sources.ts`, `teamDetail.ts`, `topTeams.ts`
 
 **Key CI workflows** (all under `.github/workflows/`):
-- `ingest-nightly.yml` — crawl + parse + ingest + applyCorrections + export static + deploy
-- `pages.yml` — GitHub Pages deploy (triggered by ingest-nightly or manual)
+- `ingest-nightly.yml` — crawl + parse + ingest + applyCorrections + restart ACA
+- `deploy.yml` — build web + server, deploy to Azure SWA + ACA (triggered on push to main)
 - `sync-logos.yml` — weekly Sunday logo sync from MaxPreps
 - `update-azure-config.yml` — ops tool: updates CORS_ORIGINS / env vars on Azure Container App
 
@@ -210,7 +205,7 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 - Common emoji markers: ✅ done · 🔍 recon · 📋 plan · 🎯 target · ⚠️ warning · 🔧 fix.
 - When adding a new parser, put it under `packages/ingest/src/parsers/` and register in `parsers/index.ts`. Co-located tests go in `parsers/__tests__/`.
 - When adding a new HTML fixture, drop it in `fixtures/` and update `fixtures/README.md`.
-- When adding a new web view, register it in `packages/web/src/router.ts` and apply the IS_STATIC guard (§10).
+- When adding a new web view, register it in `packages/web/src/router.ts`.
 - When adding a new server route, register it in `packages/server/src/app.ts`.
 - Don't touch other agents' files. If unsure, check the lane table in the current wave plan.
 
@@ -232,40 +227,21 @@ pnpm db:deploy                  # upload + trigger GitHub Pages redeploy
 
 Stale docs cause agents to work from false assumptions and introduce bugs. This is not optional.
 
-## 10. IS_STATIC mode — GitHub Pages
+## 10. Azure Static Web Apps deployment
 
-The GitHub Pages build sets `VITE_STATIC_MODE=true`. In this mode:
-- **No live API calls.** All data comes from pre-exported JSON files in `packages/web/public/data/`.
-- **`staticLoader.ts`** defines `IS_STATIC`, `staticFetch()`, and `staticUnavailableNode()`.
-- Season selector views stay pinned to the latest exported season in static mode; do not offer cross-season switching on GitHub Pages.
-- Player detail static exports include `/api/players/:id/milestones` -> `players/{id}-milestones.json`.
-- Every view **must** guard API-only behavior with `IS_STATIC`.
+The site is deployed to Azure SWA via `deploy.yml`. All views call the live API directly.
 
-**Pattern for any view with live API calls:**
-
-```typescript
-import { IS_STATIC, staticFetch, staticUnavailableNode } from '../staticLoader';
-
-async function loadData() {
-  if (IS_STATIC) {
-    // Use staticFetch('/data/snapshot.json') or staticUnavailableNode('Feature name')
-    return staticFetch<MyType[]>('/data/my-snapshot.json');
-  }
-  // Live API call
-  return api.getLiveData();
-}
-```
-
-- If a feature is simply unavailable in static mode, render `staticUnavailableNode('Feature name')` instead of a blank screen.
-- Static JSON exports are generated by the `export:static` script (runs in nightly CI before Pages deploy).
-- `packages/server/src/scripts/generateSitemap.ts` writes `packages/web/public/sitemap.xml`; `robots.txt` lives beside it in `packages/web/public/`.
-- **Symptom of missing guard:** page appears blank on the live GitHub Pages site but works fine locally.
+- **No static mode.** The `IS_STATIC` / `staticLoader.ts` / `exportStatic.ts` pattern was removed in May 2026.
+- `packages/web/public/staticwebapp.config.json` configures SPA fallback routing (all paths rewrite to `/index.html` except `/assets/*`, `/logos/*`, `/data/*`).
+- `packages/server/src/scripts/generateSitemap.ts` writes `packages/web/public/sitemap.xml`; `robots.txt` and `staticwebapp.config.json` live beside it in `packages/web/public/`.
+- The API base URL is set via `VITE_API_BASE_URL` at build time (currently `https://api.phillylaxstats.com`).
+- Push to `main` triggers `deploy.yml` which builds and deploys both the SWA (web) and the ACA (server).
 
 ## 11. Community corrections
 
 Readers can submit corrections via ✏️ buttons on `playerDetail` and `gameDetail`. Data flow:
 
-1. Browser: `correctionModal.ts` component POSTs to `${VITE_API_URL}/api/corrections` (bypasses IS_STATIC — always hits Azure).
+1. Browser: `correctionModal.ts` component POSTs to `${VITE_API_BASE_URL}/api/corrections`.
 2. Server: `packages/server/src/routes/corrections.ts` validates, detects outliers, stores in `community_corrections`.
 3. Nightly CI: `applyCorrections.ts --db=$DB_PATH` auto-approves non-outliers, marks outliers as 'outlier' (not applied).
 4. Admin view: `#/admin/corrections` (`adminCorrections.ts`) shows flagged outliers + recent approvals.
@@ -290,13 +266,9 @@ These are pitfalls that have bitten agents and contributors multiple times:
 
 | Mistake | Why it fails | Correct approach |
 |---------|-------------|-----------------|
-| Push to `main` and assume site updates | `pages.yml` only triggers on `workflow_dispatch` or `ingest-nightly` completion | Run `gh workflow run pages.yml --ref main` after push |
-| Import data locally without `pnpm db:deploy` | Azure DB (used by Pages export) still has old data | Always run `pnpm db:deploy` after any local DB mutation |
+| Import data locally without `pnpm db:upload` | Azure DB (used by live site) still has old data | Always run `pnpm db:upload` after any local DB mutation |
 | Store logo files as `.png` | MaxPreps serves `.gif`; mismatch breaks display | Use `.gif` extension for all logo files |
 | Use unicode characters in HTTP-bound strings | Em-dashes, smart quotes break undici headers | Use ASCII-only: `-` not `--`, `'` not curly quotes |
-| Add a new view without IS_STATIC guard | Page renders blank on GitHub Pages | Always add `staticFetch` or `staticUnavailableNode` fallback |
-| Assume `packages/web/public/data/` is committed | It is gitignored; generated at deploy time | Don't manually edit static exports; they are rebuilt from Azure DB |
 | Open the DB writably during another agent's wave | SQLite WAL conflicts can corrupt data | Use read-only `sqlite3` queries when another agent is active |
-| Upload DB to Azure and immediately trigger Pages | Race condition: workflow may download pre-upload version | Wait a few seconds after upload completes before dispatching |
 
 See `docs/runbooks/` for detailed step-by-step guides.

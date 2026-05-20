@@ -7,14 +7,8 @@ import {
   patchAdminHudlTeam,
   type TeamSeasonRecord,
 } from '../api.js';
-import { IS_STATIC, staticUnavailableNode } from '../staticLoader.js';
 
 export async function render(root: HTMLElement, _params: Record<string, string>): Promise<void> {
-  if (IS_STATIC) {
-    root.replaceChildren(staticUnavailableNode('Hudl Team Management'));
-    return;
-  }
-
   let teams: TeamSeasonRecord[] = [];
   let hudlTeams: HudlTeam[] = [];
 

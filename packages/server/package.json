@@ -8,9 +8,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "export:static": "tsx src/scripts/exportStatic.ts",
-    "validate:export": "tsx src/scripts/validateExport.ts"
+    "test": "vitest run"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.1",

@@ -14,7 +14,6 @@ import {
 } from '../api.js';
 import { renderCoachTrendsChart } from '../charts/coachTrends.js';
 import { currentSeason } from '../components/seasonPicker.js';
-import { IS_STATIC, staticUnavailableNode } from '../staticLoader.js';
 import { formatDate } from '../util/format.js';
 import { setOgMeta } from '../util/ogMeta.js';
 
@@ -155,11 +154,6 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
     title: 'Coach Dashboard | PhillyLaxStats',
     description: 'Review team stat coverage gaps, roster gaps, and coach upload actions.',
   });
-
-  if (IS_STATIC) {
-    root.appendChild(staticUnavailableNode('Coach Dashboard'));
-    return;
-  }
 
   const back = document.createElement('p');
   back.className = 'muted';

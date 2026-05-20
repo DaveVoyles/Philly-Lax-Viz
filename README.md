@@ -88,7 +88,7 @@ pnpm --filter @pll/ingest exec tsx src/scripts/generateUploadTemplate.ts  # crea
 
 | Doc | What it covers |
 | --- | --- |
-| [AGENTS.md](./AGENTS.md) | **Start here for agents.** Package map, all commands, DB conventions, hard rules, IS_STATIC pattern, community corrections |
+| [AGENTS.md](./AGENTS.md) | **Start here for agents.** Package map, all commands, DB conventions, hard rules, Azure SWA deployment, community corrections |
 | [docs/architecture.md](./docs/architecture.md) | Full system architecture, data-flow diagrams, API endpoint inventory, DB schema, static export coverage map |
 | [docs/azure-deployment.md](./docs/azure-deployment.md) | Azure Container App + Static Web Apps deployment, CI/CD workflows, environment config |
 | [docs/pipeline-gaps.md](./docs/pipeline-gaps.md) | Known ingest gaps, anomaly types, and improvement backlog |
@@ -143,16 +143,16 @@ pnpm --filter @pll/ingest exec tsx src/scripts/generateUploadTemplate.ts  # crea
                     read   │                 │ read
                            ▼                 ▼
     ┌──────────────────────────────┐  ┌──────────────────────────────┐
-    │  @pll/server (Fastify :3001) │  │  exportStatic.ts             │
-    │  /api/* (20+ endpoints)      │  │  -> /data/**/*.json          │
-    │  Admin + live queries        │  │  -> GitHub Pages (primary)   │
+    │  @pll/server (Fastify :3001) │  │  Azure Container Apps        │
+    │  /api/* (20+ endpoints)      │  │  api.phillylaxstats.com      │
+    │  Admin + live queries        │  │  live API + logo assets      │
     └──────────────┬───────────────┘  └──────────────┬───────────────┘
-                   │ JSON                             │ static files
+                   │ JSON                             │ HTTP
                    ▼                                  ▼
     ┌──────────────────────────────┐  ┌──────────────────────────────┐
-    │  @pll/web (dev, Vite :5173)  │  │  GitHub Pages (production)   │
-    │  hash router + D3 charts     │  │  davevoyles.github.io/       │
-    └──────────────────────────────┘  │  Philly-Lax-Viz/             │
+    │  @pll/web (dev, Vite :5173)  │  │  Azure Static Web Apps       │
+    │  hash router + D3 charts     │  │  SPA rewrite via SWA config  │
+    └──────────────────────────────┘  │  phillylaxstats.com          │
                                       └──────────────────────────────┘
 ```
 

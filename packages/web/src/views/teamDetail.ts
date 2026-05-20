@@ -13,7 +13,6 @@ import {
   type TopScorerEntry,
 } from '../api.js';
 import type { Game } from '@pll/shared';
-import { IS_STATIC, staticFetch } from '../staticLoader.js';
 import { formatDate, formatRecord } from '../util/format.js';
 import {
   observeChartReveal,
@@ -322,15 +321,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   type TeamRatingEntry = Awaited<ReturnType<typeof getLaxNumbersTeamRating>>[number];
   void (async () => {
     try {
-      const ratings: TeamRatingEntry[] = IS_STATIC
-        ? (await Promise.all([
-            staticFetch<Array<TeamRatingEntry & { teamId: number }>>('/data/2026/laxnumbers-ratings-inter-ac.json'),
-            staticFetch<Array<TeamRatingEntry & { teamId: number }>>('/data/2026/laxnumbers-ratings-private-schools.json'),
-          ]))
-            .flat()
-            .filter((entry) => entry.teamId === teamId)
-            .sort((a, b) => b.year - a.year)
-        : await getLaxNumbersTeamRating(teamId);
+      const ratings: TeamRatingEntry[] = await getLaxNumbersTeamRating(teamId);
       const entry = ratings[0];
       if (!entry || !callouts.isConnected) return;
 
@@ -784,7 +775,7 @@ async function loadUpcoming(slot: HTMLElement, teamId: number): Promise<void> {
       span.textContent = oppName;
       left.appendChild(span);
     }
-    if (!IS_STATIC && oppId !== null) {
+    if (oppId !== null) {
       const h2hSlot = document.createElement('span');
       h2hSlot.setAttribute('data-h2h-slot', '');
       h2hSlot.dataset['opponentId'] = String(oppId);
@@ -800,10 +791,8 @@ async function loadUpcoming(slot: HTMLElement, teamId: number): Promise<void> {
   }
   slot.appendChild(ul);
 
-  if (!IS_STATIC) {
-    ensureUpcomingH2HChipStyles();
-    void Promise.allSettled([hydrateUpcomingH2HChips(ul, teamId)]);
-  }
+  ensureUpcomingH2HChipStyles();
+  void Promise.allSettled([hydrateUpcomingH2HChips(ul, teamId)]);
 }
 
 function buildGamesTable(games: Game[], teamId: number, teamsById: Map<number, string>): HTMLTableElement {

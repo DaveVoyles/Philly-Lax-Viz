@@ -4,7 +4,6 @@ import { mountNavGlow } from './components/navGlow.js';
 import { setCanonicalUrl } from './util/ogMeta.js';
 import { setPageTitle } from './util/pageTitle.js';
 import { clearJsonLd } from './util/jsonLd.js';
-import { IS_STATIC } from './staticLoader.js';
 import './styles/responsive.css';
 
 // W18 Lane A (Han) — proposal 04: every view module is now lazy-loaded so the
@@ -76,14 +75,10 @@ const MORE_NAV: NavLink[] = [
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
   { href: '#/sources', label: 'Sources', match: 'sources' },
   { href: '#/status', label: 'Status', match: 'status' },
-  ...(IS_STATIC
-    ? []
-    : [
-        { href: '#/coach/dashboard', label: 'Coach dashboard', match: 'coachDashboard' as const },
-        { href: '#/admin/corrections', label: 'Admin corrections', match: 'adminCorrections' as const },
-        { href: '#/admin/dedup', label: 'Admin dedup', match: 'adminDedup' as const },
-        { href: '#/admin/hudl', label: 'Admin Hudl', match: 'adminHudl' as const },
-      ]),
+  { href: '#/coach/dashboard', label: 'Coach dashboard', match: 'coachDashboard' },
+  { href: '#/admin/corrections', label: 'Admin corrections', match: 'adminCorrections' },
+  { href: '#/admin/dedup', label: 'Admin dedup', match: 'adminDedup' },
+  { href: '#/admin/hudl', label: 'Admin Hudl', match: 'adminHudl' },
 ];
 
 function mountShell(app: HTMLElement): {

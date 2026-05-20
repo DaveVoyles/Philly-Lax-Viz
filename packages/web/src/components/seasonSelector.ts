@@ -1,5 +1,4 @@
 import { getSeasons } from '../api.js';
-import { IS_STATIC } from '../staticLoader.js';
 import {
   SEASON_STORAGE_KEY,
   currentSeason,
@@ -66,7 +65,7 @@ export function createSeasonSelector(
 
     select.replaceChildren(...(seasons.length > 0 ? seasons : [Number(latestSeason)]).map((season) => createOption(String(season))));
     select.value = selected;
-    select.disabled = IS_STATIC || select.options.length <= 1;
+    select.disabled = select.options.length <= 1;
 
     setSeason(Number(selected));
     onChange(selected);

@@ -1,7 +1,6 @@
 import type { Commitment } from '@pll/shared';
 import { ApiError, getCommitments } from '../api.js';
 import { renderCommitmentForm } from '../components/commitmentForm.js';
-import { IS_STATIC, staticFetch, staticUnavailableNode } from '../staticLoader.js';
 import { formatDate } from '../util/format.js';
 import { setOgMeta } from '../util/ogMeta.js';
 import { setPageTitle } from '../util/pageTitle.js';
@@ -76,15 +75,9 @@ async function load(
 ): Promise<void> {
   let commitments: Commitment[];
   try {
-    commitments = IS_STATIC
-      ? await staticFetch<Commitment[]>('/data/commitments.json')
-      : await getCommitments();
+    commitments = await getCommitments();
   } catch (error) {
     loading.remove();
-    if (IS_STATIC) {
-      list.replaceChildren(staticUnavailableNode('College Commitments'));
-      return;
-    }
     const message = error instanceof ApiError ? `${error.message} (${error.url})` : String(error);
     const failure = document.createElement('p');
     failure.className = 'error';

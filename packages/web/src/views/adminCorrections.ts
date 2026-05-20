@@ -3,16 +3,8 @@ import {
   getRecentCorrections,
   type CorrectionRecord,
 } from '../api.js';
-import { IS_STATIC } from '../staticLoader.js';
-
-const STATIC_MESSAGE = 'Admin inbox not available in static mode - access via https://phillylaxstats.com/api/corrections/flagged';
 
 export function mountAdminCorrections(container: HTMLElement): void {
-  if (IS_STATIC) {
-    container.innerHTML = `<div class="empty-state">${escapeHtml(STATIC_MESSAGE)}</div>`;
-    return;
-  }
-
   container.innerHTML = `
     <div class="page-header">
       <h1>Community Corrections Inbox</h1>

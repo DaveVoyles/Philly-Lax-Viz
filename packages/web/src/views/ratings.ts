@@ -1,5 +1,4 @@
 import { getLaxNumbersRatings } from '../api.js';
-import { IS_STATIC, staticFetch } from '../staticLoader.js';
 import { setPageMeta } from '../util/pageMeta.js';
 import { apiUrl } from '../apiBase.js';
 import type { LaxNumbersRating } from '@pll/shared';
@@ -170,10 +169,7 @@ function renderTable(ratings: LaxNumbersRating[]): string {
   `;
 }
 
-async function loadRatings(viewId: number, slug: string): Promise<LaxNumbersRating[]> {
-  if (IS_STATIC) {
-    return staticFetch<LaxNumbersRating[]>(`/data/2026/laxnumbers-ratings-${slug}.json`);
-  }
+async function loadRatings(viewId: number): Promise<LaxNumbersRating[]> {
   return getLaxNumbersRatings({ year: 2026, view: viewId });
 }
 
@@ -196,7 +192,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
   for (const view of VIEWS) {
     try {
-      const ratings = await loadRatings(view.id, view.slug);
+      const ratings = await loadRatings(view.id);
       sections.push(`
         <div class="conference-section">
           <h2>${view.name}</h2>

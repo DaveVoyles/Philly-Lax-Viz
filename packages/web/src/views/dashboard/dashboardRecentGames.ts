@@ -2,7 +2,6 @@ import { getGames, getPostImages, type PostImage } from '../../api.js';
 import { renderEmptyState } from '../../components/emptyState.js';
 import { renderGameThumb } from '../../components/postImage.js';
 import { renderTeamBadge } from '../../components/teamBadge.js';
-import { IS_STATIC } from '../../staticLoader.js';
 import { formatDate } from '../../util/format.js';
 import { createPoller, isActiveSeason } from '../../util/livePoller.js';
 import { wrapResponsive } from '../../util/responsiveTable.js';
@@ -33,7 +32,7 @@ export function ensureDashboardLiveStyles(): void {
 }
 
 export function shouldAutoRefreshRecentGames(season: string): boolean {
-  return !IS_STATIC && isActiveSeason() && season === String(new Date().getFullYear());
+  return isActiveSeason() && season === String(new Date().getFullYear());
 }
 
 export function stopRefresh(state: RecentGamesState): void {

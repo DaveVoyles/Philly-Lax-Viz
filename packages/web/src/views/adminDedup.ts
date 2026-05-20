@@ -1,4 +1,3 @@
-import { IS_STATIC } from '../staticLoader.js';
 import {
   getDedupCandidates,
   mergeDedupCandidate,
@@ -7,11 +6,6 @@ import {
 } from '../api.js';
 
 export async function renderAdminDedup(container: HTMLElement): Promise<void> {
-  if (IS_STATIC) {
-    container.innerHTML = '<div class="empty-state">Admin tools are not available in the static (GitHub Pages) version.</div>';
-    return;
-  }
-
   let currentStatus = 'pending';
   let candidates: DedupCandidateRow[] = [];
   let total = 0;
