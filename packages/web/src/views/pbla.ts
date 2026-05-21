@@ -46,13 +46,13 @@ function ensureStyles(): void {
       z-index: 1;
       display: flex;
       flex-direction: column;
-      gap: 2rem;
+      gap: 1rem;
     }
 
     /* Hero */
     .pbla-hero {
       text-align: center;
-      padding: 2.5rem 1rem 1.5rem;
+      padding: 1.25rem 1rem 0.75rem;
     }
     .pbla-hero__badge {
       display: inline-block;
@@ -65,13 +65,13 @@ function ensureStyles(): void {
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      margin-bottom: 1rem;
+      margin-bottom: 0.4rem;
     }
     .pbla-hero__title {
       font-size: 2rem;
       font-weight: 900;
       letter-spacing: -0.02em;
-      margin: 0 0 0.5rem;
+      margin: 0 0 0.25rem;
       background: linear-gradient(135deg, #f68c1f, #ffd166);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;

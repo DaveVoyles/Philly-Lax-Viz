@@ -9,10 +9,12 @@ import {
   findTeamBySlug,
   getTeamPlayers,
   getTeamGoalies,
+  getTeamRoster,
   type PblaSeason,
   type PblaTeam,
   type PblaPlayer,
   type PblaGoalie,
+  type PblaRosterEntry,
 } from './pblaData.js';
 
 const STYLE_ID = 'pbla-team-view-styles';
@@ -379,6 +381,33 @@ function buildRosterTable(players: PblaPlayer[], animate: boolean): HTMLElement 
   return table;
 }
 
+function buildFullRosterTable(roster: PblaRosterEntry[], animate: boolean): HTMLElement {
+  const table = document.createElement('table');
+  table.className = 'pbla-team-roster';
+  table.innerHTML = `
+    <thead>
+      <tr style="opacity:1;transform:none;animation:none">
+        <th>#</th><th>Player</th><th>Pos</th><th>Notes</th>
+      </tr>
+    </thead>
+  `;
+  const tbody = document.createElement('tbody');
+  roster.forEach((p, idx) => {
+    const tr = document.createElement('tr');
+    if (animate) tr.style.animationDelay = `${idx * 40 + 100}ms`;
+    else { tr.style.opacity = '1'; tr.style.transform = 'none'; tr.style.animation = 'none'; }
+    tr.innerHTML = `
+      <td class="pbla-team-roster__jersey">${p.jersey || '-'}</td>
+      <td class="pbla-team-roster__name">${p.name}</td>
+      <td>${p.position || '-'}</td>
+      <td>${p.notes || ''}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  return table;
+}
+
 function buildGoalieTable(goalies: PblaGoalie[], animate: boolean): HTMLElement {
   if (goalies.length === 0) {
     const empty = document.createElement('div');
@@ -464,6 +493,16 @@ function renderTeamContent(
     goalieTitle.innerHTML = '&#129354; Goalies';
     container.appendChild(goalieTitle);
     container.appendChild(buildGoalieTable(goalies, animate));
+  }
+
+  // Full Roster
+  const roster = getTeamRoster(team.name, season);
+  if (roster.length > 0) {
+    const rosterTitle = document.createElement('h3');
+    rosterTitle.className = 'pbla-team-section-title';
+    rosterTitle.innerHTML = '&#128101; Full Roster (' + roster.length + ' players)';
+    container.appendChild(rosterTitle);
+    container.appendChild(buildFullRosterTable(roster, animate));
   }
 
   // Animated counters for PF/PA
