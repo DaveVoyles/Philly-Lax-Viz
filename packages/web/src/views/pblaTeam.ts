@@ -255,7 +255,7 @@ function ensureStyles(): void {
     .pbla-team-games { margin-top: 1rem; }
     .pbla-team-game-row {
       display: grid;
-      grid-template-columns: 1fr 4rem 5rem 5.5rem;
+      grid-template-columns: 1fr auto auto 1fr;
       align-items: center;
       gap: 0.5rem;
       padding: 0.6rem 0.75rem;
@@ -275,6 +275,7 @@ function ensureStyles(): void {
       display: flex;
       flex-direction: column;
       gap: 0.1rem;
+      justify-self: start;
     }
     .pbla-team-game-row__team { white-space: nowrap; }
     .pbla-team-game-row__team--self { font-weight: 700; color: var(--team-accent); }
@@ -310,8 +311,8 @@ function ensureStyles(): void {
     .pbla-team-game-row__video svg { width: 12px; height: 12px; fill: currentColor; }
     .pbla-team-game-row > span:nth-child(4) {
       overflow: hidden;
-      text-align: center;
-      justify-self: center;
+      text-align: right;
+      justify-self: end;
     }
     .pbla-team-game-note {
       font-size: 0.68rem;
@@ -323,7 +324,7 @@ function ensureStyles(): void {
       .pbla-team-hero { flex-direction: column; text-align: center; gap: 0.75rem; }
       .pbla-team-hero__name { font-size: 1.3rem; }
       .pbla-team-stats { grid-template-columns: repeat(3, 1fr); }
-      .pbla-team-game-row { grid-template-columns: 1fr 3.5rem 4.5rem 5rem; font-size: 0.78rem; }
+      .pbla-team-game-row { grid-template-columns: 1fr auto auto 1fr; font-size: 0.78rem; }
     }
   `;
   document.head.appendChild(style);
