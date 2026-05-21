@@ -12,7 +12,7 @@
 | Constraint | Detail |
 |---|---|
 | **Scale** | Dozens of daily users (coaches + players). No need for CDN, caching layers, or horizontal scaling yet. |
-| **Hosting** | GitHub Pages = fast iteration & current production. Azure Container App = API + nightly ingest. Long-term: Azure becomes primary production behind custom domain. |
+| **Hosting** | Azure Static Web Apps = production frontend. Azure Container App = API + nightly ingest. Custom domain `www.phillylaxstats.com` points to Azure SWA. |
 | **Domain** | `PhillyLaxStats.com` (NameCheap, owner-acquired). Will point to Azure once stable. |
 | **Data authority** | Coach-submitted data > Hudl > LaxNumbers > RSS. Manual entries take precedence but are auditable. |
 | **T-shirt sizing** | XS = <1hr, S = 1-3hr, M = 3-8hr. Avoid M+ items; split them. |
@@ -76,10 +76,9 @@ Agents should understand what they can do autonomously and what requires human a
 | 3 | Update `CORS_ORIGINS` env var to include new domain | XS | Yes (workflow) | Add `https://phillylaxstats.com` to allowed origins |
 | 4 | Update `VITE_API_URL` in web build config for production | XS | Yes | Change env in GitHub Actions for Pages build |
 | 5 | Update all docs to reflect new domain | S | Yes | `grep -r 'proudwave' . \| grep -v node_modules` then search-and-replace |
-| 6 | Add GitHub Pages as staging subdomain (`preview.phillylaxstats.com`) | XS | Yes | CNAME record via NameCheap API |
-| 7 | Keep GitHub Pages as preview/staging (no removal) | — | Decision | Pages = `preview.phillylaxstats.com`; Azure = `phillylaxstats.com` |
+| 6 | ~~Add GitHub Pages as staging subdomain~~ | — | DONE | GitHub Pages deprecated; Azure SWA is sole deployment target |
 
-**Done-when:** `https://phillylaxstats.com` serves the site with valid TLS. `preview.phillylaxstats.com` still works via Pages. Docs reference new domain.
+**Done-when:** `https://www.phillylaxstats.com` serves the site with valid TLS. Docs reference new domain.
 
 **Human actions required before launch:**
 1. User confirms domain purchase is complete
@@ -438,7 +437,7 @@ Track architectural decisions made during execution. Add entries here as waves c
 
 | Date | Decision | Rationale | Wave |
 |------|----------|-----------|------|
-| 2026-05-19 | GitHub Pages = staging, Azure = production | Pages is fast for iteration; Azure has API + custom domain + TLS | 1 |
+| 2026-05-19 | Azure SWA = production, GitHub Pages deprecated | Azure has API + custom domain + TLS + CDN | 1 |
 | 2026-05-19 | Coach data overrides scraper data | Coaches are authoritative for their own team's stats | 2 |
 | 2026-05-19 | Multi-league via `league_id` FK (not separate DB) | One DB keeps queries simple; just add a WHERE clause | 4 |
 

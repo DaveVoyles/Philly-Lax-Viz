@@ -151,9 +151,6 @@ pnpm typecheck && pnpm test && pnpm build
 # Full ingest pipeline
 pnpm crawl && pnpm ingest
 
-# Static export (generates public/data/ for GitHub Pages)
-pnpm --filter @pll/web export:static
-
 # On-demand source reconciliation
 pnpm --filter @pll/ingest exec tsx src/scripts/syncPiaa.ts
 pnpm --filter @pll/ingest reconcile:scores --dry-run

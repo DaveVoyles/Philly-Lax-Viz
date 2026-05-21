@@ -70,59 +70,9 @@ These scripts and categories exist in the codebase but are **not run in `ingest-
 
 ---
 
-## 2. Static Export — Pages with No Static Export
+## ~~2. Static Export~~ (RESOLVED)
 
-These pages on GitHub Pages return `empty.json` or show degraded state because no static equivalent is generated.
-
-### 2a. `/api/freshness` — Sources and partial Status pages
-
-**Impact:** The `#/sources` view fetches `/api/freshness` to show when each data source was last updated. On GitHub Pages this returns nothing, so the page shows a degraded state.
-
-**Fix:** Export `freshness.json` at the end of `exportStatic.ts`:
-```typescript
-// Near the end of exportStatic.ts
-const freshness = computeFreshness(db);
-writeJson('freshness.json', freshness);
-```
-Then add it to `staticLoader.ts` mapping.
-
-**Priority:** Medium — the Sources page is user-visible and useful
-
----
-
-### 2b. `/api/data-quality/piaa-mismatches` — Data Quality page
-
-**Impact:** The `#/data-quality` view shows a mismatch table comparing local scores against PIAA records. This half of the page shows nothing on GitHub Pages.
-
-**Fix:** Add to `exportStatic.ts`:
-```typescript
-const mismatches = getPiaaMismatches(db);
-writeJson(`${season}/data-quality/piaa-mismatches.json`, mismatches);
-```
-
-**Priority:** Low — this is a diagnostic/admin page, not primary UX
-
----
-
-### 2c. `/api/h2h/teams` and `/api/h2h/players` — H2H page
-
-**Impact:** The `#/h2h` view is entirely non-functional on GitHub Pages because both H2H endpoints have no static export.
-
-**Challenge:** H2H data is query-parameterized (team A vs team B, or player A vs player B). Pre-generating all combinations is combinatorially expensive (~235² team pairs = 55,225 files). More practical options:
-1. Pre-generate a flat H2H matrix (single JSON, indexed by team pair key)
-2. Make H2H a "live only" feature and disable it in static mode with a clear message
-
-**Priority:** Low — H2H is not a primary view; option 2 (graceful disable) is simpler
-
----
-
-### 2d. `/api/compare/players` — Compare Players page
-
-**Impact:** The `#/compare/players` view is non-functional on GitHub Pages. It accepts arbitrary player IDs, so pre-generating all pairs is not feasible.
-
-**Practical fix:** Since individual player detail files already exist (`players/{id}.json`), the client could be refactored to compose comparisons client-side from those files rather than hitting a comparison API endpoint.
-
-**Priority:** Low — Compare Players is a secondary feature
+The static export pattern was removed in May 2026 when the site migrated to Azure SWA with live API calls. All views now hit the API directly. This entire section is no longer applicable.
 
 ---
 
@@ -182,7 +132,7 @@ writeJson(`${season}/data-quality/piaa-mismatches.json`, mismatches);
 
 ## 4. DB Data Not Surfaced in UI
 
-These columns/tables exist in the DB but are not exposed through the API or static export:
+These columns/tables exist in the DB but are not exposed through the API:
 
 | Table/Column | What it contains | Surfacing suggestion |
 |---|---|---|

@@ -10,11 +10,10 @@
 An Azure Container App hosts a live Fastify API server with the SQLite DB mounted via Azure Files.
 This powers admin-only features: coach dashboard analytics (`#/coach/dashboard`), player dedup (`#/admin/dedup`),
 coach spreadsheet upload (`#/coach/upload`), community corrections review (`#/admin/corrections`),
-Hudl team management (`#/admin/hudl`), and live data-quality diagnostics. It is **not** the primary
-user-facing site.
+Hudl team management (`#/admin/hudl`), and live data-quality diagnostics.
 
-The primary user-facing deployment is **GitHub Pages** at `https://phillylaxstats.com/`. It uses pre-exported static JSON,
-plus `robots.txt` and `sitemap.xml`, and requires no live server.
+The primary user-facing deployment is **Azure Static Web Apps** at `https://www.phillylaxstats.com/`.
+It serves the Vite-built SPA with API calls to the Azure Container App backend, plus `robots.txt` and `sitemap.xml`.
 
 </details>
 

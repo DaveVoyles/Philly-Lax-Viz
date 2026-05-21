@@ -6,7 +6,6 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/**/*.test.ts'],
-    exclude: ['src/staticLoader.test.ts'],
     alias: {
       'pixi.js': resolve(__dirname, 'src/__mocks__/pixi.ts'),
     },

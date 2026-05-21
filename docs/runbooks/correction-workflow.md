@@ -11,7 +11,7 @@ click to nightly DB write, and explains how to debug each stage.
 ```
 Browser (pencil button)
   --> correctionModal.ts (client-side validation + warning)
-      --> POST /api/corrections  (always Azure, even on GitHub Pages)
+      --> POST /api/corrections  (Azure Container App API)
           --> corrections.ts route (server validation, outlier detection, rate limit)
               --> community_corrections table  (status = pending | outlier)
                   --> applyCorrections.ts nightly  (approve -> UPDATE or flag -> outlier)

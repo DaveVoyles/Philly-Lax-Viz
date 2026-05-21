@@ -17,7 +17,7 @@
 4. [Database Schema](#4-database-schema)
 5. [Ingest Pipeline](#5-ingest-pipeline)
 6. [Nightly CI Workflow](#6-nightly-ci-workflow)
-7. [Static Export for GitHub Pages](#7-static-export-for-github-pages)
+7. [Web Client & Routing](#7-web-client--routing)
 8. [Web Client & Routing](#8-web-client--routing)
 9. [API Endpoint Inventory](#9-api-endpoint-inventory)
 10. [Static Export Coverage Map](#10-static-export-coverage-map)
@@ -390,24 +390,19 @@ This is additive — it supplements phillylacrosse.com data, not replaces it.
 
 ---
 
-## 10. Static Export Coverage Map
+## 10. Deployment
 
-### ✅ Fully covered (GitHub Pages works)
-Dashboard, Team Detail, Game Detail, Game Scrubber, Player Detail, Leaders, Anomalies, Rivalry Graph, Constellation, Schedule, Status
+The site is deployed via **Azure Static Web Apps** (free tier). The `deploy.yml` workflow:
+1. Builds the Vite SPA (`pnpm --filter @pll/web build`)
+2. Deploys to Azure SWA using `@azure/static-web-apps-cli`
 
-### ⚠️ Partially covered
-| Page | What's missing |
-|------|---------------|
-| `#/data-quality` | PIAA mismatches endpoint has no static export; anomaly list still works |
-| `#/sources` | Freshness data not statically exported; page shows degraded state |
-| `#/h2h` | Team and player H2H endpoints have no static export; H2H page shows empty |
+All views call the live Fastify API on the Azure Container App. There is no static JSON export step.
 
-### ❌ Not covered (intentional or known gap)
-| Page | Status |
-|------|--------|
-| `#/compare/players` | Falls back to `empty.json`; compare feature non-functional on Pages |
-| `#/admin/corrections` | Admin tool - intentionally excluded from static export |
-| `#/admin/dedup` | Admin tool - intentionally excluded from static export |
+- **Production URL:** `https://www.phillylaxstats.com/`
+- **SWA staging URL:** `https://victorious-pond-0c5ff000f.7.azurestaticapps.net/`
+- **API backend:** `https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io`
+
+SPA routing is handled by `packages/web/public/staticwebapp.config.json` (rewrites all paths to `/index.html` except `/assets/*`, `/logos/*`, `/data/*`).
 
 ---
 
@@ -418,20 +413,18 @@ Dashboard, Team Detail, Game Detail, Game Scrubber, Player Detail, Leaders, Anom
 **Why:** The entire dataset is small enough to fit in one file (<50MB), the ingest pipeline runs on a single machine (Mac Mini self-hosted runner), and SQLite requires no separate server process. The DB file is uploaded to Azure File Share and downloaded at the start of each nightly run — effectively using Azure as a persistence layer.  
 **Trade-off:** Concurrent writes are not supported. The pipeline is designed to be single-writer. Read-heavy API queries are fine.
 
-### ADR-002: GitHub Pages as primary deployment, not Azure
-**Decision:** GitHub Pages is the user-facing URL; Azure Container App is internal.  
-**Why:** GitHub Pages is free, requires no credential rotation, is always available, and has no cold-start latency. The Azure SWA/Container App has API routing complexity and credential maintenance overhead. For a read-heavy sports stats site, pre-built static JSON is sufficient for all user-facing views.  
-**Trade-off:** Dynamic features (compare players, H2H, admin corrections, admin dedup, PIAA mismatches) are not available on GitHub Pages. These degrade gracefully to empty states.
+### ADR-002: Azure Static Web Apps as primary deployment
+**Decision:** Azure SWA is the user-facing URL (`www.phillylaxstats.com`); Azure Container App provides the API backend.  
+**Why:** Azure SWA offers free global CDN, automatic HTTPS, SPA routing, and tight integration with the Container App API. All views call the live API directly - no static JSON pre-export needed.  
+**Trade-off:** Requires Azure credentials for deploy; cold-start latency on the API container (mitigated by keep-alive pings in nightly CI).
 
-### ADR-003: Static JSON export instead of API proxy at deploy time
-**Decision:** `exportStatic.ts` pre-generates all JSON responses at deploy time.  
-**Why:** Avoids needing a live API server for GitHub Pages. All data is deterministic at export time (it's a snapshot). Client-side filtering (search) works on pre-built indexes.  
-**Trade-off:** Data is stale until the next nightly deploy. The freshness timestamp (`lastIngestAt`) is visible in the dashboard and sources page so users can see when data was last updated.
+### ~~ADR-003: Static JSON export~~ (SUPERSEDED)
+**Status:** Superseded. The static export pattern (`exportStatic.ts`, `staticLoader.ts`, `IS_STATIC` guards) was removed in May 2026 when the site moved fully to Azure SWA with live API calls.
 
 ### ADR-004: Season hardcoded to 2026
-**Decision:** `DEFAULT_SEASON = 2026` in `exportStatic.ts`, `seasons.ts`, and `staticLoader.ts`.  
-**Why:** Multi-season support was not needed at build time. Adding it requires parameterizing all queries and the static export loop.  
-**Trade-off:** At the end of the 2026 season, this value needs to be updated in at least 3 places before the 2027 season begins.
+**Decision:** `DEFAULT_SEASON = 2026` in `seasons.ts`.  
+**Why:** Multi-season support was not needed at build time. Adding it requires parameterizing all queries.  
+**Trade-off:** At the end of the 2026 season, this value needs to be updated before the 2027 season begins.
 
 ### ADR-005: PIAA schedule and phillylacrosse games are separate tables
 **Decision:** `schedule_games` (from PIAA) and `games` (from phillylacrosse.com) are never merged into one table.  
@@ -463,15 +456,9 @@ Dashboard, Team Detail, Game Detail, Game Scrubber, Player Detail, Leaders, Anom
 | `piaaCheckTotals.ts`, `reconcileTeamScores.ts` not run nightly | Score reconciliation drift not detected automatically | Medium |
 | `auditCrossChecks.ts` not run nightly | Cross-source data consistency not verified | Medium |
 
-### Static export gaps
+### ~~Static export gaps~~ (RESOLVED)
 
-| Gap | Impact | Effort to fix |
-|-----|--------|--------------|
-| `/api/compare/players` has no static export | Compare Players page non-functional on GitHub Pages | Medium — requires pre-generating all player-pair combinations (combinatorially large) |
-| `/api/h2h/teams` and `/api/h2h/players` have no static export | H2H page non-functional on GitHub Pages | Medium — same combinatorial challenge |
-| `/api/data-quality/piaa-mismatches` has no static export | Data Quality page partially broken on GitHub Pages | Low — can export as a single JSON file |
-| `/api/freshness` has no static export | Sources page shows degraded state | Low — export a `freshness.json` snapshot at deploy time |
-| `/api/posts/images` has no static export | Post images may not appear on GitHub Pages | Low — bundle into game detail JSON |
+Static export is no longer used. All views call the live API directly via Azure SWA.
 
 ### Data quality
 
@@ -486,30 +473,29 @@ Dashboard, Team Detail, Game Detail, Game Scrubber, Player Detail, Leaders, Anom
 ### Season transition
 
 When the 2027 season begins, update:
-1. `exportStatic.ts` — `DEFAULT_SEASON` constant
-2. `packages/server/src/routes/seasons.ts` — hardcoded season list
-3. `packages/web/src/staticLoader.ts` — default season for static path resolution
+1. `packages/server/src/routes/seasons.ts` - hardcoded season list
+2. Any hardcoded `2026` references in views or queries
 
 ---
 
 ## 13. Community Corrections Operations
 
-### Required manual step after first deploy
+### CORS configuration
 
-The Azure Container App (`pll-server`) must have `https://davevoyles.github.io` added to its
-`CORS_ORIGINS` environment variable. Without this, correction POSTs from GitHub Pages will be
+The Azure Container App (`pll-server`) must have `https://www.phillylaxstats.com` in its
+`CORS_ORIGINS` environment variable. Without this, correction POSTs from the SWA frontend will be
 blocked by CORS.
 
 Steps:
 1. Go to Azure Portal -> Container Apps -> pll-server -> Settings -> Environment variables
-2. Edit `CORS_ORIGINS` to include `https://davevoyles.github.io` (comma-separated)
+2. Edit `CORS_ORIGINS` to include `https://www.phillylaxstats.com` (comma-separated)
 3. Save and wait for the container to redeploy
 
 ### Required GitHub Actions secret
 
 Add `VITE_API_URL` as a GitHub Actions secret (Settings -> Secrets -> Actions):
 - Value: the Azure Container Apps URL for the server (for example, `https://pll-server.<hash>.azurecontainerapps.io`)
-- This is used by the GitHub Pages build to POST corrections to the live API
+- This is used at build time so the SPA knows where to send API requests
 
 ### Correction lifecycle
 
