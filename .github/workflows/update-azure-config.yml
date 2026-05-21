@@ -6,7 +6,7 @@ on:
       cors_origins:
         description: 'Comma-separated list of allowed CORS origins'
         required: false
-        default: 'https://davevoyles.github.io,http://localhost:5173'
+        default: 'https://www.phillylaxstats.com,https://phillylaxstats.com,http://localhost:5173'
       bind_custom_domain:
         description: 'Bind custom domain + managed TLS (true/false)'
         required: false
@@ -31,7 +31,7 @@ jobs:
       - name: Update CORS_ORIGINS on Container App
         if: github.event.inputs.cors_origins != '' && github.event.inputs.bind_custom_domain != 'true'
         run: |
-          ORIGINS="${{ github.event.inputs.cors_origins || secrets.CORS_ORIGINS || 'https://davevoyles.github.io,http://localhost:5173' }}"
+          ORIGINS="${{ github.event.inputs.cors_origins || secrets.CORS_ORIGINS || 'https://www.phillylaxstats.com,https://phillylaxstats.com,http://localhost:5173' }}"
           echo "Setting CORS_ORIGINS to: $ORIGINS"
           az containerapp update \
             --name ${{ secrets.ACA_NAME }} \
