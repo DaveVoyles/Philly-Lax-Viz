@@ -44,6 +44,7 @@ function ensureStyles(): void {
       position: relative;
       isolation: isolate;
       padding-bottom: 2rem;
+      color: #f0f0f0;
     }
     .pbla-team-webgl {
       position: absolute;
@@ -65,7 +66,7 @@ function ensureStyles(): void {
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
-      color: var(--muted);
+      color: #9ca3af;
       font-size: 0.85rem;
       text-decoration: none;
       transition: color 0.2s;
@@ -111,12 +112,12 @@ function ensureStyles(): void {
       color: var(--team-accent);
     }
     .pbla-team-hero__meta {
-      color: var(--muted);
+      color: #b0b8c4;
       font-size: 0.9rem;
       margin: 0.25rem 0 0;
     }
     .pbla-team-hero__captain {
-      color: var(--muted);
+      color: #b0b8c4;
       font-size: 0.85rem;
       margin: 0.35rem 0 0;
     }
@@ -157,7 +158,7 @@ function ensureStyles(): void {
       font-size: 0.72rem;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: var(--muted);
+      color: #9ca3af;
       margin-top: 0.2rem;
     }
 
@@ -171,7 +172,7 @@ function ensureStyles(): void {
       border-radius: 999px;
       border: 1px solid var(--border);
       background: transparent;
-      color: var(--muted);
+      color: #b0b8c4;
       font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
@@ -209,13 +210,14 @@ function ensureStyles(): void {
       font-size: 0.78rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--muted);
+      color: #b0b8c4;
       border-bottom: 1px solid var(--border);
     }
     .pbla-team-roster th:not(:first-child):not(:nth-child(2)) { text-align: right; }
     .pbla-team-roster td {
       padding: 0.5rem 0.4rem;
       border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+      color: #e8e8e8;
     }
     .pbla-team-roster td:not(:first-child):not(:nth-child(2)) {
       text-align: right;
@@ -241,11 +243,27 @@ function ensureStyles(): void {
     .pbla-team-roster__name { font-weight: 700; }
     .pbla-team-roster__pts { font-weight: 800; color: var(--team-highlight, #ffd166); }
 
+    /* Sortable headers */
+    .pbla-sort-btn {
+      background: none; border: none; color: inherit; font: inherit;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem;
+      padding: 0; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.78rem;
+      color: #b0b8c4; transition: color 0.15s;
+    }
+    .pbla-sort-btn:hover, .pbla-sort-btn:focus-visible, .pbla-sort-btn--active {
+      color: var(--team-highlight, #ffd166);
+    }
+    .pbla-sort-btn__arrow {
+      font-size: 0.6rem; opacity: 0; transition: opacity 0.15s, transform 0.15s;
+    }
+    .pbla-sort-btn--active .pbla-sort-btn__arrow { opacity: 1; }
+    .pbla-sort-btn__arrow--desc { transform: rotate(180deg); }
+
     /* Empty state */
     .pbla-team-empty {
       padding: 2rem;
       text-align: center;
-      color: var(--muted);
+      color: #9ca3af;
       font-size: 0.9rem;
       border: 1px dashed var(--border);
       border-radius: 10px;
@@ -448,6 +466,52 @@ function hexToPixi(hex: string): number {
   return parseInt(hex.replace('#', ''), 16);
 }
 
+/** Returns relative luminance (0-1) of a hex color. Values < ~0.2 are too dark on dark bg. */
+function hexLuminance(hex: string): number {
+  const c = hex.replace('#', '');
+  const r = parseInt(c.slice(0, 2), 16) / 255;
+  const g = parseInt(c.slice(2, 4), 16) / 255;
+  const b = parseInt(c.slice(4, 6), 16) / 255;
+  const srgb = [r, g, b].map((v) => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * srgb[0]! + 0.7152 * srgb[1]! + 0.0722 * srgb[2]!;
+}
+
+/** Pick the best readable accent color from a palette for dark backgrounds. */
+function pickReadableAccent(palette: { primary: string; secondary: string; accent: string } | undefined, fallback: string): string {
+  const MIN_LUMINANCE = 0.15;
+  if (palette) {
+    if (hexLuminance(palette.secondary) >= MIN_LUMINANCE) return palette.secondary;
+    if (hexLuminance(palette.accent) >= MIN_LUMINANCE) return palette.accent;
+    if (hexLuminance(palette.primary) >= MIN_LUMINANCE) return palette.primary;
+  }
+  if (hexLuminance(fallback) >= MIN_LUMINANCE) return fallback;
+  return '#e0e0e0';
+}
+
+type RosterSortKey = 'jersey' | 'name' | 'gp' | 'goals' | 'assists' | 'points' | 'pim';
+type FullRosterSortKey = 'jersey' | 'name' | 'position' | 'points' | 'goals' | 'assists' | 'gp' | 'pim';
+type GoalieSortKey = 'jersey' | 'name' | 'gp' | 'min' | 'ga' | 'gaa';
+type SortDir = 'asc' | 'desc';
+
+interface ColDef<K extends string> { key: K; label: string; }
+
+function defaultDir(key: string): SortDir {
+  return key === 'name' || key === 'position' ? 'asc' : 'desc';
+}
+
+function makeSortBtn<K extends string>(col: ColDef<K>, activeKey: K, dir: SortDir, onSort: (k: K) => void): HTMLTableCellElement {
+  const th = document.createElement('th');
+  const btn = document.createElement('button');
+  const isActive = activeKey === col.key;
+  btn.type = 'button';
+  btn.className = `pbla-sort-btn${isActive ? ' pbla-sort-btn--active' : ''}`;
+  btn.innerHTML = `<span>${col.label}</span><span class="pbla-sort-btn__arrow${isActive && dir === 'desc' ? ' pbla-sort-btn__arrow--desc' : ''}" aria-hidden="true">\u25B2</span>`;
+  btn.addEventListener('click', () => onSort(col.key));
+  th.setAttribute('aria-sort', isActive ? (dir === 'asc' ? 'ascending' : 'descending') : 'none');
+  th.appendChild(btn);
+  return th;
+}
+
 function buildRosterTable(players: PblaPlayer[], animate: boolean, captain?: string): HTMLElement {
   if (players.length === 0) {
     const empty = document.createElement('div');
@@ -456,72 +520,136 @@ function buildRosterTable(players: PblaPlayer[], animate: boolean, captain?: str
     return empty;
   }
 
-  const sorted = [...players].sort((a, b) => b.points - a.points);
+  const cols: ColDef<RosterSortKey>[] = [
+    { key: 'jersey', label: '#' },
+    { key: 'name', label: 'Player' },
+    { key: 'points', label: 'Pts' },
+    { key: 'goals', label: 'G' },
+    { key: 'assists', label: 'A' },
+    { key: 'gp', label: 'GP' },
+    { key: 'pim', label: 'PIM' },
+  ];
+  let sortKey: RosterSortKey = 'points';
+  let sortDir: SortDir = 'desc';
+  const captainLower = captain?.toLowerCase() ?? '';
+
   const table = document.createElement('table');
   table.className = 'pbla-team-roster';
-  table.innerHTML = `
-    <thead>
-      <tr style="opacity:1;transform:none;animation:none">
-        <th>#</th><th>Player</th><th>GP</th><th>G</th><th>A</th><th>Pts</th><th>PIM</th>
-      </tr>
-    </thead>
-  `;
+  const thead = document.createElement('thead');
   const tbody = document.createElement('tbody');
-  const captainLower = captain?.toLowerCase() ?? '';
-  sorted.forEach((p, idx) => {
-    const tr = document.createElement('tr');
-    if (animate) tr.style.animationDelay = `${idx * 50 + 100}ms`;
-    else { tr.style.opacity = '1'; tr.style.transform = 'none'; tr.style.animation = 'none'; }
-    const isCaptain = captainLower && p.name.toLowerCase().includes(captainLower.split(' ').pop()!);
-    const nameDisplay = isCaptain ? `${p.name} <span title="Team Captain" style="color:gold">&#11088;</span>` : p.name;
-    tr.innerHTML = `
-      <td class="pbla-team-roster__jersey">${p.jersey}</td>
-      <td class="pbla-team-roster__name">${nameDisplay}</td>
-      <td>${p.gp}</td>
-      <td>${p.goals}</td>
-      <td>${p.assists}</td>
-      <td class="pbla-team-roster__pts">${p.points}</td>
-      <td>${p.pim}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
+  table.append(thead, tbody);
+
+  const render = (): void => {
+    const headRow = document.createElement('tr');
+    headRow.style.cssText = 'opacity:1;transform:none;animation:none';
+    cols.forEach((col) => headRow.appendChild(makeSortBtn(col, sortKey, sortDir, (k) => {
+      if (k === sortKey) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+      else { sortKey = k; sortDir = defaultDir(k); }
+      render();
+    })));
+    thead.replaceChildren(headRow);
+
+    const sorted = [...players].sort((a, b) => {
+      let r = 0;
+      if (sortKey === 'name') r = a.name.localeCompare(b.name);
+      else r = Number(a[sortKey]) - Number(b[sortKey]);
+      if (r === 0) r = b.points - a.points || a.name.localeCompare(b.name);
+      return sortDir === 'asc' ? r : -r;
+    });
+
+    tbody.replaceChildren();
+    sorted.forEach((p, idx) => {
+      const tr = document.createElement('tr');
+      if (animate && !tbody.hasChildNodes()) tr.style.animationDelay = `${idx * 50 + 100}ms`;
+      else { tr.style.opacity = '1'; tr.style.transform = 'none'; tr.style.animation = 'none'; }
+      const isCaptain = captainLower && p.name.toLowerCase().includes(captainLower.split(' ').pop()!);
+      const nameDisplay = isCaptain ? `${p.name} <span title="Team Captain" style="color:gold">&#11088;</span>` : p.name;
+      tr.innerHTML = `
+        <td class="pbla-team-roster__jersey">${p.jersey}</td>
+        <td class="pbla-team-roster__name">${nameDisplay}</td>
+        <td class="pbla-team-roster__pts">${p.points}</td>
+        <td>${p.goals}</td>
+        <td>${p.assists}</td>
+        <td>${p.gp}</td>
+        <td>${p.pim}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  };
+
+  render();
   return table;
 }
 
 function buildFullRosterTable(roster: PblaRosterEntry[], players: PblaPlayer[], animate: boolean, captain?: string): HTMLElement {
-  const table = document.createElement('table');
-  table.className = 'pbla-team-roster';
-  table.innerHTML = `
-    <thead>
-      <tr style="opacity:1;transform:none;animation:none">
-        <th>#</th><th>Player</th><th>Pos</th><th>Pts</th><th>G</th><th>A</th><th>GP</th><th>PIM</th>
-      </tr>
-    </thead>
-  `;
-  const tbody = document.createElement('tbody');
+  const cols: ColDef<FullRosterSortKey>[] = [
+    { key: 'jersey', label: '#' },
+    { key: 'name', label: 'Player' },
+    { key: 'position', label: 'Pos' },
+    { key: 'points', label: 'Pts' },
+    { key: 'goals', label: 'G' },
+    { key: 'assists', label: 'A' },
+    { key: 'gp', label: 'GP' },
+    { key: 'pim', label: 'PIM' },
+  ];
+  let sortKey: FullRosterSortKey = 'points';
+  let sortDir: SortDir = 'desc';
   const playerMap = new Map(players.map((p) => [p.name.toLowerCase(), p]));
   const captainLower = captain?.toLowerCase() ?? '';
-  roster.forEach((p, idx) => {
-    const tr = document.createElement('tr');
-    if (animate) tr.style.animationDelay = `${idx * 40 + 100}ms`;
-    else { tr.style.opacity = '1'; tr.style.transform = 'none'; tr.style.animation = 'none'; }
-    const stats = playerMap.get(p.name.toLowerCase());
-    const isCaptain = captainLower && p.name.toLowerCase().includes(captainLower.split(' ').pop()!);
-    const nameDisplay = isCaptain ? `${p.name} <span title="Team Captain" style="color:gold">&#11088;</span>` : p.name;
-    tr.innerHTML = `
-      <td class="pbla-team-roster__jersey">${p.jersey || '-'}</td>
-      <td class="pbla-team-roster__name">${nameDisplay}</td>
-      <td>${p.position || '-'}</td>
-      <td class="pbla-team-roster__pts">${stats ? stats.points : '-'}</td>
-      <td>${stats ? stats.goals : '-'}</td>
-      <td>${stats ? stats.assists : '-'}</td>
-      <td>${stats ? stats.gp : '-'}</td>
-      <td>${stats ? stats.pim : '-'}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
+
+  const table = document.createElement('table');
+  table.className = 'pbla-team-roster';
+  const thead = document.createElement('thead');
+  const tbody = document.createElement('tbody');
+  table.append(thead, tbody);
+
+  const render = (): void => {
+    const headRow = document.createElement('tr');
+    headRow.style.cssText = 'opacity:1;transform:none;animation:none';
+    cols.forEach((col) => headRow.appendChild(makeSortBtn(col, sortKey, sortDir, (k) => {
+      if (k === sortKey) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+      else { sortKey = k; sortDir = defaultDir(k); }
+      render();
+    })));
+    thead.replaceChildren(headRow);
+
+    const sorted = [...roster].sort((a, b) => {
+      const sa = playerMap.get(a.name.toLowerCase());
+      const sb = playerMap.get(b.name.toLowerCase());
+      let r = 0;
+      switch (sortKey) {
+        case 'name': r = a.name.localeCompare(b.name); break;
+        case 'position': r = (a.position || '').localeCompare(b.position || ''); break;
+        case 'jersey': r = Number(a.jersey || 0) - Number(b.jersey || 0); break;
+        default: r = (sa?.[sortKey as keyof PblaPlayer] as number ?? -1) - (sb?.[sortKey as keyof PblaPlayer] as number ?? -1); break;
+      }
+      if (r === 0) r = (sb?.points ?? 0) - (sa?.points ?? 0) || a.name.localeCompare(b.name);
+      return sortDir === 'asc' ? r : -r;
+    });
+
+    tbody.replaceChildren();
+    sorted.forEach((p, idx) => {
+      const tr = document.createElement('tr');
+      if (animate && !tbody.hasChildNodes()) tr.style.animationDelay = `${idx * 40 + 100}ms`;
+      else { tr.style.opacity = '1'; tr.style.transform = 'none'; tr.style.animation = 'none'; }
+      const stats = playerMap.get(p.name.toLowerCase());
+      const isCaptain = captainLower && p.name.toLowerCase().includes(captainLower.split(' ').pop()!);
+      const nameDisplay = isCaptain ? `${p.name} <span title="Team Captain" style="color:gold">&#11088;</span>` : p.name;
+      tr.innerHTML = `
+        <td class="pbla-team-roster__jersey">${p.jersey || '-'}</td>
+        <td class="pbla-team-roster__name">${nameDisplay}</td>
+        <td>${p.position || '-'}</td>
+        <td class="pbla-team-roster__pts">${stats ? stats.points : '-'}</td>
+        <td>${stats ? stats.goals : '-'}</td>
+        <td>${stats ? stats.assists : '-'}</td>
+        <td>${stats ? stats.gp : '-'}</td>
+        <td>${stats ? stats.pim : '-'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  };
+
+  render();
   return table;
 }
 
@@ -533,31 +661,59 @@ function buildGoalieTable(goalies: PblaGoalie[], animate: boolean): HTMLElement 
     return empty;
   }
 
+  const cols: ColDef<GoalieSortKey>[] = [
+    { key: 'jersey', label: '#' },
+    { key: 'name', label: 'Goalie' },
+    { key: 'gp', label: 'GP' },
+    { key: 'min', label: 'Min' },
+    { key: 'ga', label: 'GA' },
+    { key: 'gaa', label: 'GAA' },
+  ];
+  let sortKey: GoalieSortKey = 'gaa';
+  let sortDir: SortDir = 'asc';
+
   const table = document.createElement('table');
   table.className = 'pbla-team-roster';
-  table.innerHTML = `
-    <thead>
-      <tr style="opacity:1;transform:none;animation:none">
-        <th>#</th><th>Goalie</th><th>GP</th><th>Min</th><th>GA</th><th>GAA</th>
-      </tr>
-    </thead>
-  `;
+  const thead = document.createElement('thead');
   const tbody = document.createElement('tbody');
-  goalies.forEach((g, idx) => {
-    const tr = document.createElement('tr');
-    if (animate) tr.style.animationDelay = `${idx * 50 + 100}ms`;
-    else { tr.style.opacity = '1'; tr.style.transform = 'none'; tr.style.animation = 'none'; }
-    tr.innerHTML = `
-      <td class="pbla-team-roster__jersey">${g.jersey}</td>
-      <td class="pbla-team-roster__name">${g.name}</td>
-      <td>${g.gp}</td>
-      <td>${g.min}</td>
-      <td>${g.ga}</td>
-      <td>${g.gaa.toFixed(2)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
+  table.append(thead, tbody);
+
+  const render = (): void => {
+    const headRow = document.createElement('tr');
+    headRow.style.cssText = 'opacity:1;transform:none;animation:none';
+    cols.forEach((col) => headRow.appendChild(makeSortBtn(col, sortKey, sortDir, (k) => {
+      if (k === sortKey) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+      else { sortKey = k; sortDir = defaultDir(k); }
+      render();
+    })));
+    thead.replaceChildren(headRow);
+
+    const sorted = [...goalies].sort((a, b) => {
+      let r = 0;
+      if (sortKey === 'name') r = a.name.localeCompare(b.name);
+      else r = Number(a[sortKey]) - Number(b[sortKey]);
+      if (r === 0) r = a.gaa - b.gaa || a.name.localeCompare(b.name);
+      return sortDir === 'asc' ? r : -r;
+    });
+
+    tbody.replaceChildren();
+    sorted.forEach((g, idx) => {
+      const tr = document.createElement('tr');
+      if (animate && !tbody.hasChildNodes()) tr.style.animationDelay = `${idx * 50 + 100}ms`;
+      else { tr.style.opacity = '1'; tr.style.transform = 'none'; tr.style.animation = 'none'; }
+      tr.innerHTML = `
+        <td class="pbla-team-roster__jersey">${g.jersey}</td>
+        <td class="pbla-team-roster__name">${g.name}</td>
+        <td>${g.gp}</td>
+        <td>${g.min}</td>
+        <td>${g.ga}</td>
+        <td>${g.gaa.toFixed(2)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  };
+
+  render();
   return table;
 }
 
@@ -751,8 +907,9 @@ export function render(root: HTMLElement, params: Record<string, string>): void 
   const wrapper = document.createElement('div');
   wrapper.className = 'pbla-team-root';
   const palette = teamPalette(team.name);
-  // Main accent = secondary (red for Edge), subtle highlight = accent (yellow for Edge)
-  wrapper.style.setProperty('--team-accent', palette?.secondary ?? team.color);
+  // Pick a readable accent — avoids near-black colors like Outlaws' #111111
+  const accent = pickReadableAccent(palette, team.color);
+  wrapper.style.setProperty('--team-accent', accent);
   wrapper.style.setProperty('--team-secondary', palette?.primary ?? '#111111');
   wrapper.style.setProperty('--team-highlight', palette?.accent ?? team.color);
 
