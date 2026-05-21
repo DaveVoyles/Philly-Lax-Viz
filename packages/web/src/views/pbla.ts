@@ -1695,7 +1695,7 @@ function buildHero(root: HTMLElement): {
   const heading = document.createElement('div');
   heading.innerHTML = `
     <h1 class="pbla-hero__title">Philadelphia Box Lacrosse<span class="pbla-hero__title-accent">Association</span></h1>
-    <p class="pbla-hero__subtitle">The Philadelphia Box Lacrosse Association has delivered summer box lacrosse at Rizzo Rink since 1986, pairing weeknight games with league-wide scoring races, playoff drama, and a long-running local lacrosse tradition.</p>
+    <p class="pbla-hero__subtitle">The <a href="https://www.phillylacrosse.com/pbla/" target="_blank" rel="noopener noreferrer" style="color:var(--pbla-accent,#00e4ff);text-decoration:underline;">Philadelphia Box Lacrosse Association</a> has delivered summer box lacrosse at Rizzo Rink since 1986, pairing weeknight games with league-wide scoring races, playoff drama, and a long-running local lacrosse tradition.</p>
   `;
 
   const liveBadge = document.createElement('a');
