@@ -2,7 +2,7 @@ import { Application, Graphics } from 'pixi.js';
 import { shouldAnimate, shouldMountWebGL } from '../util/motionPrefs.js';
 import { createAutoCounter } from '../components/animatedCounter.js';
 import { setPageMeta } from '../util/pageMeta.js';
-import { SEASONS, teamColor, type PblaSeason, type PblaTeam, type PblaPlayer } from './pblaData.js';
+import { SEASONS, teamColor, teamSlug, type PblaSeason, type PblaTeam, type PblaPlayer } from './pblaData.js';
 
 const STYLE_ID = 'pbla-view-styles';
 const PARTICLE_COUNT = 50;
@@ -444,9 +444,15 @@ function buildStandings(teams: PblaTeam[], animate: boolean): HTMLElement {
   grid.className = 'pbla-standings';
 
   teams.forEach((team, idx) => {
+    const link = document.createElement('a');
+    link.href = `#/pbla/teams/${teamSlug(team.name)}`;
+    link.style.textDecoration = 'none';
+    link.style.color = 'inherit';
+
     const card = document.createElement('div');
     card.className = 'pbla-team-card';
     card.style.setProperty('--team-color', team.color);
+    card.style.cursor = 'pointer';
     if (animate) card.style.animationDelay = `${idx * 80}ms`;
     else card.style.animation = 'none';
     if (!animate) { card.style.opacity = '1'; card.style.transform = 'none'; }
@@ -465,7 +471,8 @@ function buildStandings(teams: PblaTeam[], animate: boolean): HTMLElement {
         <div class="pbla-team-card__stat"><span class="pbla-team-card__stat-val">${team.diff > 0 ? '+' : ''}${team.diff}</span>+/-</div>
       </div>
     `;
-    grid.appendChild(card);
+    link.appendChild(card);
+    grid.appendChild(link);
   });
 
   return grid;

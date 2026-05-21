@@ -66,6 +66,29 @@ export function teamColor(name: string): string {
   return TEAM_COLORS[name] ?? '#6b7280';
 }
 
+export function teamSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+/** Find a team across all seasons by slug */
+export function findTeamBySlug(slug: string): { team: PblaTeam; season: PblaSeason } | null {
+  for (const season of SEASONS) {
+    const team = season.teams.find((t) => teamSlug(t.name) === slug);
+    if (team) return { team, season };
+  }
+  return null;
+}
+
+/** Get all players for a team in a given season */
+export function getTeamPlayers(teamName: string, season: PblaSeason): PblaPlayer[] {
+  return season.players.filter((p) => p.team === teamName);
+}
+
+/** Get all goalies for a team in a given season */
+export function getTeamGoalies(teamName: string, season: PblaSeason): PblaGoalie[] {
+  return season.goalies.filter((g) => g.team === teamName);
+}
+
 export const SEASONS: PblaSeason[] = [
   {
     year: 2026,

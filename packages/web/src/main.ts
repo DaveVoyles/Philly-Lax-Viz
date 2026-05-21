@@ -48,6 +48,7 @@ const loaders: Record<Exclude<RouteName, 'notFound'>, () => Promise<ViewModule>>
   adminDedup: () => import('./views/adminDedup.js'),
   adminHudl: () => import('./views/adminHudl.js'),
   pbla: () => import('./views/pbla.js'),
+  pblaTeam: () => import('./views/pblaTeam.js'),
 };
 
 interface NavLink {
@@ -60,23 +61,23 @@ const NAV: NavLink[] = [
   { href: '#/', label: 'Dashboard', match: 'dashboard' },
   { href: '#/leaders', label: 'Leaders', match: 'leaders' },
   { href: '#/ratings', label: 'Ratings', match: 'ratings' },
-  { href: '#/h2h', label: 'Compare', match: 'h2h' },
-  { href: '#/graph', label: 'Team Connections', match: 'graph' },
   { href: '#/schedule', label: 'Schedule', match: 'schedule' },
-  { href: '#/commitments', label: 'Commitments', match: 'commitments' },
-  { href: '#/constellation', label: 'Player Map', match: 'constellation' },
-  { href: '#/coach/upload', label: 'Coach Upload', match: 'coachUpload' },
   { href: '#/pbla', label: 'Box Lacrosse', match: 'pbla' },
 ];
 
 const MORE_NAV: NavLink[] = [
-  { href: '#/guide', label: 'Guide', match: 'guide' },
-  { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
+  { href: '#/h2h', label: 'Compare', match: 'h2h' },
+  { href: '#/graph', label: 'Team Connections', match: 'graph' },
+  { href: '#/constellation', label: 'Player Map', match: 'constellation' },
+  { href: '#/commitments', label: 'Commitments', match: 'commitments' },
   { href: '#/rivalries', label: 'Rivalries', match: 'rivalries' },
   { href: '#/top-teams', label: 'Top 10 Teams', match: 'topTeams' },
+  { href: '#/guide', label: 'Guide', match: 'guide' },
+  { href: '#/data-quality', label: 'Data quality', match: 'dataQuality' },
   { href: '#/anomalies', label: 'Anomalies', match: 'anomalies' },
   { href: '#/sources', label: 'Sources', match: 'sources' },
   { href: '#/status', label: 'Status', match: 'status' },
+  { href: '#/coach/upload', label: 'Coach Upload', match: 'coachUpload' },
   { href: '#/coach/dashboard', label: 'Coach dashboard', match: 'coachDashboard' },
   { href: '#/admin/corrections', label: 'Admin corrections', match: 'adminCorrections' },
   { href: '#/admin/dedup', label: 'Admin dedup', match: 'adminDedup' },
