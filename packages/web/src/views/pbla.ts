@@ -1734,7 +1734,7 @@ function buildHero(root: HTMLElement): {
   const selectorCard = document.createElement('aside');
   selectorCard.className = 'pbla-side-card';
   selectorCard.innerHTML = `
-    <p class="pbla-side-card__eyebrow">Season selector</p>
+    <p class="pbla-side-card__eyebrow">📅 Season selector</p>
     <h2 class="pbla-side-card__title">Current table and last season finish</h2>
     <p class="pbla-side-card__text">Flip between the current 2026 standings snapshot and the completed 2025 campaign to compare this summer's race with last year's playoff finish.</p>
   `;
@@ -1745,7 +1745,7 @@ function buildHero(root: HTMLElement): {
   const goalieCard = document.createElement('aside');
   goalieCard.className = 'pbla-side-card';
   goalieCard.innerHTML = `
-    <p class="pbla-side-card__eyebrow">Top goalies</p>
+    <p class="pbla-side-card__eyebrow">🧤 Top goalies</p>
     <h2 class="pbla-side-card__title">Save leaders this season</h2>
     <p class="pbla-side-card__text">Lowest goals-against average among goalies with at least 30 minutes played.</p>
   `;
