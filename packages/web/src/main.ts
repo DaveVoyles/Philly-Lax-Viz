@@ -47,6 +47,7 @@ const loaders: Record<Exclude<RouteName, 'notFound'>, () => Promise<ViewModule>>
   adminCorrections: () => import('./views/adminCorrections.js'),
   adminDedup: () => import('./views/adminDedup.js'),
   adminHudl: () => import('./views/adminHudl.js'),
+  pbla: () => import('./views/pbla.js'),
 };
 
 interface NavLink {
@@ -65,6 +66,7 @@ const NAV: NavLink[] = [
   { href: '#/commitments', label: 'Commitments', match: 'commitments' },
   { href: '#/constellation', label: 'Player Map', match: 'constellation' },
   { href: '#/coach/upload', label: 'Coach Upload', match: 'coachUpload' },
+  { href: '#/pbla', label: 'Box Lacrosse', match: 'pbla' },
 ];
 
 const MORE_NAV: NavLink[] = [

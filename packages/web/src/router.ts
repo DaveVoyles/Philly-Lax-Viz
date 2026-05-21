@@ -28,6 +28,7 @@ export interface RouteMatch {
     | 'adminCorrections'
     | 'adminDedup'
     | 'adminHudl'
+    | 'pbla'
     | 'notFound';
   path: string;
   params: Record<string, string>;
@@ -67,6 +68,7 @@ const routes: RouteDef[] = [
   { name: 'adminCorrections', pattern: /^\/admin\/corrections\/?$/, keys: [] },
   { name: 'adminDedup', pattern: /^\/admin\/dedup\/?$/, keys: [] },
   { name: 'adminHudl', pattern: /^\/admin\/hudl\/?$/, keys: [] },
+  { name: 'pbla', pattern: /^\/pbla\/?$/, keys: [] },
 ];
 
 function parseHash(): RouteMatch {
