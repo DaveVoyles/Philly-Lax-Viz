@@ -216,6 +216,7 @@ function ensureStyles(): void {
       background: color-mix(in srgb, var(--team-accent) 8%, transparent);
     }
     @keyframes pbla-roster-in { to { opacity: 1; transform: translateX(0); } }
+    @keyframes pbla-team-card-in { to { opacity: 1; transform: translateY(0); } }
     .pbla-team-roster__jersey {
       font-weight: 800;
       color: var(--team-accent);
