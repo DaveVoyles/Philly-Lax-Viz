@@ -988,9 +988,9 @@ function ensureStyles(doc: Document = document): void {
     }
     .pbla-game-card {
       display: grid;
-      gap: 0.7rem;
-      padding: 1rem;
-      border-radius: 18px;
+      gap: 0.45rem;
+      padding: 0.7rem 1rem;
+      border-radius: 14px;
       border: 1px solid rgba(255,255,255,0.08);
       background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)), rgba(6, 10, 18, 0.9);
       opacity: 0;
