@@ -255,7 +255,7 @@ function ensureStyles(): void {
     .pbla-team-games { margin-top: 1rem; }
     .pbla-team-game-row {
       display: grid;
-      grid-template-columns: 1fr auto auto 4.5rem;
+      grid-template-columns: 1fr 4rem 5rem 5.5rem;
       align-items: center;
       gap: 0.5rem;
       padding: 0.6rem 0.75rem;
@@ -293,18 +293,26 @@ function ensureStyles(): void {
     .pbla-team-game-row__video {
       display: inline-flex;
       align-items: center;
-      gap: 0.25rem;
-      padding: 0.25rem 0.5rem;
+      gap: 0.2rem;
+      padding: 0.2rem 0.4rem;
       border-radius: 6px;
       background: rgba(255, 0, 0, 0.12);
       color: #ff6b6b;
-      font-size: 0.72rem;
+      font-size: 0.65rem;
       font-weight: 600;
       text-decoration: none;
       transition: background 0.15s;
+      white-space: nowrap;
+      max-width: 100%;
+      overflow: hidden;
     }
     .pbla-team-game-row__video:hover { background: rgba(255, 0, 0, 0.22); }
     .pbla-team-game-row__video svg { width: 12px; height: 12px; fill: currentColor; }
+    .pbla-team-game-row > span:nth-child(4) {
+      overflow: hidden;
+      text-align: center;
+      justify-self: center;
+    }
     .pbla-team-game-note {
       font-size: 0.68rem;
       color: rgba(248, 250, 252, 0.45);
@@ -315,7 +323,7 @@ function ensureStyles(): void {
       .pbla-team-hero { flex-direction: column; text-align: center; gap: 0.75rem; }
       .pbla-team-hero__name { font-size: 1.3rem; }
       .pbla-team-stats { grid-template-columns: repeat(3, 1fr); }
-      .pbla-team-game-row { grid-template-columns: 1fr auto auto 3.5rem; font-size: 0.78rem; }
+      .pbla-team-game-row { grid-template-columns: 1fr 3.5rem 4.5rem 5rem; font-size: 0.78rem; }
     }
   `;
   document.head.appendChild(style);
