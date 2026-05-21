@@ -2101,7 +2101,7 @@ function renderLeadersSection(
     <div>
       <h2 class="pbla-section__title" style="font-size:1.6rem">&#127942; Scoring leaders</h2>
     </div>
-    <div class="pbla-section__meta">Top 10 players - ${season.year} season</div>
+    <div class="pbla-section__meta">Top 20 players - ${season.year} season</div>
   `;
   section.appendChild(header);
 
@@ -2146,7 +2146,7 @@ function renderLeadersSection(
     });
     thead.replaceChildren(headRow);
 
-    const players = sortPlayers(season.players, sortState);
+    const players = sortPlayers(season.players, sortState).slice(0, 20);
     tbody.replaceChildren();
     players.forEach((player, index) => {
       const row = document.createElement('tr');
