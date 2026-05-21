@@ -76,6 +76,19 @@ let pendingTimers: number[] = [];
 let activeBurst: ((x: number, y: number, color: number) => void) | null = null;
 let cleanupFns: Array<() => void> = [];
 
+const TEAM_ABBREV: Record<string, string> = {
+  'More Dudes LC': 'MDLC',
+  'Outlaws': 'Out',
+  'Edge': 'Edge',
+  'Thunder': 'Thd',
+  'Beer Wolves': 'BW',
+  'Pups LC': 'PLC',
+  'Revolution': 'Rev',
+};
+function teamAbbrev(team: string): string {
+  return TEAM_ABBREV[team] ?? team.slice(0, 4).toUpperCase();
+}
+
 type SortDirection = 'asc' | 'desc';
 type TeamSortKey = 'rank' | 'name' | 'gp' | 'wins' | 'losses' | 'pts' | 'pf' | 'pa' | 'diff';
 type PlayerSortKey = 'name' | 'team' | 'gp' | 'goals' | 'assists' | 'points' | 'pim';
@@ -341,6 +354,22 @@ function ensureStyles(doc: Document = document): void {
       font-size: 0.72rem;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+    }
+    .pbla-goalie-pill__team {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      margin-top: 0.25rem;
+      font-size: 0.62rem;
+      letter-spacing: 0.04em;
+      color: color-mix(in srgb, var(--pbla-white) 50%, transparent);
+    }
+    .pbla-goalie-pill__dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--team-color, #888);
+      flex-shrink: 0;
     }
     .pbla-season-bar {
       display: inline-flex;
@@ -1766,6 +1795,7 @@ function buildHero(root: HTMLElement): {
       <div class="pbla-goalie-pill" style="--team-color:${teamColor(g.team)}">
         <span class="pbla-goalie-pill__value">${g.gaa.toFixed(2)}</span>
         <span class="pbla-goalie-pill__label">${g.name.split(' ').pop()}</span>
+        <span class="pbla-goalie-pill__team"><span class="pbla-goalie-pill__dot"></span>${teamAbbrev(g.team)}</span>
       </div>`,
       )
       .join('');
