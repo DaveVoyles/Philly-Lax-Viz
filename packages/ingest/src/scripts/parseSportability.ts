@@ -50,22 +50,22 @@ function parsePlayerStats(lines: string[]) {
     if (cols.length < 10) continue;
 
     // Col 0: rank, Col 1: "jersey - name", Col 2: team, Col 3-9: GP G A Pts Pen PIM Susp
-    const rankStr = cols[0];
+    const rankStr = cols[0]!;
     if (!/^\d+$/.test(rankStr)) continue; // skip headers/footers
 
-    const playerField = cols[1]; // e.g. "92 - Brian Beatson"
+    const playerField = cols[1]!; // e.g. "92 - Brian Beatson"
     const jerseyMatch = playerField.match(/^(\d+)\s*-\s*(.+)$/);
     if (!jerseyMatch) continue;
 
-    const jersey = parseInt(jerseyMatch[1], 10);
-    const name = jerseyMatch[2].trim();
-    const team = cols[2];
-    const gp = parseInt(cols[3], 10);
-    const goals = parseInt(cols[4], 10);
-    const assists = parseInt(cols[5], 10);
-    const points = parseInt(cols[6], 10);
-    const penalties = parseInt(cols[7], 10);
-    const pim = parseInt(cols[8], 10);
+    const jersey = parseInt(jerseyMatch[1]!, 10);
+    const name = jerseyMatch[2]!.trim();
+    const team = cols[2]!;
+    const gp = parseInt(cols[3]!, 10);
+    const goals = parseInt(cols[4]!, 10);
+    const assists = parseInt(cols[5]!, 10);
+    const points = parseInt(cols[6]!, 10);
+    const penalties = parseInt(cols[7]!, 10);
+    const pim = parseInt(cols[8]!, 10);
 
     const escapedName = name.replace(/'/g, "\\'");
     entries.push(
@@ -89,27 +89,27 @@ function parseGoalieStats(lines: string[]) {
 
     if (cols.length < 7) continue;
 
-    const rankStr = cols[0];
+    const rankStr = cols[0]!;
     if (!/^\d+$/.test(rankStr)) continue;
 
     // Col 1 might be "jersey - name" or just "name" depending on the page
-    const playerField = cols[1];
+    const playerField = cols[1]!;
     const jerseyMatch = playerField.match(/^(\d+)\s*-\s*(.+)$/);
 
     let jersey = 0;
     let name: string;
     if (jerseyMatch) {
-      jersey = parseInt(jerseyMatch[1], 10);
-      name = jerseyMatch[2].trim();
+      jersey = parseInt(jerseyMatch[1]!, 10);
+      name = jerseyMatch[2]!.trim();
     } else {
       name = playerField.trim();
     }
 
-    const team = cols[2];
-    const gp = parseInt(cols[3], 10);
-    const min = parseInt(cols[4], 10);
-    const ga = parseInt(cols[5], 10);
-    const gaa = parseFloat(cols[6]);
+    const team = cols[2]!;
+    const gp = parseInt(cols[3]!, 10);
+    const min = parseInt(cols[4]!, 10);
+    const ga = parseInt(cols[5]!, 10);
+    const gaa = parseFloat(cols[6]!);
 
     const escapedName = name.replace(/'/g, "\\'");
     entries.push(
