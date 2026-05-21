@@ -467,10 +467,8 @@ export function getPblaSeason(year: number): PblaSeason {
  */
 export const PBLA_VIDEOS: Record<string, string> = {
   // 2026 season
-  '2026-05-19': 'PLACEHOLDER_VIDEO_ID_0519',
-  '2026-05-21': 'PLACEHOLDER_VIDEO_ID_0521',
-  // TODO: Add real YouTube video IDs from @PBLA_Official/streams
-  // Format: 'YYYY-MM-DD': 'YouTube_video_ID' (the 11-char ID from the URL)
+  '2026-05-19': 'rE0TzPfV5SY',
+  '2026-05-21': 'hMd-kLZXl7o',
 };
 
 /** Get the YouTube video ID for a game date, if available */
