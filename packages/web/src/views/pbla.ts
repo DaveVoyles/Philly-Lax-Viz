@@ -3,7 +3,7 @@ import { Application, Graphics } from 'pixi.js';
 import { createAnimatedCounter } from '../components/animatedCounter.js';
 import { shouldAnimate, shouldMountWebGL } from '../util/motionPrefs.js';
 import { setPageMeta } from '../util/pageMeta.js';
-import { SEASONS, teamColor, teamPalette, teamSlug, type PblaGame, type PblaPlayer, type PblaSeason, type PblaTeam } from './pblaData.js';
+import { getPblaSeason, PBLA_DEFAULT_SEASON, SEASONS, teamColor, teamPalette, teamSlug, type PblaGame, type PblaPlayer, type PblaSeason, type PblaTeam } from './pblaData.js';
 
 const STYLE_ID = 'pbla-view-styles';
 const PARTICLE_COUNT = 64;
@@ -1484,26 +1484,26 @@ function isLiveNow(date: Date = new Date()): boolean {
 function getNextGameDate(date: Date = new Date()): string {
   const current = getEasternDateParts(date);
   const currentMinutes = current.hour * 60 + current.minute;
+
+  // If currently live, show today's date
   if (isSeasonMonth(current.month) && isGameNight(current.weekday) && currentMinutes < LIVE_END_MINUTES) {
     return formatCompactDate(LIVE_STATUS_FORMATTER, date);
   }
 
-  let cursor = makeCalendarDate(current.year, current.month, current.day + 1);
-  if (!isSeasonMonth(current.month)) {
-    const targetYear = current.month > LIVE_MONTH_END ? current.year + 1 : current.year;
-    cursor = makeCalendarDate(targetYear, LIVE_MONTH_START, 1);
+  // Use actual schedule dates from the current season
+  const season = getPblaSeason(PBLA_DEFAULT_SEASON);
+  const nowMs = date.getTime();
+  const upcoming = season.games
+    .filter((g) => parseGameTimestamp(g) > nowMs)
+    .sort((a, b) => parseGameTimestamp(a) - parseGameTimestamp(b));
+
+  if (upcoming.length > 0) {
+    const nextTs = parseGameTimestamp(upcoming[0]!);
+    return formatCompactDate(LIVE_STATUS_FORMATTER, new Date(nextTs));
   }
 
-  for (let offset = 0; offset < 370; offset += 1) {
-    const candidate = new Date(cursor);
-    candidate.setUTCDate(candidate.getUTCDate() + offset);
-    const parts = getEasternDateParts(candidate);
-    if (isSeasonMonth(parts.month) && isGameNight(parts.weekday)) {
-      return formatCompactDate(LIVE_STATUS_FORMATTER, candidate);
-    }
-  }
-
-  return formatCompactDate(LIVE_STATUS_FORMATTER, cursor);
+  // Fallback: season is over
+  return 'TBD';
 }
 
 function updateLiveBadge(badge: HTMLAnchorElement, text: HTMLElement): void {

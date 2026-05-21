@@ -69,6 +69,12 @@ pnpm --filter @pll/ingest exec tsx src/scripts/dedupPlayers.ts         # interac
 pnpm --filter @pll/ingest exec tsx src/scripts/applyHarritonWorkbook.ts --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db
 pnpm --filter @pll/ingest exec tsx src/scripts/applyHarritonWorkbook.ts --workbook='/Users/.../HHS Lax 2026.xlsx' --db=data/lacrosse.db --apply
 pnpm --filter @pll/ingest exec tsx src/scripts/generateUploadTemplate.ts # create coach upload template XLSX
+pnpm --filter @pll/ingest exec tsx src/scripts/syncPbla.ts               # sync PBLA Sportability data to DB
+pnpm --filter @pll/ingest exec tsx src/scripts/syncPbla.ts --dry-run     # preview without writing
+pnpm --filter @pll/ingest exec tsx src/scripts/syncPblaVideos.ts         # sync YouTube video IDs into pblaData.ts
+pnpm --filter @pll/ingest exec tsx src/scripts/syncPblaVideos.ts --dry-run
+cat stats.txt | pnpm --filter @pll/ingest exec tsx src/scripts/parseSportability.ts --type=players  # parse pasted player stats
+cat stats.txt | pnpm --filter @pll/ingest exec tsx src/scripts/parseSportability.ts --type=goalies  # parse pasted goalie stats
 ```
 
 Azure DB sync (after any local-only ingestion):
@@ -175,13 +181,14 @@ pnpm db:upload                  # upload local DB to Azure File Share
 | Logo assets | `data/logos/` |
 | HTML fixtures | `fixtures/` (see `fixtures/README.md`) |
 | Architecture + plans | `docs/` |
+| PBLA system guide | `docs/pbla-guide.md` |
 | CI/CD workflows | `.github/workflows/` |
 
 **Key server routes** (all under `packages/server/src/routes/`):
 `teams.ts`, `games.ts`, `players.ts`, `commitments.ts`, `schedule.ts`, `rankings.ts`, `laxnumbersRatings.ts`, `h2h.ts`, `coachDashboard.ts`, `corrections.ts`, `upload.ts`, `hudl.ts`, `search.ts`, `dataExport.ts`, `sources.ts`
 
 **Key web views** (all under `packages/web/src/views/`):
-`adminCorrections.ts`, `adminHudl.ts`, `coachDashboard.ts`, `coachUpload.ts`, `commitments.ts`, `compare.ts`, `constellation.ts`, `dashboard.ts`, `dataQuality.ts`, `gameDetail.ts`, `h2h.ts`, `leaders.ts`, `pbla.ts`, `playerCompare.ts`, `playerDetail.ts`, `ratings.ts`, `rivalries.ts`, `schedule.ts`, `sources.ts`, `teamDetail.ts`, `topTeams.ts`
+`adminCorrections.ts`, `adminHudl.ts`, `coachDashboard.ts`, `coachUpload.ts`, `commitments.ts`, `compare.ts`, `constellation.ts`, `dashboard.ts`, `dataQuality.ts`, `gameDetail.ts`, `h2h.ts`, `leaders.ts`, `pbla.ts`, `pblaData.ts`, `pblaTeam.ts`, `playerCompare.ts`, `playerDetail.ts`, `ratings.ts`, `rivalries.ts`, `schedule.ts`, `sources.ts`, `teamDetail.ts`, `topTeams.ts`
 
 **Key CI workflows** (all under `.github/workflows/`):
 - `ingest-nightly.yml` — crawl + parse + ingest + applyCorrections + restart ACA
@@ -196,6 +203,8 @@ pnpm db:upload                  # upload local DB to Azure File Share
 - **phillylaxnumbers.com (LaxNumbers)** — per-game player stats (goals, assists, etc.) scraped by game ID match. Required team alias resolution via `team_aliases` table before stats are usable.
 - **hudl.com** — authenticated coach-account scraper scaffold for Harriton roster + per-game stats. Requires `HUDL_EMAIL` / `HUDL_PASSWORD`, optional `HUDL_TEAM_URL`, and first-run selector discovery in `--headed` mode.
 - **maxpreps.com** — team logos. Required footer attribution on the web client: *"Team logos courtesy of MaxPreps.com"*.
+- **secure.sportability.com** — PBLA league data: standings, schedule, player/goalie stats. League IDs: 2026=50731, 2025=50247. See `docs/pbla-guide.md` for full details.
+- **youtube.com/@PBLA_Official** — PBLA livestream videos. Channel ID: `UC8dQQ4Z-MjxCCBu380ViuEg`. Synced via `syncPblaVideos.ts`.
 
 ## 9. Conventions for sub-agents
 
