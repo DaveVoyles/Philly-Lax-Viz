@@ -911,7 +911,11 @@ export function render(root: HTMLElement, params: Record<string, string>): void 
   const accent = pickReadableAccent(palette, team.color);
   wrapper.style.setProperty('--team-accent', accent);
   wrapper.style.setProperty('--team-secondary', palette?.primary ?? '#111111');
-  wrapper.style.setProperty('--team-highlight', palette?.accent ?? team.color);
+  // Highlight must also be readable on dark bg (Revolution's accent is #111111)
+  const highlight = palette?.accent && hexLuminance(palette.accent) >= 0.15
+    ? palette.accent
+    : '#ffd166';
+  wrapper.style.setProperty('--team-highlight', highlight);
 
   // WebGL
   const webglHost = document.createElement('div');
