@@ -199,14 +199,14 @@ function ensureStyles(): void {
       width: 100%;
       max-width: 100%;
       border-collapse: collapse;
-      font-size: 0.8rem;
+      font-size: 0.92rem;
       table-layout: fixed;
       overflow-x: auto;
     }
     .pbla-team-roster th {
       text-align: left;
-      padding: 0.4rem 0.35rem;
-      font-size: 0.7rem;
+      padding: 0.5rem 0.4rem;
+      font-size: 0.78rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--muted);
@@ -214,7 +214,7 @@ function ensureStyles(): void {
     }
     .pbla-team-roster th:not(:first-child):not(:nth-child(2)) { text-align: right; }
     .pbla-team-roster td {
-      padding: 0.4rem 0.35rem;
+      padding: 0.5rem 0.4rem;
       border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
     }
     .pbla-team-roster td:not(:first-child):not(:nth-child(2)) {
@@ -234,6 +234,7 @@ function ensureStyles(): void {
     @keyframes pbla-team-card-in { to { opacity: 1; transform: translateY(0); } }
     .pbla-team-roster__jersey {
       font-weight: 800;
+      font-size: 1rem;
       color: var(--team-accent);
       min-width: 2rem;
     }
@@ -254,7 +255,7 @@ function ensureStyles(): void {
     .pbla-team-games { margin-top: 1rem; }
     .pbla-team-game-row {
       display: grid;
-      grid-template-columns: 1fr auto 1fr auto;
+      grid-template-columns: 1fr 4rem 1fr auto;
       align-items: center;
       gap: 0.5rem;
       padding: 0.6rem 0.75rem;
@@ -282,6 +283,7 @@ function ensureStyles(): void {
       font-size: 0.95rem;
       min-width: 3rem;
       text-align: center;
+      justify-self: center;
     }
     .pbla-team-game-row__meta {
       color: rgba(248, 250, 252, 0.55);
