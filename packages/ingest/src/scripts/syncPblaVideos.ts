@@ -40,7 +40,7 @@ function parseEntries(xml: string): VideoEntry[] {
   let match: RegExpExecArray | null;
 
   while ((match = entryRegex.exec(xml)) !== null) {
-    const block = match[1];
+    const block = match[1] ?? '';
     const videoId = block.match(/<yt:videoId>(.*?)<\/yt:videoId>/)?.[1];
     const published = block.match(/<published>(.*?)<\/published>/)?.[1];
     const title = block.match(/<title>(.*?)<\/title>/)?.[1];
@@ -70,8 +70,11 @@ function readCurrentVideos(): Record<string, string> {
   const videos: Record<string, string> = {};
   const lineRegex = /'(\d{4}-\d{2}-\d{2})':\s*'([^']+)'/g;
   let m: RegExpExecArray | null;
-  while ((m = lineRegex.exec(blockMatch[1])) !== null) {
-    videos[m[1]] = m[2];
+  const content = blockMatch[1] ?? '';
+  while ((m = lineRegex.exec(content)) !== null) {
+    const date = m[1];
+    const id = m[2];
+    if (date && id) videos[date] = id;
   }
   return videos;
 }
