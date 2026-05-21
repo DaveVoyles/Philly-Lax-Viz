@@ -469,10 +469,23 @@ The orchestrator must keep the user informed at key moments. These are user-faci
 
 | Moment | What to send |
 |--------|-------------|
+| Before starting fleet work | Pre-work status table (agent, lane, current work, status) |
 | Before Wave 1 launches | Wave plan summary (wave table + fleet names) |
 | After each wave completes | ✅ brief bulleted outcome — what was done, any decisions made |
 | When escalation is needed | ⚠️ escalation block (see Orchestrator Decision Authority) |
 | At task completion | Final ✅ outcome dashboard with tables for completed work, agent contributions, validation, decisions, blockers/deferred items, and next action |
+
+**Pre-work status format:**
+
+Before starting fleet work, the orchestrator must inform the user what each assigned agent will do and its current status. Send this table after planning is clear and before launching the first work lane. Use the same format when resuming a paused fleet before new lane work begins.
+
+```markdown
+| Agent | Lane | Current work | Status |
+| ----- | ---- | ------------ | ------ |
+| Han 😉🚀 | Source metadata | Add generated sourceDocuments metadata and validation coverage | Next |
+| Yoda 👽✨ | Source callout UI | Render the top-of-page "Initial source documents" section and styling | Next |
+| R2 🤖🔧 | Validation | Regenerate data and run existing validation scripts after edits | Next |
+```
 
 **Wave launch update format:**
 
@@ -497,6 +510,7 @@ Next: Wave [N+1] — [one-line description]
 
 **Rules:**
 - Never send per-agent or per-file updates to the user; those belong in the communication log
+- The pre-work status table is the required exception for announcing assigned work before it starts
 - One update per wave boundary (launch + complete), plus escalations
 - If a wave has a blocker that the user must resolve, surface it immediately — don't wait for the wave to end
 - When listing active or background agents for the user, use a markdown table by default so status is easy to scan.
@@ -1318,6 +1332,7 @@ Before launching any wave, confirm readiness:
 ✅ QA sign-off owner assigned when user-facing Medium or High risk behavior changes
 ✅ Evidence Ledger owner assigned when external or unverifiable claims affect the plan
 ✅ ADR trigger evaluated for architecture-sensitive work
+✅ Pre-work status table sent to the user
 ```
 
 **Do not launch until:**
@@ -1332,6 +1347,7 @@ Before launching any wave, confirm readiness:
 - Every `Blocked by` relationship has a Lane Contract with artifact format and done-when criteria
 - Requirement, assumption, lane, validation, risk, and ADR IDs are assigned when required
 - Prompt-validation and governance-review triggers are evaluated for instruction or automation changes
+- The user has received the pre-work status table showing each assigned agent, lane, current work, and status
 
 ---
 
@@ -1632,6 +1648,6 @@ A fleet task is not complete until **all** of the following are true. Check each
 ---
 
 **Version:** 5.23
-**Last Updated:** May 19, 2026
+**Last Updated:** May 21, 2026
 **Best For:** Fleet-first execution, multi-agent orchestration, wave-based delivery.
 Load `.github/copilot-instructions.md` first; this file extends those rules for fleet work.

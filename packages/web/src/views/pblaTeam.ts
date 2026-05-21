@@ -96,6 +96,13 @@ function ensureStyles(): void {
       font-weight: 900;
       color: var(--team-accent);
     }
+    .pbla-team-hero__jersey {
+      width: 90px;
+      height: auto;
+      object-fit: contain;
+      border-radius: 8px;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+    }
     .pbla-team-hero__info { flex: 1; }
     .pbla-team-hero__name {
       font-size: 1.6rem;
@@ -107,6 +114,14 @@ function ensureStyles(): void {
       color: var(--muted);
       font-size: 0.9rem;
       margin: 0.25rem 0 0;
+    }
+    .pbla-team-hero__captain {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin: 0.35rem 0 0;
+    }
+    .pbla-team-hero__captain strong {
+      color: var(--text);
     }
 
     /* Stat cards */
@@ -422,7 +437,7 @@ function hexToPixi(hex: string): number {
   return parseInt(hex.replace('#', ''), 16);
 }
 
-function buildRosterTable(players: PblaPlayer[], animate: boolean): HTMLElement {
+function buildRosterTable(players: PblaPlayer[], animate: boolean, captain?: string): HTMLElement {
   if (players.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'pbla-team-empty';
@@ -441,13 +456,16 @@ function buildRosterTable(players: PblaPlayer[], animate: boolean): HTMLElement 
     </thead>
   `;
   const tbody = document.createElement('tbody');
+  const captainLower = captain?.toLowerCase() ?? '';
   sorted.forEach((p, idx) => {
     const tr = document.createElement('tr');
     if (animate) tr.style.animationDelay = `${idx * 50 + 100}ms`;
     else { tr.style.opacity = '1'; tr.style.transform = 'none'; tr.style.animation = 'none'; }
+    const isCaptain = captainLower && p.name.toLowerCase().includes(captainLower.split(' ').pop()!);
+    const nameDisplay = isCaptain ? `${p.name} <span title="Team Captain" style="color:gold">&#11088;</span>` : p.name;
     tr.innerHTML = `
       <td class="pbla-team-roster__jersey">${p.jersey}</td>
-      <td class="pbla-team-roster__name">${p.name}</td>
+      <td class="pbla-team-roster__name">${nameDisplay}</td>
       <td>${p.gp}</td>
       <td>${p.goals}</td>
       <td>${p.assists}</td>
@@ -460,7 +478,7 @@ function buildRosterTable(players: PblaPlayer[], animate: boolean): HTMLElement 
   return table;
 }
 
-function buildFullRosterTable(roster: PblaRosterEntry[], players: PblaPlayer[], animate: boolean): HTMLElement {
+function buildFullRosterTable(roster: PblaRosterEntry[], players: PblaPlayer[], animate: boolean, captain?: string): HTMLElement {
   const table = document.createElement('table');
   table.className = 'pbla-team-roster';
   table.innerHTML = `
@@ -472,14 +490,17 @@ function buildFullRosterTable(roster: PblaRosterEntry[], players: PblaPlayer[], 
   `;
   const tbody = document.createElement('tbody');
   const playerMap = new Map(players.map((p) => [p.name.toLowerCase(), p]));
+  const captainLower = captain?.toLowerCase() ?? '';
   roster.forEach((p, idx) => {
     const tr = document.createElement('tr');
     if (animate) tr.style.animationDelay = `${idx * 40 + 100}ms`;
     else { tr.style.opacity = '1'; tr.style.transform = 'none'; tr.style.animation = 'none'; }
     const stats = playerMap.get(p.name.toLowerCase());
+    const isCaptain = captainLower && p.name.toLowerCase().includes(captainLower.split(' ').pop()!);
+    const nameDisplay = isCaptain ? `${p.name} <span title="Team Captain" style="color:gold">&#11088;</span>` : p.name;
     tr.innerHTML = `
       <td class="pbla-team-roster__jersey">${p.jersey || '-'}</td>
-      <td class="pbla-team-roster__name">${p.name}</td>
+      <td class="pbla-team-roster__name">${nameDisplay}</td>
       <td>${p.position || '-'}</td>
       <td class="pbla-team-roster__pts">${stats ? stats.points : '-'}</td>
       <td>${stats ? stats.goals : '-'}</td>
@@ -647,7 +668,7 @@ function renderTeamContent(
   container.appendChild(playersTitle);
 
   const players = getTeamPlayers(team.name, season);
-  container.appendChild(buildRosterTable(players, animate));
+  container.appendChild(buildRosterTable(players, animate, team.captain));
 
   // Goalies
   const goalies = getTeamGoalies(team.name, season);
@@ -666,7 +687,7 @@ function renderTeamContent(
     rosterTitle.className = 'pbla-team-section-title';
     rosterTitle.innerHTML = '&#128101; Full Roster (' + roster.length + ' players)';
     container.appendChild(rosterTitle);
-    container.appendChild(buildFullRosterTable(roster, players, animate));
+    container.appendChild(buildFullRosterTable(roster, players, animate, team.captain));
   }
 
   // Games & Highlights
@@ -744,11 +765,18 @@ export function render(root: HTMLElement, params: Record<string, string>): void 
   const hero = document.createElement('div');
   hero.className = 'pbla-team-hero';
   const initials = team.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+  const jerseyHtml = team.jerseyImg
+    ? `<img class="pbla-team-hero__jersey" src="https:${team.jerseyImg}" alt="${team.name} jersey" />`
+    : `<div class="pbla-team-hero__emblem">${initials}</div>`;
+  const captainHtml = team.captain
+    ? `<p class="pbla-team-hero__captain">Captain: <strong>${team.captain}</strong></p>`
+    : '';
   hero.innerHTML = `
-    <div class="pbla-team-hero__emblem">${initials}</div>
+    ${jerseyHtml}
     <div class="pbla-team-hero__info">
       <h1 class="pbla-team-hero__name">${team.name}</h1>
       <p class="pbla-team-hero__meta">PBLA ${season.label} - ${team.gp} games played</p>
+      ${captainHtml}
     </div>
   `;
   shell.appendChild(hero);

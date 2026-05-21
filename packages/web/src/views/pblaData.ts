@@ -17,6 +17,8 @@ export interface PblaTeam {
   diff: number;
   streak: string;
   color: string;
+  captain?: string;
+  jerseyImg?: string;
 }
 
 export interface PblaPlayer {
@@ -148,13 +150,13 @@ export const SEASONS: PblaSeason[] = [
     leagueId: 50731,
     label: '2026 (Current)',
     teams: [
-      { id: 343517, name: 'More Dudes LC', gp: 1, wins: 1, losses: 0, ties: 0, otw: 0, otl: 0, pts: 3, pf: 14, pa: 5, diff: 9, streak: 'W1', color: '#800000' },
-      { id: 343511, name: 'Outlaws', gp: 2, wins: 1, losses: 1, ties: 0, otw: 0, otl: 0, pts: 3, pf: 20, pa: 18, diff: 2, streak: 'W1', color: '#003087' },
-      { id: 343512, name: 'Edge', gp: 1, wins: 1, losses: 0, ties: 0, otw: 0, otl: 0, pts: 3, pf: 11, pa: 8, diff: 3, streak: 'W1', color: '#ef4444' },
-      { id: 343516, name: 'Thunder', gp: 1, wins: 1, losses: 0, ties: 0, otw: 0, otl: 0, pts: 3, pf: 9, pa: 8, diff: 1, streak: 'W1', color: '#facc15' },
-      { id: 343514, name: 'Pups LC', gp: 1, wins: 0, losses: 1, ties: 0, otw: 0, otl: 0, pts: 0, pf: 8, pa: 9, diff: -1, streak: 'L1', color: '#ff6600' },
-      { id: 343513, name: 'Beer Wolves', gp: 1, wins: 0, losses: 1, ties: 0, otw: 0, otl: 0, pts: 0, pf: 8, pa: 11, diff: -3, streak: 'L1', color: '#22c55e' },
-      { id: 343515, name: 'Revolution', gp: 1, wins: 0, losses: 1, ties: 0, otw: 0, otl: 0, pts: 0, pf: 4, pa: 15, diff: -11, streak: 'L1', color: '#3b82f6' },
+      { id: 343517, name: 'More Dudes LC', gp: 1, wins: 1, losses: 0, ties: 0, otw: 0, otl: 0, pts: 3, pf: 14, pa: 5, diff: 9, streak: 'W1', color: '#800000', captain: 'Murf Butler', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/MoreDudes.png/:/rs=w:600,cg:true,m' },
+      { id: 343511, name: 'Outlaws', gp: 2, wins: 1, losses: 1, ties: 0, otw: 0, otl: 0, pts: 3, pf: 20, pa: 18, diff: 2, streak: 'W1', color: '#003087', captain: 'Joe Stainer', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Outlaws.png/:/rs=w:600,cg:true,m' },
+      { id: 343512, name: 'Edge', gp: 1, wins: 1, losses: 0, ties: 0, otw: 0, otl: 0, pts: 3, pf: 11, pa: 8, diff: 3, streak: 'W1', color: '#ef4444', captain: 'Matt O\'Brian', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Edge%202025%20Jersey.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:600,cg:true' },
+      { id: 343516, name: 'Thunder', gp: 1, wins: 1, losses: 0, ties: 0, otw: 0, otl: 0, pts: 3, pf: 9, pa: 8, diff: 1, streak: 'W1', color: '#facc15', captain: 'Jim Glielmi', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Thunder%20jersey.png/:/rs=w:600,cg:true,m' },
+      { id: 343514, name: 'Pups LC', gp: 1, wins: 0, losses: 1, ties: 0, otw: 0, otl: 0, pts: 0, pf: 8, pa: 9, diff: -1, streak: 'L1', color: '#ff6600', captain: 'Andrew Sloan', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Pups.png/:/rs=w:600,cg:true,m' },
+      { id: 343513, name: 'Beer Wolves', gp: 1, wins: 0, losses: 1, ties: 0, otw: 0, otl: 0, pts: 0, pf: 8, pa: 11, diff: -3, streak: 'L1', color: '#22c55e', captain: 'Ryan Mackey', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/BeerWolves.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:600,cg:true' },
+      { id: 343515, name: 'Revolution', gp: 1, wins: 0, losses: 1, ties: 0, otw: 0, otl: 0, pts: 0, pf: 4, pa: 15, diff: -11, streak: 'L1', color: '#3b82f6', captain: 'Bill Kennedy', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Revolution2026%20(1).png/:/rs=w:600,cg:true,m' },
     ],
     players: [
       { jersey: 92, name: 'Brian Beatson', team: 'Outlaws', gp: 2, goals: 2, assists: 6, points: 8, penalties: 0, pim: 0 },
@@ -359,10 +361,33 @@ export const SEASONS: PblaSeason[] = [
       ],
     },
     games: [
-      { gameNum: 1, date: '2026-05-19', time: '7:00p', homeTeam: 'Outlaws', awayTeam: 'Revolution', homeScore: 15, awayScore: 4, location: 'Rizzo Rink', isPlayoff: false, note: '' },
-      { gameNum: 2, date: '2026-05-19', time: '7:50p', homeTeam: 'Thunder', awayTeam: 'Pups LC', homeScore: 9, awayScore: 8, location: 'Rizzo Rink', isPlayoff: false, note: '' },
-      { gameNum: 3, date: '2026-05-21', time: '7:00p', homeTeam: 'More Dudes LC', awayTeam: 'Outlaws', homeScore: 14, awayScore: 5, location: 'Rizzo Rink', isPlayoff: false, note: '' },
-      { gameNum: 4, date: '2026-05-21', time: '7:50p', homeTeam: 'Edge', awayTeam: 'Beer Wolves', homeScore: 11, awayScore: 8, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 1, date: '2026-05-18', time: '7:00p', homeTeam: 'More Dudes LC', awayTeam: 'Outlaws', homeScore: 14, awayScore: 5, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 2, date: '2026-05-18', time: '8:00p', homeTeam: 'Pups LC', awayTeam: 'Thunder', homeScore: 8, awayScore: 9, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 3, date: '2026-05-20', time: '7:00p', homeTeam: 'Revolution', awayTeam: 'Outlaws', homeScore: 4, awayScore: 15, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 4, date: '2026-05-20', time: '8:00p', homeTeam: 'Beer Wolves', awayTeam: 'Edge', homeScore: 8, awayScore: 11, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 5, date: '2026-05-27', time: '7:00p', homeTeam: 'Thunder', awayTeam: 'Edge', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 6, date: '2026-05-27', time: '8:00p', homeTeam: 'Revolution', awayTeam: 'Pups LC', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 7, date: '2026-06-01', time: '7:00p', homeTeam: 'More Dudes LC', awayTeam: 'Pups LC', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 8, date: '2026-06-01', time: '8:00p', homeTeam: 'Revolution', awayTeam: 'Thunder', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 9, date: '2026-06-03', time: '7:00p', homeTeam: 'Beer Wolves', awayTeam: 'Outlaws', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 10, date: '2026-06-03', time: '8:00p', homeTeam: 'Revolution', awayTeam: 'More Dudes LC', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 11, date: '2026-06-08', time: '7:00p', homeTeam: 'More Dudes LC', awayTeam: 'Beer Wolves', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 12, date: '2026-06-08', time: '8:00p', homeTeam: 'Edge', awayTeam: 'Outlaws', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 13, date: '2026-06-10', time: '7:00p', homeTeam: 'Edge', awayTeam: 'Pups LC', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 14, date: '2026-06-10', time: '8:00p', homeTeam: 'More Dudes LC', awayTeam: 'Thunder', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 15, date: '2026-06-15', time: '7:00p', homeTeam: 'Outlaws', awayTeam: 'Thunder', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 16, date: '2026-06-15', time: '8:00p', homeTeam: 'Pups LC', awayTeam: 'Revolution', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 17, date: '2026-06-17', time: '7:00p', homeTeam: 'Edge', awayTeam: 'More Dudes LC', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 18, date: '2026-06-17', time: '8:00p', homeTeam: 'Pups LC', awayTeam: 'Outlaws', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 19, date: '2026-06-22', time: '7:00p', homeTeam: 'Revolution', awayTeam: 'Beer Wolves', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 20, date: '2026-06-22', time: '8:00p', homeTeam: 'Pups LC', awayTeam: 'Edge', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 21, date: '2026-06-24', time: '7:00p', homeTeam: 'Beer Wolves', awayTeam: 'Edge', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 22, date: '2026-06-24', time: '8:00p', homeTeam: 'Revolution', awayTeam: 'Outlaws', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 23, date: '2026-06-29', time: '7:00p', homeTeam: 'Thunder', awayTeam: 'Beer Wolves', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 24, date: '2026-06-29', time: '8:00p', homeTeam: 'Edge', awayTeam: 'More Dudes LC', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 25, date: '2026-07-01', time: '7:00p', homeTeam: 'Revolution', awayTeam: 'Beer Wolves', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 26, date: '2026-07-01', time: '8:00p', homeTeam: 'Pups LC', awayTeam: 'Outlaws', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 27, date: '2026-07-06', time: '7:00p', homeTeam: 'More Dudes LC', awayTeam: 'Revolution', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
     ],
   },
   {

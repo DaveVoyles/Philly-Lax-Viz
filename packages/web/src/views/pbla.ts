@@ -1695,7 +1695,7 @@ function buildHero(root: HTMLElement): {
   const heading = document.createElement('div');
   heading.innerHTML = `
     <h1 class="pbla-hero__title">Philadelphia Box Lacrosse<span class="pbla-hero__title-accent">Association</span></h1>
-    <p class="pbla-hero__subtitle">The <a href="https://www.phillylacrosse.com/pbla/" target="_blank" rel="noopener noreferrer" style="color:var(--pbla-accent,#00e4ff);text-decoration:underline;">Philadelphia Box Lacrosse Association</a> has delivered summer box lacrosse at Rizzo Rink since 1986, pairing weeknight games with league-wide scoring races, playoff drama, and a long-running local lacrosse tradition.</p>
+    <p class="pbla-hero__subtitle">The <a href="https://phillyboxlacrosse.org/" target="_blank" rel="noopener noreferrer" style="color:var(--pbla-accent,#00e4ff);text-decoration:underline;">Philadelphia Box Lacrosse Association</a> has delivered summer box lacrosse at Rizzo Rink since 1986, pairing weeknight games with league-wide scoring races, playoff drama, and a long-running local lacrosse tradition.</p>
   `;
 
   const liveBadge = document.createElement('a');
@@ -1904,6 +1904,69 @@ function renderStandingsSection(
 
     showElement(card, animate, index * 80);
     attachBurstTarget(card, webglHost, color, token, cardCleanups);
+    grid.appendChild(card);
+  });
+
+  section.appendChild(grid);
+  return section;
+}
+
+function renderUpcomingGamesSection(season: PblaSeason, animate: boolean): HTMLElement {
+  const now = Date.now();
+  const upcoming = [...season.games]
+    .filter((g) => parseGameTimestamp(g) > now && g.homeScore === 0 && g.awayScore === 0)
+    .sort((a, b) => parseGameTimestamp(a) - parseGameTimestamp(b));
+
+  const section = document.createElement('section');
+  section.className = 'pbla-panel pbla-section';
+
+  const header = document.createElement('div');
+  header.className = 'pbla-section__header';
+  header.innerHTML = `
+    <div>
+      <span class="pbla-section__eyebrow">&#128197; Upcoming games</span>
+      <h2 class="pbla-section__title">Next up at Rizzo Rink</h2>
+    </div>
+    <div class="pbla-section__meta">${upcoming.length} game${upcoming.length !== 1 ? 's' : ''} scheduled</div>
+  `;
+  section.appendChild(header);
+
+  if (upcoming.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'pbla-games-empty';
+    empty.textContent = 'No upcoming games scheduled yet. Check back soon for the next game night!';
+    section.appendChild(empty);
+    return section;
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'pbla-games-grid';
+
+  upcoming.slice(0, 10).forEach((game, index) => {
+    const card = document.createElement('article');
+    card.className = `pbla-game-card pbla-game-card--upcoming${game.isPlayoff ? ' pbla-game-card--playoff' : ''}`;
+
+    const badges = [
+      game.isPlayoff ? '<span class="pbla-game-card__badge pbla-game-card__badge--playoff">Playoff</span>' : '',
+    ].filter(Boolean).join('');
+
+    card.innerHTML = `
+      <div class="pbla-game-card__top">
+        <div class="pbla-game-card__date">${formatGameCardDate(game)}</div>
+        ${badges ? `<div class="pbla-game-card__badges">${badges}</div>` : ''}
+      </div>
+      <div class="pbla-game-card__matchup">
+        <span class="pbla-game-card__team">${game.awayTeam}</span>
+        <span class="pbla-game-card__vs">at</span>
+        <span class="pbla-game-card__team">${game.homeTeam}</span>
+      </div>
+      <div class="pbla-game-card__footer">
+        <span class="pbla-game-card__time">${game.time}</span>
+        <span class="pbla-game-card__location">${game.location}</span>
+      </div>
+    `;
+
+    showElement(card, animate, index * 55);
     grid.appendChild(card);
   });
 
@@ -2156,6 +2219,7 @@ function renderSeasonContent(
   overview.appendChild(renderSeasonSummary(season, animate));
   host.appendChild(overview);
   host.appendChild(renderStandingsSection(season, animate, webglHost, token));
+  host.appendChild(renderUpcomingGamesSection(season, animate));
   host.appendChild(renderGamesSection(season, animate));
   host.appendChild(renderLeadersSection(season, animate, webglHost, token));
 }
