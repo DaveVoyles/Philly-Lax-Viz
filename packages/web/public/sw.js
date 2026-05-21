@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pll-v1';
+const CACHE_NAME = 'pll-v2';
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', (e) => {
@@ -21,6 +21,15 @@ self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   if (e.request.url.includes('/api/')) return;
   e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request))
+    caches.match(e.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(e.request).catch(() => {
+        // Network failure (e.g. cert invalid, offline) — return basic offline fallback
+        if (e.request.mode === 'navigate') {
+          return caches.match('/index.html');
+        }
+        return new Response('', { status: 503, statusText: 'Service Unavailable' });
+      });
+    })
   );
 });
