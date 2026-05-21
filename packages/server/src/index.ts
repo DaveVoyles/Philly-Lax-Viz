@@ -5,6 +5,7 @@ import path from 'node:path';
 import { openDb } from '@pll/ingest/src/db.js';
 import { createLogger } from '@pll/shared';
 import { buildApp } from './app.js';
+import { startPblaScheduler } from './scheduler/pblaScheduler.js';
 
 // Default DB path is resolved relative to the repo root (../../../data/lacrosse.db
 // from packages/server/src/), so the server finds the same DB regardless of cwd.
@@ -20,8 +21,12 @@ async function main(): Promise<void> {
   const db = openDb(DB_PATH);
   const app = await buildApp(db, { logger: createLogger({ name: 'server' }) });
 
+  // Start the PBLA scraper scheduler (Mon-Fri at 11 PM ET)
+  const stopScheduler = startPblaScheduler({ dbPath: DB_PATH });
+
   const shutdown = async (signal: string): Promise<void> => {
     app.log.info({ signal }, 'shutting down');
+    stopScheduler();
     try {
       await app.close();
       db.close();

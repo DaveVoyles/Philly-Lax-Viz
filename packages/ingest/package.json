@@ -35,7 +35,8 @@
     "detect:cross-team-dups": "tsx src/scripts/detectCrossTeamDups.ts",
     "dedup:detect": "tsx src/scripts/detectFuzzyDups.ts",
     "reconcile:scores": "tsx src/scripts/reconcileWithSources.ts",
-    "piaa:check-totals": "tsx src/scripts/piaaCheckTotals.ts"
+    "piaa:check-totals": "tsx src/scripts/piaaCheckTotals.ts",
+    "sync:pbla": "tsx src/scripts/syncPbla.ts"
   },
   "dependencies": {
     "@pll/shared": "workspace:*",

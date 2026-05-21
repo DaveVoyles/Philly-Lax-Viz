@@ -181,7 +181,7 @@ pnpm db:upload                  # upload local DB to Azure File Share
 `teams.ts`, `games.ts`, `players.ts`, `commitments.ts`, `schedule.ts`, `rankings.ts`, `laxnumbersRatings.ts`, `h2h.ts`, `coachDashboard.ts`, `corrections.ts`, `upload.ts`, `hudl.ts`, `search.ts`, `dataExport.ts`, `sources.ts`
 
 **Key web views** (all under `packages/web/src/views/`):
-`adminCorrections.ts`, `adminHudl.ts`, `coachDashboard.ts`, `coachUpload.ts`, `commitments.ts`, `compare.ts`, `constellation.ts`, `dashboard.ts`, `dataQuality.ts`, `gameDetail.ts`, `h2h.ts`, `leaders.ts`, `playerCompare.ts`, `playerDetail.ts`, `ratings.ts`, `rivalries.ts`, `schedule.ts`, `sources.ts`, `teamDetail.ts`, `topTeams.ts`
+`adminCorrections.ts`, `adminHudl.ts`, `coachDashboard.ts`, `coachUpload.ts`, `commitments.ts`, `compare.ts`, `constellation.ts`, `dashboard.ts`, `dataQuality.ts`, `gameDetail.ts`, `h2h.ts`, `leaders.ts`, `pbla.ts`, `playerCompare.ts`, `playerDetail.ts`, `ratings.ts`, `rivalries.ts`, `schedule.ts`, `sources.ts`, `teamDetail.ts`, `topTeams.ts`
 
 **Key CI workflows** (all under `.github/workflows/`):
 - `ingest-nightly.yml` — crawl + parse + ingest + applyCorrections + restart ACA

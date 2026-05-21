@@ -233,6 +233,8 @@ const ROUTE_TITLES: Partial<Record<RouteName, string>> = {
   adminCorrections: 'Admin Corrections',
   adminDedup: 'Admin Dedup',
   adminHudl: 'Admin Hudl',
+  pbla: 'PBLA Partnership Demo',
+  pblaTeam: 'PBLA Team Detail',
 };
 
 function applyRouteSeo(match: RouteMatch): void {

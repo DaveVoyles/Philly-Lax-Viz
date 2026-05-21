@@ -48,6 +48,19 @@ export interface PblaRosterEntry {
   notes: string;
 }
 
+export interface PblaGame {
+  gameNum: number;
+  date: string;
+  time: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+  location: string;
+  isPlayoff: boolean;
+  note: string; // 'Overtime', 'Forfeit', 'ShootOut', 'Rainout', or ''
+}
+
 export interface PblaSeason {
   year: number;
   leagueId: number;
@@ -56,22 +69,49 @@ export interface PblaSeason {
   players: PblaPlayer[];
   goalies: PblaGoalie[];
   rosters: Record<string, PblaRosterEntry[]>;
+  games: PblaGame[];
 }
 
 const TEAM_COLORS: Record<string, string> = {
-  'More Dudes LC': '#34d399',
-  'More Dudes': '#34d399',
-  Outlaws: '#f59e0b',
-  Edge: '#3b82f6',
-  Thunder: '#8b5cf6',
-  'Pups LC': '#ef4444',
-  'Beer Wolves': '#d97706',
-  Revolution: '#ec4899',
+  'More Dudes LC': '#800000',
+  'More Dudes': '#800000',
+  Outlaws: '#003087',
+  Edge: '#ef4444',
+  'The Edge': '#ef4444',
+  Thunder: '#facc15',
+  'Pups LC': '#ff6600',
+  'Beer Wolves': '#22c55e',
+  Revolution: '#3b82f6',
+  'Revolution LC': '#3b82f6',
   'Black Storm': '#64748b',
+};
+
+export interface TeamPalette {
+  primary: string;
+  secondary: string;
+  accent: string;
+}
+
+const TEAM_PALETTES: Record<string, TeamPalette> = {
+  'More Dudes LC': { primary: '#800000', secondary: '#d2b48c', accent: '#ffffff' },
+  'More Dudes': { primary: '#800000', secondary: '#d2b48c', accent: '#ffffff' },
+  Outlaws: { primary: '#003087', secondary: '#111111', accent: '#ffffff' },
+  Edge: { primary: '#111111', secondary: '#ef4444', accent: '#facc15' },
+  'The Edge': { primary: '#111111', secondary: '#ef4444', accent: '#facc15' },
+  Thunder: { primary: '#111111', secondary: '#facc15', accent: '#800000' },
+  'Pups LC': { primary: '#ff6600', secondary: '#111111', accent: '#ff6600' },
+  'Beer Wolves': { primary: '#22c55e', secondary: '#f97316', accent: '#111111' },
+  Revolution: { primary: '#3b82f6', secondary: '#ffffff', accent: '#111111' },
+  'Revolution LC': { primary: '#3b82f6', secondary: '#ffffff', accent: '#111111' },
+  'Black Storm': { primary: '#64748b', secondary: '#111111', accent: '#94a3b8' },
 };
 
 export function teamColor(name: string): string {
   return TEAM_COLORS[name] ?? '#6b7280';
+}
+
+export function teamPalette(name: string): TeamPalette {
+  return TEAM_PALETTES[name] ?? { primary: '#6b7280', secondary: '#374151', accent: '#9ca3af' };
 }
 
 export function teamSlug(name: string): string {
@@ -108,25 +148,25 @@ export const SEASONS: PblaSeason[] = [
     leagueId: 50731,
     label: '2026 (Current)',
     teams: [
-      { id: 343517, name: 'More Dudes LC', gp: 1, wins: 1, losses: 0, ties: 0, otw: 0, otl: 0, pts: 3, pf: 14, pa: 5, diff: 9, streak: 'W1', color: '#34d399' },
-      { id: 343511, name: 'Outlaws', gp: 2, wins: 1, losses: 1, ties: 0, otw: 0, otl: 0, pts: 3, pf: 20, pa: 18, diff: 2, streak: 'W1', color: '#f59e0b' },
-      { id: 343512, name: 'Edge', gp: 1, wins: 1, losses: 0, ties: 0, otw: 0, otl: 0, pts: 3, pf: 11, pa: 8, diff: 3, streak: 'W1', color: '#3b82f6' },
-      { id: 343516, name: 'Thunder', gp: 1, wins: 1, losses: 0, ties: 0, otw: 0, otl: 0, pts: 3, pf: 9, pa: 8, diff: 1, streak: 'W1', color: '#8b5cf6' },
-      { id: 343514, name: 'Pups LC', gp: 1, wins: 0, losses: 1, ties: 0, otw: 0, otl: 0, pts: 0, pf: 8, pa: 9, diff: -1, streak: 'L1', color: '#ef4444' },
-      { id: 343513, name: 'Beer Wolves', gp: 1, wins: 0, losses: 1, ties: 0, otw: 0, otl: 0, pts: 0, pf: 8, pa: 11, diff: -3, streak: 'L1', color: '#d97706' },
-      { id: 343515, name: 'Revolution', gp: 1, wins: 0, losses: 1, ties: 0, otw: 0, otl: 0, pts: 0, pf: 4, pa: 15, diff: -11, streak: 'L1', color: '#ec4899' },
+      { id: 343517, name: 'More Dudes LC', gp: 1, wins: 1, losses: 0, ties: 0, otw: 0, otl: 0, pts: 3, pf: 14, pa: 5, diff: 9, streak: 'W1', color: '#800000' },
+      { id: 343511, name: 'Outlaws', gp: 2, wins: 1, losses: 1, ties: 0, otw: 0, otl: 0, pts: 3, pf: 20, pa: 18, diff: 2, streak: 'W1', color: '#003087' },
+      { id: 343512, name: 'Edge', gp: 1, wins: 1, losses: 0, ties: 0, otw: 0, otl: 0, pts: 3, pf: 11, pa: 8, diff: 3, streak: 'W1', color: '#ef4444' },
+      { id: 343516, name: 'Thunder', gp: 1, wins: 1, losses: 0, ties: 0, otw: 0, otl: 0, pts: 3, pf: 9, pa: 8, diff: 1, streak: 'W1', color: '#facc15' },
+      { id: 343514, name: 'Pups LC', gp: 1, wins: 0, losses: 1, ties: 0, otw: 0, otl: 0, pts: 0, pf: 8, pa: 9, diff: -1, streak: 'L1', color: '#ff6600' },
+      { id: 343513, name: 'Beer Wolves', gp: 1, wins: 0, losses: 1, ties: 0, otw: 0, otl: 0, pts: 0, pf: 8, pa: 11, diff: -3, streak: 'L1', color: '#22c55e' },
+      { id: 343515, name: 'Revolution', gp: 1, wins: 0, losses: 1, ties: 0, otw: 0, otl: 0, pts: 0, pf: 4, pa: 15, diff: -11, streak: 'L1', color: '#3b82f6' },
     ],
     players: [
-      { jersey: 55, name: 'Dalton Hofmann', team: 'More Dudes LC', gp: 1, goals: 7, assists: 1, points: 8, penalties: 0, pim: 0 },
       { jersey: 92, name: 'Brian Beatson', team: 'Outlaws', gp: 2, goals: 2, assists: 6, points: 8, penalties: 0, pim: 0 },
       { jersey: 16, name: 'Dylan Portnoy', team: 'Outlaws', gp: 2, goals: 4, assists: 1, points: 5, penalties: 0, pim: 0 },
+      { jersey: 88, name: 'Brian Sullivan', team: 'Outlaws', gp: 2, goals: 1, assists: 3, points: 4, penalties: 0, pim: 0 },
+      { jersey: 96, name: 'George Downey', team: 'Outlaws', gp: 2, goals: 2, assists: 0, points: 2, penalties: 1, pim: 2 },
+      { jersey: 55, name: 'Dalton Hofmann', team: 'More Dudes LC', gp: 1, goals: 7, assists: 1, points: 8, penalties: 0, pim: 0 },
       { jersey: 4, name: 'Jack Glemser', team: 'Edge', gp: 1, goals: 3, assists: 1, points: 4, penalties: 0, pim: 0 },
       { jersey: 55, name: 'Philip Melecio', team: 'Outlaws', gp: 1, goals: 4, assists: 0, points: 4, penalties: 0, pim: 0 },
-      { jersey: 88, name: 'Brian Sullivan', team: 'Outlaws', gp: 2, goals: 1, assists: 3, points: 4, penalties: 0, pim: 0 },
       { jersey: 96, name: 'Andrew Streilein', team: 'Pups LC', gp: 1, goals: 2, assists: 2, points: 4, penalties: 0, pim: 0 },
       { jersey: 17, name: 'Murph Butler', team: 'More Dudes LC', gp: 1, goals: 1, assists: 2, points: 3, penalties: 0, pim: 0 },
       { jersey: 1, name: 'Brandon Cerone', team: 'Outlaws', gp: 1, goals: 3, assists: 0, points: 3, penalties: 0, pim: 0 },
-      { jersey: 96, name: 'George Downey', team: 'Outlaws', gp: 2, goals: 2, assists: 0, points: 2, penalties: 1, pim: 2 },
     ],
     goalies: [
       { jersey: 0, name: 'Bryce Kash', team: 'Outlaws', gp: 2, min: 60, ga: 8, gaa: 6.67 },
@@ -318,19 +358,25 @@ export const SEASONS: PblaSeason[] = [
         { name: 'Mike Weaver', jersey: '16', position: '', notes: '' },
       ],
     },
+    games: [
+      { gameNum: 1, date: '2026-05-19', time: '7:00p', homeTeam: 'Outlaws', awayTeam: 'Revolution', homeScore: 15, awayScore: 4, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 2, date: '2026-05-19', time: '7:50p', homeTeam: 'Thunder', awayTeam: 'Pups LC', homeScore: 9, awayScore: 8, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 3, date: '2026-05-21', time: '7:00p', homeTeam: 'More Dudes LC', awayTeam: 'Outlaws', homeScore: 14, awayScore: 5, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 4, date: '2026-05-21', time: '7:50p', homeTeam: 'Edge', awayTeam: 'Beer Wolves', homeScore: 11, awayScore: 8, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+    ],
   },
   {
     year: 2025,
     leagueId: 50247,
     label: '2025 (Complete)',
     teams: [
-      { id: 339150, name: 'Thunder', gp: 11, wins: 9, losses: 2, ties: 0, otw: 0, otl: 0, pts: 27, pf: 112, pa: 78, diff: 34, streak: 'W3', color: '#8b5cf6' },
-      { id: 339148, name: 'More Dudes', gp: 11, wins: 8, losses: 3, ties: 0, otw: 0, otl: 0, pts: 24, pf: 145, pa: 98, diff: 47, streak: 'W2', color: '#34d399' },
-      { id: 339149, name: 'Outlaws', gp: 11, wins: 7, losses: 4, ties: 0, otw: 0, otl: 0, pts: 21, pf: 118, pa: 95, diff: 23, streak: 'L1', color: '#f59e0b' },
-      { id: 339152, name: 'Beer Wolves', gp: 11, wins: 6, losses: 5, ties: 0, otw: 0, otl: 0, pts: 18, pf: 130, pa: 110, diff: 20, streak: 'W1', color: '#d97706' },
-      { id: 339153, name: 'Black Storm', gp: 11, wins: 5, losses: 6, ties: 0, otw: 0, otl: 0, pts: 15, pf: 105, pa: 112, diff: -7, streak: 'L2', color: '#64748b' },
-      { id: 339154, name: 'Revolution LC', gp: 11, wins: 3, losses: 8, ties: 0, otw: 0, otl: 0, pts: 9, pf: 85, pa: 120, diff: -35, streak: 'L3', color: '#ec4899' },
-      { id: 339151, name: 'The Edge', gp: 11, wins: 2, losses: 9, ties: 0, otw: 0, otl: 0, pts: 6, pf: 72, pa: 154, diff: -82, streak: 'L5', color: '#3b82f6' },
+      { id: 339148, name: 'More Dudes', gp: 12, wins: 11, losses: 1, ties: 0, otw: 0, otl: 0, pts: 33, pf: 148, pa: 62, diff: 86, streak: 'W7', color: '#800000' },
+      { id: 339150, name: 'Thunder', gp: 12, wins: 9, losses: 3, ties: 0, otw: 0, otl: 1, pts: 28, pf: 115, pa: 72, diff: 43, streak: 'L2', color: '#facc15' },
+      { id: 339152, name: 'Beer Wolves', gp: 12, wins: 9, losses: 3, ties: 0, otw: 1, otl: 0, pts: 26, pf: 109, pa: 90, diff: 19, streak: 'W2', color: '#22c55e' },
+      { id: 339153, name: 'Black Storm', gp: 12, wins: 7, losses: 5, ties: 0, otw: 0, otl: 0, pts: 21, pf: 115, pa: 89, diff: 26, streak: 'L3', color: '#64748b' },
+      { id: 339149, name: 'Outlaws', gp: 12, wins: 4, losses: 8, ties: 0, otw: 0, otl: 0, pts: 12, pf: 99, pa: 107, diff: -8, streak: 'W1', color: '#003087' },
+      { id: 339154, name: 'Revolution LC', gp: 12, wins: 2, losses: 10, ties: 0, otw: 0, otl: 0, pts: 6, pf: 67, pa: 117, diff: -50, streak: 'W2', color: '#3b82f6' },
+      { id: 339151, name: 'The Edge', gp: 12, wins: 0, losses: 12, ties: 0, otw: 0, otl: 0, pts: 0, pf: 48, pa: 164, diff: -116, streak: 'L12', color: '#ef4444' },
     ],
     players: [
       { jersey: 31, name: 'Carter Begley', team: 'More Dudes', gp: 9, goals: 36, assists: 7, points: 43, penalties: 1, pim: 2 },
@@ -344,7 +390,97 @@ export const SEASONS: PblaSeason[] = [
       { jersey: 55, name: 'Phillip Melecio', team: 'Outlaws', gp: 10, goals: 16, assists: 3, points: 19, penalties: 3, pim: 6 },
       { jersey: 16, name: 'Dylan Portnoy', team: 'Outlaws', gp: 10, goals: 10, assists: 5, points: 15, penalties: 1, pim: 2 },
     ],
-    goalies: [],
+    goalies: [
+      { jersey: 6, name: 'Billy Houser', team: 'More Dudes', gp: 11, min: 480, ga: 52, gaa: 5.42 },
+      { jersey: 28, name: 'Blake Beale', team: 'Black Storm', gp: 9, min: 249, ga: 38, gaa: 7.63 },
+      { jersey: 30, name: 'Alec Rubman', team: 'Thunder', gp: 7, min: 227, ga: 37, gaa: 8.15 },
+      { jersey: 43, name: 'Matt Kuhn', team: 'Outlaws', gp: 8, min: 214, ga: 36, gaa: 8.41 },
+      { jersey: 86, name: 'Andrew Sloan', team: 'Black Storm', gp: 10, min: 231, ga: 42, gaa: 9.09 },
+      { jersey: 0, name: 'Toby Feddor', team: 'Beer Wolves', gp: 8, min: 302, ga: 57, gaa: 9.44 },
+      { jersey: 30, name: 'Sid Johansen', team: 'Revolution LC', gp: 11, min: 462, ga: 90, gaa: 9.74 },
+      { jersey: 0, name: 'Kiernan Clark', team: 'Outlaws', gp: 11, min: 325, ga: 64, gaa: 9.85 },
+      { jersey: 38, name: 'Eric Young', team: 'The Edge', gp: 11, min: 269, ga: 81, gaa: 15.06 },
+      { jersey: 48, name: 'Victoria Sloan', team: 'The Edge', gp: 9, min: 202, ga: 61, gaa: 15.10 },
+    ],
     rosters: {},
+    games: [
+      { gameNum: 1, date: '2025-05-19', time: '7:00p', homeTeam: 'Outlaws', awayTeam: 'More Dudes', homeScore: 2, awayScore: 9, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 2, date: '2025-05-19', time: '7:50p', homeTeam: 'Thunder', awayTeam: 'Black Storm', homeScore: 11, awayScore: 7, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 3, date: '2025-05-21', time: '7:00p', homeTeam: 'Revolution LC', awayTeam: 'Outlaws', homeScore: 4, awayScore: 8, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 4, date: '2025-05-21', time: '7:50p', homeTeam: 'The Edge', awayTeam: 'Beer Wolves', homeScore: 3, awayScore: 17, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 5, date: '2025-08-04', time: '7:00p', homeTeam: 'Beer Wolves', awayTeam: 'Thunder', homeScore: 12, awayScore: 11, location: 'Rizzo Rink', isPlayoff: false, note: 'Overtime' },
+      { gameNum: 6, date: '2025-08-04', time: '7:50p', homeTeam: 'More Dudes', awayTeam: 'The Edge', homeScore: 22, awayScore: 3, location: 'Rizzo Rink', isPlayoff: false, note: 'Rainout' },
+      { gameNum: 7, date: '2025-06-02', time: '7:00p', homeTeam: 'The Edge', awayTeam: 'Thunder', homeScore: 4, awayScore: 21, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 8, date: '2025-06-02', time: '7:50p', homeTeam: 'Black Storm', awayTeam: 'Revolution LC', homeScore: 5, awayScore: 3, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 9, date: '2025-06-04', time: '7:00p', homeTeam: 'Outlaws', awayTeam: 'Beer Wolves', homeScore: 8, awayScore: 9, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 10, date: '2025-06-04', time: '7:50p', homeTeam: 'More Dudes', awayTeam: 'Revolution LC', homeScore: 11, awayScore: 5, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 11, date: '2025-06-09', time: '7:00p', homeTeam: 'Black Storm', awayTeam: 'More Dudes', homeScore: 5, awayScore: 9, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 12, date: '2025-06-09', time: '7:50p', homeTeam: 'Thunder', awayTeam: 'Revolution LC', homeScore: 11, awayScore: 6, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 13, date: '2025-06-11', time: '7:00p', homeTeam: 'Beer Wolves', awayTeam: 'More Dudes', homeScore: 8, awayScore: 13, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 14, date: '2025-06-11', time: '7:50p', homeTeam: 'Outlaws', awayTeam: 'The Edge', homeScore: 16, awayScore: 3, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 15, date: '2025-06-16', time: '7:00p', homeTeam: 'Black Storm', awayTeam: 'The Edge', homeScore: 13, awayScore: 2, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 16, date: '2025-06-16', time: '7:50p', homeTeam: 'Thunder', awayTeam: 'More Dudes', homeScore: 10, awayScore: 8, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 17, date: '2025-06-18', time: '7:00p', homeTeam: 'Thunder', awayTeam: 'Outlaws', homeScore: 12, awayScore: 6, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 18, date: '2025-06-18', time: '7:50p', homeTeam: 'Revolution LC', awayTeam: 'Black Storm', homeScore: 3, awayScore: 11, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 19, date: '2025-06-23', time: '7:00p', homeTeam: 'More Dudes', awayTeam: 'The Edge', homeScore: 7, awayScore: 4, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 20, date: '2025-06-23', time: '7:50p', homeTeam: 'Outlaws', awayTeam: 'Black Storm', homeScore: 8, awayScore: 11, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 21, date: '2025-06-25', time: '7:00p', homeTeam: 'Beer Wolves', awayTeam: 'Revolution LC', homeScore: 9, awayScore: 6, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 22, date: '2025-06-25', time: '7:50p', homeTeam: 'Black Storm', awayTeam: 'The Edge', homeScore: 18, awayScore: 2, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 23, date: '2025-06-30', time: '7:00p', homeTeam: 'Outlaws', awayTeam: 'Revolution LC', homeScore: 15, awayScore: 4, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 24, date: '2025-06-30', time: '7:50p', homeTeam: 'The Edge', awayTeam: 'Beer Wolves', homeScore: 7, awayScore: 12, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 25, date: '2025-07-25', time: '7:00p', homeTeam: 'Black Storm', awayTeam: 'Thunder', homeScore: 4, awayScore: 7, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 26, date: '2025-07-25', time: '7:50p', homeTeam: 'More Dudes', awayTeam: 'Beer Wolves', homeScore: 8, awayScore: 3, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 27, date: '2025-08-01', time: '7:00p', homeTeam: 'The Edge', awayTeam: 'Revolution LC', homeScore: 7, awayScore: 11, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 28, date: '2025-08-01', time: '7:50p', homeTeam: 'Thunder', awayTeam: 'Beer Wolves', homeScore: 0, awayScore: 1, location: 'Rizzo Rink', isPlayoff: false, note: 'Forfeit' },
+      { gameNum: 29, date: '2025-07-09', time: '7:00p', homeTeam: 'Beer Wolves', awayTeam: 'Revolution LC', homeScore: 10, awayScore: 4, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 30, date: '2025-07-09', time: '7:50p', homeTeam: 'Outlaws', awayTeam: 'Black Storm', homeScore: 8, awayScore: 13, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 31, date: '2025-07-14', time: '7:00p', homeTeam: 'Black Storm', awayTeam: 'Beer Wolves', homeScore: 17, awayScore: 9, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 32, date: '2025-07-14', time: '7:50p', homeTeam: 'More Dudes', awayTeam: 'Thunder', homeScore: 10, awayScore: 8, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 33, date: '2025-07-16', time: '7:00p', homeTeam: 'Revolution LC', awayTeam: 'More Dudes', homeScore: 5, awayScore: 18, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 34, date: '2025-07-16', time: '7:50p', homeTeam: 'Beer Wolves', awayTeam: 'Outlaws', homeScore: 9, awayScore: 6, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 35, date: '2025-07-21', time: '7:00p', homeTeam: 'Black Storm', awayTeam: 'Beer Wolves', homeScore: 7, awayScore: 10, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 36, date: '2025-07-21', time: '7:50p', homeTeam: 'Thunder', awayTeam: 'Revolution LC', homeScore: 8, awayScore: 5, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 37, date: '2025-07-23', time: '7:00p', homeTeam: 'The Edge', awayTeam: 'Thunder', homeScore: 1, awayScore: 7, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 38, date: '2025-07-23', time: '7:50p', homeTeam: 'More Dudes', awayTeam: 'Outlaws', homeScore: 16, awayScore: 5, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 39, date: '2025-07-28', time: '7:00p', homeTeam: 'Outlaws', awayTeam: 'Thunder', homeScore: 8, awayScore: 9, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 40, date: '2025-07-28', time: '7:50p', homeTeam: 'The Edge', awayTeam: 'Revolution LC', homeScore: 4, awayScore: 11, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 41, date: '2025-07-30', time: '7:00p', homeTeam: 'More Dudes', awayTeam: 'Black Storm', homeScore: 17, awayScore: 4, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 42, date: '2025-07-30', time: '7:50p', homeTeam: 'The Edge', awayTeam: 'Outlaws', homeScore: 8, awayScore: 9, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 43, date: '2025-08-06', time: '7:00p', homeTeam: 'More Dudes', awayTeam: 'Black Storm', homeScore: 12, awayScore: 9, location: 'Rizzo Rink', isPlayoff: true, note: '' },
+      { gameNum: 44, date: '2025-08-06', time: '7:50p', homeTeam: 'Thunder', awayTeam: 'Beer Wolves', homeScore: 12, awayScore: 8, location: 'Rizzo Rink', isPlayoff: true, note: 'ShootOut' },
+      { gameNum: 45, date: '2025-08-11', time: '7:30p', homeTeam: 'More Dudes', awayTeam: 'Thunder', homeScore: 7, awayScore: 10, location: 'Rizzo Rink', isPlayoff: true, note: '' },
+    ],
   },
 ];
+
+export const PBLA_SEASONS = SEASONS;
+export const PBLA_DEFAULT_SEASON = 2026;
+
+export function getPblaSeason(year: number): PblaSeason {
+  return SEASONS.find((season) => season.year === year) ?? SEASONS[0]!;
+}
+
+/**
+ * YouTube stream video IDs keyed by game date (YYYY-MM-DD).
+ * Each date has ONE stream covering both games played that night.
+ * Source: https://www.youtube.com/@PBLA_Official/streams
+ */
+export const PBLA_VIDEOS: Record<string, string> = {
+  // 2026 season
+  '2026-05-19': 'PLACEHOLDER_VIDEO_ID_0519',
+  '2026-05-21': 'PLACEHOLDER_VIDEO_ID_0521',
+  // TODO: Add real YouTube video IDs from @PBLA_Official/streams
+  // Format: 'YYYY-MM-DD': 'YouTube_video_ID' (the 11-char ID from the URL)
+};
+
+/** Get the YouTube video ID for a game date, if available */
+export function getGameVideoId(date: string): string | null {
+  return PBLA_VIDEOS[date] ?? null;
+}
+
+/** Get all games for a specific team in a season */
+export function getTeamGames(teamName: string, season: PblaSeason): PblaGame[] {
+  return season.games.filter(
+    (g) => g.homeTeam === teamName || g.awayTeam === teamName,
+  );
+}

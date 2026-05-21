@@ -38,6 +38,7 @@ updated nightly.
 - **Schedule** — upcoming games
 - **College Commitments** — a chronological recruiting feed with division, status, and verification badges
 - **Player Constellation** — a visual bubble chart plotting every player's goals vs. assists
+- **PBLA Partnership Demo** — a premium Philadelphia Box Lacrosse Association pitch page with animated standings, scoring leaders, and a WebGL background
 
 > **Data is updated every night** by pulling the latest scores and summaries from
 > [phillylacrosse.com](https://phillylacrosse.com) and

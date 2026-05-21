@@ -96,6 +96,7 @@ const handlers = new Set<RouteHandler>();
 
 function fire(): void {
   const match = parseHash();
+  window.scrollTo(0, 0);
   for (const h of handlers) h(match);
 }
 

@@ -5,16 +5,20 @@ import { setPageMeta } from '../util/pageMeta.js';
 import {
   SEASONS,
   teamColor,
+  teamPalette,
   teamSlug,
   findTeamBySlug,
   getTeamPlayers,
   getTeamGoalies,
   getTeamRoster,
+  getTeamGames,
+  getGameVideoId,
   type PblaSeason,
   type PblaTeam,
   type PblaPlayer,
   type PblaGoalie,
   type PblaRosterEntry,
+  type PblaGame,
 } from './pblaData.js';
 
 const STYLE_ID = 'pbla-team-view-styles';
@@ -75,8 +79,9 @@ function ensureStyles(): void {
       gap: 1.5rem;
       padding: 1.5rem;
       border-radius: 12px;
-      background: linear-gradient(135deg, color-mix(in srgb, var(--team-accent) 8%, transparent), transparent);
-      border: 1px solid color-mix(in srgb, var(--team-accent) 30%, var(--border));
+      background: linear-gradient(135deg, color-mix(in srgb, var(--team-accent) 12%, transparent), color-mix(in srgb, var(--team-secondary) 6%, transparent));
+      border: 2px solid color-mix(in srgb, var(--team-accent) 50%, var(--border));
+      box-shadow: 0 0 16px color-mix(in srgb, var(--team-accent) 15%, transparent);
     }
     .pbla-team-hero__emblem {
       display: flex;
@@ -116,11 +121,16 @@ function ensureStyles(): void {
       align-items: center;
       padding: 1rem 0.5rem;
       border-radius: 10px;
-      background: var(--bg-elev, #11151a);
-      border: 1px solid var(--border);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--team-accent) 6%, var(--bg-elev, #11151a)), var(--bg-elev, #11151a));
+      border: 1px solid color-mix(in srgb, var(--team-accent) 25%, var(--border));
       opacity: 0;
       transform: translateY(10px);
       animation: pbla-stat-in 0.4s ease forwards;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .pbla-team-stat:hover {
+      border-color: var(--team-accent);
+      box-shadow: 0 0 10px color-mix(in srgb, var(--team-accent) 20%, transparent);
     }
     @keyframes pbla-stat-in { to { opacity: 1; transform: translateY(0); } }
     .pbla-team-stat__val {
@@ -166,26 +176,30 @@ function ensureStyles(): void {
       display: flex;
       align-items: center;
       gap: 0.4rem;
+      color: var(--team-accent);
     }
 
     /* Roster table */
     .pbla-team-roster {
       width: 100%;
+      max-width: 100%;
       border-collapse: collapse;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
+      table-layout: fixed;
+      overflow-x: auto;
     }
     .pbla-team-roster th {
       text-align: left;
-      padding: 0.55rem 0.5rem;
-      font-size: 0.72rem;
+      padding: 0.4rem 0.35rem;
+      font-size: 0.7rem;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.05em;
       color: var(--muted);
       border-bottom: 1px solid var(--border);
     }
     .pbla-team-roster th:not(:first-child):not(:nth-child(2)) { text-align: right; }
     .pbla-team-roster td {
-      padding: 0.5rem 0.5rem;
+      padding: 0.4rem 0.35rem;
       border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
     }
     .pbla-team-roster td:not(:first-child):not(:nth-child(2)) {
@@ -196,6 +210,10 @@ function ensureStyles(): void {
       opacity: 0;
       transform: translateX(-6px);
       animation: pbla-roster-in 0.35s ease forwards;
+      border-left: 3px solid color-mix(in srgb, var(--team-accent) 40%, transparent);
+    }
+    .pbla-team-roster tr:hover {
+      background: color-mix(in srgb, var(--team-accent) 8%, transparent);
     }
     @keyframes pbla-roster-in { to { opacity: 1; transform: translateX(0); } }
     .pbla-team-roster__jersey {
@@ -204,7 +222,7 @@ function ensureStyles(): void {
       min-width: 2rem;
     }
     .pbla-team-roster__name { font-weight: 700; }
-    .pbla-team-roster__pts { font-weight: 800; color: #ffd166; }
+    .pbla-team-roster__pts { font-weight: 800; color: var(--team-highlight, #ffd166); }
 
     /* Empty state */
     .pbla-team-empty {
@@ -216,10 +234,70 @@ function ensureStyles(): void {
       border-radius: 10px;
     }
 
+    /* Games section */
+    .pbla-team-games { margin-top: 1rem; }
+    .pbla-team-game-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid var(--team-accent, #6b7280);
+      margin-bottom: 0.4rem;
+      font-size: 0.82rem;
+      opacity: 0;
+      transform: translateY(6px);
+      animation: pbla-team-card-in 0.3s ease forwards;
+    }
+    .pbla-team-game-row.no-anim { opacity: 1; transform: none; animation: none; }
+    .pbla-team-game-row--win { border-left-color: #86efac; }
+    .pbla-team-game-row--loss { border-left-color: #fca5a5; }
+    .pbla-team-game-row__teams {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+    .pbla-team-game-row__team { white-space: nowrap; }
+    .pbla-team-game-row__team--self { font-weight: 700; color: var(--team-accent); }
+    .pbla-team-game-row__score {
+      font-weight: 700;
+      font-size: 0.95rem;
+      min-width: 3rem;
+      text-align: center;
+    }
+    .pbla-team-game-row__meta {
+      color: rgba(248, 250, 252, 0.55);
+      font-size: 0.75rem;
+      text-align: right;
+    }
+    .pbla-team-game-row__video {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      background: rgba(255, 0, 0, 0.12);
+      color: #ff6b6b;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .pbla-team-game-row__video:hover { background: rgba(255, 0, 0, 0.22); }
+    .pbla-team-game-row__video svg { width: 12px; height: 12px; fill: currentColor; }
+    .pbla-team-game-note {
+      font-size: 0.68rem;
+      color: rgba(248, 250, 252, 0.45);
+      margin-left: 0.3rem;
+    }
+
     @media (max-width: 600px) {
       .pbla-team-hero { flex-direction: column; text-align: center; gap: 0.75rem; }
       .pbla-team-hero__name { font-size: 1.3rem; }
       .pbla-team-stats { grid-template-columns: repeat(3, 1fr); }
+      .pbla-team-game-row { grid-template-columns: 1fr auto auto; font-size: 0.78rem; }
     }
   `;
   document.head.appendChild(style);
@@ -381,26 +459,32 @@ function buildRosterTable(players: PblaPlayer[], animate: boolean): HTMLElement 
   return table;
 }
 
-function buildFullRosterTable(roster: PblaRosterEntry[], animate: boolean): HTMLElement {
+function buildFullRosterTable(roster: PblaRosterEntry[], players: PblaPlayer[], animate: boolean): HTMLElement {
   const table = document.createElement('table');
   table.className = 'pbla-team-roster';
   table.innerHTML = `
     <thead>
       <tr style="opacity:1;transform:none;animation:none">
-        <th>#</th><th>Player</th><th>Pos</th><th>Notes</th>
+        <th>#</th><th>Player</th><th>Pos</th><th>Pts</th><th>G</th><th>A</th><th>GP</th><th>PIM</th>
       </tr>
     </thead>
   `;
   const tbody = document.createElement('tbody');
+  const playerMap = new Map(players.map((p) => [p.name.toLowerCase(), p]));
   roster.forEach((p, idx) => {
     const tr = document.createElement('tr');
     if (animate) tr.style.animationDelay = `${idx * 40 + 100}ms`;
     else { tr.style.opacity = '1'; tr.style.transform = 'none'; tr.style.animation = 'none'; }
+    const stats = playerMap.get(p.name.toLowerCase());
     tr.innerHTML = `
       <td class="pbla-team-roster__jersey">${p.jersey || '-'}</td>
       <td class="pbla-team-roster__name">${p.name}</td>
       <td>${p.position || '-'}</td>
-      <td>${p.notes || ''}</td>
+      <td class="pbla-team-roster__pts">${stats ? stats.points : '-'}</td>
+      <td>${stats ? stats.goals : '-'}</td>
+      <td>${stats ? stats.assists : '-'}</td>
+      <td>${stats ? stats.gp : '-'}</td>
+      <td>${stats ? stats.pim : '-'}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -442,6 +526,85 @@ function buildGoalieTable(goalies: PblaGoalie[], animate: boolean): HTMLElement 
   });
   table.appendChild(tbody);
   return table;
+}
+
+function buildGamesSection(teamName: string, season: PblaSeason, animate: boolean): HTMLElement | null {
+  const games = getTeamGames(teamName, season);
+  if (games.length === 0) return null;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'pbla-team-games';
+
+  // Sort newest first
+  const sorted = [...games].sort((a, b) => b.date.localeCompare(a.date));
+
+  sorted.forEach((game, idx) => {
+    const isHome = game.homeTeam.toLowerCase() === teamName.toLowerCase();
+    const teamScore = isHome ? game.homeScore : game.awayScore;
+    const oppScore = isHome ? game.awayScore : game.homeScore;
+    const opponent = isHome ? game.awayTeam : game.homeTeam;
+    const won = teamScore > oppScore;
+    const lost = teamScore < oppScore;
+
+    const row = document.createElement('div');
+    row.className = `pbla-team-game-row${won ? ' pbla-team-game-row--win' : lost ? ' pbla-team-game-row--loss' : ''}`;
+    if (animate) {
+      row.style.animationDelay = `${idx * 50}ms`;
+    } else {
+      row.classList.add('no-anim');
+    }
+
+    // Teams column
+    const teams = document.createElement('div');
+    teams.className = 'pbla-team-game-row__teams';
+    teams.innerHTML = `
+      <span class="pbla-team-game-row__team pbla-team-game-row__team--self">${teamName}</span>
+      <span class="pbla-team-game-row__team">vs ${opponent}</span>
+    `;
+
+    // Score
+    const score = document.createElement('div');
+    score.className = 'pbla-team-game-row__score';
+    score.textContent = `${teamScore}-${oppScore}`;
+
+    // Meta (date + result)
+    const meta = document.createElement('div');
+    meta.className = 'pbla-team-game-row__meta';
+    const resultLabel = won ? 'W' : lost ? 'L' : 'T';
+    const dateDisplay = formatGameDate(game.date);
+    meta.innerHTML = `${resultLabel} &middot; ${dateDisplay}`;
+
+    // Video link
+    const videoId = getGameVideoId(game.date);
+    const videoLink = document.createElement('span');
+    if (videoId) {
+      const a = document.createElement('a');
+      a.className = 'pbla-team-game-row__video';
+      a.href = `https://www.youtube.com/watch?v=${videoId}`;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>Watch`;
+      videoLink.appendChild(a);
+    }
+
+    row.appendChild(teams);
+    row.appendChild(score);
+    row.appendChild(meta);
+    row.appendChild(videoLink);
+    wrap.appendChild(row);
+  });
+
+  return wrap;
+}
+
+function formatGameDate(dateStr: string): string {
+  const parts = dateStr.split('-').map(Number);
+  const y = parts[0] ?? 2026;
+  const m = parts[1] ?? 1;
+  const d = parts[2] ?? 1;
+  const date = new Date(y, m - 1, d);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[date.getMonth()]} ${date.getDate()}`;
 }
 
 function renderTeamContent(
@@ -502,7 +665,17 @@ function renderTeamContent(
     rosterTitle.className = 'pbla-team-section-title';
     rosterTitle.innerHTML = '&#128101; Full Roster (' + roster.length + ' players)';
     container.appendChild(rosterTitle);
-    container.appendChild(buildFullRosterTable(roster, animate));
+    container.appendChild(buildFullRosterTable(roster, players, animate));
+  }
+
+  // Games & Highlights
+  const gamesSection = buildGamesSection(team.name, season, animate);
+  if (gamesSection) {
+    const gamesTitle = document.createElement('h3');
+    gamesTitle.className = 'pbla-team-section-title';
+    gamesTitle.innerHTML = '&#127909; Games & Highlights';
+    container.appendChild(gamesTitle);
+    container.appendChild(gamesSection);
   }
 
   // Animated counters for PF/PA
@@ -544,7 +717,11 @@ export function render(root: HTMLElement, params: Record<string, string>): void 
   root.innerHTML = '';
   const wrapper = document.createElement('div');
   wrapper.className = 'pbla-team-root';
-  wrapper.style.setProperty('--team-accent', team.color);
+  const palette = teamPalette(team.name);
+  // Main accent = secondary (red for Edge), subtle highlight = accent (yellow for Edge)
+  wrapper.style.setProperty('--team-accent', palette?.secondary ?? team.color);
+  wrapper.style.setProperty('--team-secondary', palette?.primary ?? '#111111');
+  wrapper.style.setProperty('--team-highlight', palette?.accent ?? team.color);
 
   // WebGL
   const webglHost = document.createElement('div');
