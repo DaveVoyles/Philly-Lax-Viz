@@ -1,19 +1,20 @@
 // Sportability league data scraper for PBLA (Philadelphia Box Lacrosse Association).
 //
 // Source: https://secure.sportability.com/spx/Leagues/
-// Standings:  LeagueStandings.aspx?LgID={leagueId}
-// Scorers:    LeagueLeaders.aspx?LgID={leagueId}&StatCat=Scoring
-// Goalies:    LeagueLeaders.aspx?LgID={leagueId}&StatCat=Goaltending
-// Schedule:   LeagueSchedule.aspx?LgID={leagueId}
+// Standings:  Standings.asp?LgID={leagueId}
+// Players:    Statistics.asp?LgID={leagueId}&Pkg=1
+// Goalies:    Statistics.asp?LgID={leagueId}&Pkg=2
+// Schedule:   Schedule.asp?LgID={leagueId}
 //
-// The site may require session cookies. If direct fetch fails, use Playwright
-// via the --headed flag to capture cookies interactively.
+// Pages are server-rendered HTML. No JavaScript execution needed.
+// Dropdowns are just URL parameter filters.
 
 import * as cheerio from 'cheerio';
 
 // --- Interfaces ---------------------------------------------------------
 
 export interface SportabilityTeam {
+  id: number;
   name: string;
   gp: number;
   wins: number;
@@ -77,19 +78,21 @@ export interface SportabilityLeagueData {
 const BASE = 'https://secure.sportability.com/spx/Leagues';
 
 export function standingsUrl(leagueId: number): string {
-  return `${BASE}/LeagueStandings.aspx?LgID=${leagueId}`;
+  return `${BASE}/Standings.asp?LgID=${leagueId}`;
 }
 
 export function scorersUrl(leagueId: number): string {
-  return `${BASE}/LeagueLeaders.aspx?LgID=${leagueId}&StatCat=Scoring`;
+  // show1=%20 (space) means "show all" instead of default top 10
+  return `${BASE}/Statistics.asp?LgID=${leagueId}&Pkg=1&show1=%20`;
 }
 
 export function goaliesUrl(leagueId: number): string {
-  return `${BASE}/LeagueLeaders.aspx?LgID=${leagueId}&StatCat=Goaltending`;
+  // show1=%20 (space) means "show all"
+  return `${BASE}/Statistics.asp?LgID=${leagueId}&Pkg=2&show1=%20`;
 }
 
 export function scheduleUrl(leagueId: number): string {
-  return `${BASE}/LeagueSchedule.aspx?LgID=${leagueId}`;
+  return `${BASE}/Schedule.asp?LgID=${leagueId}`;
 }
 
 // --- Parsers ------------------------------------------------------------
@@ -106,82 +109,89 @@ function parseFloat2(text: string): number {
 
 /**
  * Parse the Sportability standings page HTML.
- * Table columns: Team | GP | W | L | T | OTW | OTL | Pts | PF | PA | Diff | Streak
+ * The page uses <table class='sub'> with rows class="tablecontent".
+ * Columns: Rank | Team | GP | Record (W-L-T) (streak) | OTW | OTL | Pts | PF | PA | +/-
  */
 export function parseStandingsHtml(html: string): SportabilityTeam[] {
   const $ = cheerio.load(html);
   const teams: SportabilityTeam[] = [];
 
-  // Sportability uses a GridView table with class "pointed" or id containing "GridView"
-  const table = $('table.pointed, table[id*="GridView"], table[id*="gvStandings"], .standings-table, table').first();
-  if (!table.length) return teams;
-
-  table.find('tr').each((i, tr) => {
-    if (i === 0) return; // skip header row
+  // Find all data rows in the standings table
+  $('tr.tablecontent').each((_i, tr) => {
     const tds = $(tr).find('td');
-    if (tds.length < 8) return;
+    if (tds.length < 6) return;
 
     const cells = tds.map((_, td) => $(td).text().trim()).get();
-    // Expected column order: Team, GP, W, L, T, OTW, OTL, Pts, PF, PA, Diff, Streak
-    // Some leagues may omit OTW/OTL — handle both formats
-    let offset = 0;
-    const name = cells[0] ?? '';
+
+    // Extract team name from link text
+    const teamLink = $(tr).find('a[href*="Team.asp"]');
+    const name = teamLink.text().trim();
     if (!name) return;
 
-    const gp = parseInteger(cells[1] ?? '0');
-    const wins = parseInteger(cells[2] ?? '0');
-    const losses = parseInteger(cells[3] ?? '0');
-    const ties = parseInteger(cells[4] ?? '0');
+    // Extract team ID from the link href (&TmID=XXXXX)
+    const href = teamLink.attr('href') ?? '';
+    const tmIdMatch = href.match(/TmID=(\d+)/);
+    const id = tmIdMatch ? parseInt(tmIdMatch[1]!, 10) : 0;
 
-    // Detect whether OTW/OTL columns are present (12 cols) or not (10 cols)
-    if (cells.length >= 12) {
-      offset = 0;
-    } else {
-      offset = -2; // no OTW/OTL columns
-    }
+    // Parse record link text: "1-0-0" with possible "(W1)" streak after
+    const recordLink = $(tr).find('a[href*="Schedule.asp"]');
+    const recordText = recordLink.text().trim();
+    const recordMatch = recordText.match(/(\d+)-(\d+)-(\d+)/);
+    const wins = recordMatch ? parseInt(recordMatch[1]!, 10) : 0;
+    const losses = recordMatch ? parseInt(recordMatch[2]!, 10) : 0;
+    const ties = recordMatch ? parseInt(recordMatch[3]!, 10) : 0;
 
-    const otw = offset === 0 ? parseInteger(cells[5] ?? '0') : 0;
-    const otl = offset === 0 ? parseInteger(cells[6] ?? '0') : 0;
-    const pts = parseInteger(cells[7 + offset] ?? '0');
-    const pf = parseInteger(cells[8 + offset] ?? '0');
-    const pa = parseInteger(cells[9 + offset] ?? '0');
-    const diff = parseInteger(cells[10 + offset] ?? '0');
-    const streak = cells[11 + offset] ?? '';
+    // Streak is in parentheses after the record link
+    const fullCellText = $(tds[3]).text().trim();
+    const streakMatch = fullCellText.match(/\(([WLT]\d+)\)/);
+    const streak = streakMatch ? streakMatch[1]! : '';
 
-    teams.push({ name, gp, wins, losses, ties, otw, otl, pts, pf, pa, diff, streak });
+    // The remaining columns depend on layout
+    // Rank | Team | GP | Record | OTW | OTL | Pts | PF | PA | +/-
+    const gp = parseInteger(cells[2] ?? '0');
+    const otw = parseInteger(cells[4] ?? '0');
+    const otl = parseInteger(cells[5] ?? '0');
+    const pts = parseInteger(cells[6] ?? '0');
+    const pf = parseInteger(cells[7] ?? '0');
+    const pa = parseInteger(cells[8] ?? '0');
+    const diff = parseInteger(cells[9] ?? '0');
+
+    teams.push({ id, name, gp, wins, losses, ties, otw, otl, pts, pf, pa, diff, streak });
   });
 
   return teams;
 }
 
 /**
- * Parse the Sportability scoring leaders page HTML.
- * Table columns: # | Name | Team | GP | G | A | Pts | PEN | PIM
+ * Parse the Sportability player statistics page HTML.
+ * Columns: # | Player | Team | GP | G | A | Pts | Pen | PIM | Susp
+ * Player cell contains "jersey - Name" as link text.
  */
 export function parseScorersHtml(html: string): SportabilityPlayer[] {
   const $ = cheerio.load(html);
   const players: SportabilityPlayer[] = [];
 
-  const table = $('table.pointed, table[id*="GridView"], table[id*="gvScoring"], table').first();
-  if (!table.length) return players;
-
-  table.find('tr').each((i, tr) => {
-    if (i === 0) return;
+  $('tr.tablecontent').each((_i, tr) => {
     const tds = $(tr).find('td');
     if (tds.length < 7) return;
 
-    const cells = tds.map((_, td) => $(td).text().trim()).get();
-    const jersey = parseInteger(cells[0] ?? '0');
-    const name = cells[1] ?? '';
-    const team = cells[2] ?? '';
-    if (!name) return;
+    // Player cell: link text is "92 - Brian Beatson"
+    const playerLink = $(tr).find('a[href*="Player.asp"]');
+    const playerText = playerLink.text().trim();
+    const playerMatch = playerText.match(/^(\d+)\s*-\s*(.+)$/);
+    if (!playerMatch) return;
 
-    const gp = parseInteger(cells[3] ?? '0');
-    const goals = parseInteger(cells[4] ?? '0');
-    const assists = parseInteger(cells[5] ?? '0');
-    const points = parseInteger(cells[6] ?? '0');
-    const penalties = parseInteger(cells[7] ?? '0');
-    const pim = parseInteger(cells[8] ?? '0');
+    const jersey = parseInt(playerMatch[1]!, 10);
+    const name = playerMatch[2]!.trim();
+    const team = $(tds[2]).text().trim();
+    if (!name || !team) return;
+
+    const gp = parseInteger($(tds[3]).text());
+    const goals = parseInteger($(tds[4]).text());
+    const assists = parseInteger($(tds[5]).text());
+    const points = parseInteger($(tds[6]).text());
+    const penalties = parseInteger($(tds[7]).text());
+    const pim = parseInteger($(tds[8]).text());
 
     players.push({ jersey, name, team, gp, goals, assists, points, penalties, pim });
   });
@@ -190,31 +200,32 @@ export function parseScorersHtml(html: string): SportabilityPlayer[] {
 }
 
 /**
- * Parse the Sportability goaltending leaders page HTML.
- * Table columns: # | Name | Team | GP | MIN | GA | GAA
+ * Parse the Sportability goalie statistics page HTML.
+ * Columns: # | Player | Team | GP | Min | GA | GAA
+ * Player cell contains "jersey - Name" as link text.
  */
 export function parseGoaliesHtml(html: string): SportabilityGoalie[] {
   const $ = cheerio.load(html);
   const goalies: SportabilityGoalie[] = [];
 
-  const table = $('table.pointed, table[id*="GridView"], table[id*="gvGoaltending"], table').first();
-  if (!table.length) return goalies;
-
-  table.find('tr').each((i, tr) => {
-    if (i === 0) return;
+  $('tr.tablecontent').each((_i, tr) => {
     const tds = $(tr).find('td');
     if (tds.length < 6) return;
 
-    const cells = tds.map((_, td) => $(td).text().trim()).get();
-    const jersey = parseInteger(cells[0] ?? '0');
-    const name = cells[1] ?? '';
-    const team = cells[2] ?? '';
-    if (!name) return;
+    const playerLink = $(tr).find('a[href*="Player.asp"]');
+    const playerText = playerLink.text().trim();
+    const playerMatch = playerText.match(/^(\d+)\s*-\s*(.+)$/);
+    if (!playerMatch) return;
 
-    const gp = parseInteger(cells[3] ?? '0');
-    const min = parseInteger(cells[4] ?? '0');
-    const ga = parseInteger(cells[5] ?? '0');
-    const gaa = parseFloat2(cells[6] ?? '0');
+    const jersey = parseInt(playerMatch[1]!, 10);
+    const name = playerMatch[2]!.trim();
+    const team = $(tds[2]).text().trim();
+    if (!name || !team) return;
+
+    const gp = parseInteger($(tds[3]).text());
+    const min = parseInteger($(tds[4]).text());
+    const ga = parseInteger($(tds[5]).text());
+    const gaa = parseFloat2($(tds[6]).text());
 
     goalies.push({ jersey, name, team, gp, min, ga, gaa });
   });
@@ -224,52 +235,85 @@ export function parseGoaliesHtml(html: string): SportabilityGoalie[] {
 
 /**
  * Parse the Sportability schedule/results page HTML.
- * Table columns: Game # | Date | Time | Home | Away | Score | Location | Notes
+ * The schedule table has rows with: Date | Time | Gm | Teams | (empty) | Location | Officials
+ * Games with scores have link text like "Outlaws 5 at More Dudes LC 14" or
+ * "Thunder 9 at Pups LC 8". The winning score is wrapped in <font color=darkgreen>.
+ * Unplayed games show "Edge at Thunder" (no scores).
  */
 export function parseScheduleHtml(html: string): SportabilityGame[] {
   const $ = cheerio.load(html);
   const games: SportabilityGame[] = [];
+  let lastDate = '';
 
-  const table = $('table.pointed, table[id*="GridView"], table[id*="gvSchedule"], table').first();
-  if (!table.length) return games;
-
-  table.find('tr').each((i, tr) => {
-    if (i === 0) return;
+  $('tr.tablecontent').each((_i, tr) => {
     const tds = $(tr).find('td');
-    if (tds.length < 5) return;
+    if (tds.length < 6) return;
 
-    const cells = tds.map((_, td) => $(td).text().trim()).get();
-    const gameNum = parseInteger(cells[0] ?? '0');
-    const date = cells[1] ?? '';
-    const time = cells[2] ?? '';
-    const homeTeam = cells[3] ?? '';
-    const awayTeam = cells[4] ?? '';
+    // Date column may be empty for second game of same day
+    const dateText = $(tds[0]).text().trim().replace(/<a[^>]*>/g, '');
+    if (dateText) lastDate = dateText;
+    if (!lastDate) return;
 
-    // Score may be in format "5 - 3" or separate columns
-    let homeScore = 0;
+    const time = $(tds[1]).text().trim();
+    const gameNum = parseInteger($(tds[2]).text());
+    if (gameNum === 0) return;
+
+    const teamsCell = $(tds[3]);
+    const gameLink = teamsCell.find('a[href*="Game.asp"]');
+    const teamsText = gameLink.text().trim();
+    if (!teamsText) return;
+
+    const location = $(tds[5]).text().trim();
+
+    // Parse "Away 5 at Home 14" or "Home 9 at Away 8" or "Edge at Thunder" (no scores)
+    // Format: the link text shows "Team1 [score] at Team2 [score]"
+    // The away team is listed first: "Outlaws 5 at More Dudes LC 14" means Outlaws=away(5), More Dudes=home(14)
+    // But also "Thunder 9 at Pups LC 8" means Thunder=away(9), Pups=home(8)
+    // Wait - looking at the HTML more carefully:
+    // Game 1: "Outlaws 5 at More Dudes LC 14" - Outlaws away, More Dudes home (home wins 14-5)
+    // Game 2: "Thunder 9 at Pups LC 8" - Thunder away, Pups home (Thunder wins 9-8)
+    // The format is: "{AwayTeam} [score] at {HomeTeam} [score]"
+
+    let awayTeam = '';
+    let homeTeam = '';
     let awayScore = 0;
-    const scoreCell = cells[5] ?? '';
-    const scoreParts = scoreCell.split(/\s*-\s*/);
-    if (scoreParts.length === 2) {
-      homeScore = parseInteger(scoreParts[0] ?? '0');
-      awayScore = parseInteger(scoreParts[1] ?? '0');
+    let homeScore = 0;
+
+    // Try scored game pattern: "Team1 N at Team2 N"
+    const scoredMatch = teamsText.match(/^(.+?)\s+(\d+)\s+at\s+(.+?)\s+(\d+)$/);
+    if (scoredMatch) {
+      awayTeam = scoredMatch[1]!.trim();
+      awayScore = parseInt(scoredMatch[2]!, 10);
+      homeTeam = scoredMatch[3]!.trim();
+      homeScore = parseInt(scoredMatch[4]!, 10);
+    } else {
+      // Unplayed: "Team1 at Team2"
+      const unplayedMatch = teamsText.match(/^(.+?)\s+at\s+(.+)$/);
+      if (unplayedMatch) {
+        awayTeam = unplayedMatch[1]!.trim();
+        homeTeam = unplayedMatch[2]!.trim();
+      }
     }
 
-    const location = cells[6] ?? '';
-    const noteRaw = (cells[7] ?? '').toLowerCase();
-    let note = '';
-    let isPlayoff = false;
-    if (noteRaw.includes('overtime') || noteRaw.includes('ot')) note = 'Overtime';
-    else if (noteRaw.includes('forfeit')) note = 'Forfeit';
-    else if (noteRaw.includes('shootout')) note = 'ShootOut';
-    else if (noteRaw.includes('rain')) note = 'Rainout';
-    if (noteRaw.includes('playoff') || noteRaw.includes('semi') || noteRaw.includes('final')) {
-      isPlayoff = true;
+    if (!homeTeam && !awayTeam) return;
+
+    // Convert date format from "Mon 5/18/2026" to "2026-05-18"
+    const dateMatch = lastDate.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    let isoDate = '';
+    if (dateMatch) {
+      const month = dateMatch[1]!.padStart(2, '0');
+      const day = dateMatch[2]!.padStart(2, '0');
+      isoDate = `${dateMatch[3]}-${month}-${day}`;
     }
 
-    if (homeTeam || awayTeam) {
-      games.push({ gameNum, date, time, homeTeam, awayTeam, homeScore, awayScore, location, isPlayoff, note });
-    }
+    // Detect playoff from page context (Sportability marks it in link or separate playoff page)
+    const isPlayoff = false;
+    const note = '';
+
+    games.push({
+      gameNum, date: isoDate, time, homeTeam, awayTeam,
+      homeScore, awayScore, location, isPlayoff, note,
+    });
   });
 
   return games;

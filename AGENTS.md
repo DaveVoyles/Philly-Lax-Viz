@@ -194,6 +194,7 @@ pnpm db:upload                  # upload local DB to Azure File Share
 - `ingest-nightly.yml` — crawl + parse + ingest + applyCorrections + restart ACA
 - `deploy.yml` — build web + server, deploy to Azure SWA + ACA (triggered on push to main)
 - `sync-logos.yml` — weekly Sunday logo sync from MaxPreps
+- `sync-pbla.yml` — Tue/Thu 6AM ET: scrape PBLA data from Sportability, upload DB, trigger Pages rebuild
 - `update-azure-config.yml` — ops tool: updates CORS_ORIGINS / env vars on Azure Container App
 
 ## 8. Source data attribution

@@ -1,0 +1,88 @@
+name: sync-pbla
+
+# Scrape PBLA league data from Sportability 12 hours after game nights.
+# PBLA games are Mon/Wed evenings -> scrape Tue/Thu at 6AM ET (10:00 UTC).
+on:
+  schedule:
+    - cron: '0 10 * * 2,4'   # Tuesday + Thursday at 10:00 UTC (6AM ET)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no DB writes)'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10.33.1'
+  DB_LOCAL_PATH: ${{ github.workspace }}/data/lacrosse.db
+  DB_REMOTE_NAME: lacrosse.db
+  AZ_FILE_SHARE: pll-data
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+concurrency:
+  group: sync-pbla
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Download DB from Azure Files
+        run: |
+          az storage file download \
+            --share-name "$AZ_FILE_SHARE" \
+            --path "$DB_REMOTE_NAME" \
+            --dest "$DB_LOCAL_PATH" \
+            --account-name pllstorage \
+            --output none
+
+      - name: Sync PBLA data
+        env:
+          DB_PATH: ${{ env.DB_LOCAL_PATH }}
+        run: |
+          FLAGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            FLAGS="--dry-run"
+          fi
+          pnpm --filter @pll/ingest exec tsx src/scripts/syncPbla.ts $FLAGS
+
+      - name: Upload DB to Azure Files
+        if: inputs.dry_run != 'true'
+        run: |
+          az storage file upload \
+            --share-name "$AZ_FILE_SHARE" \
+            --source "$DB_LOCAL_PATH" \
+            --path "$DB_REMOTE_NAME" \
+            --account-name pllstorage \
+            --output none
+
+      - name: Trigger Pages rebuild
+        if: inputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sleep 5
+          gh workflow run pages.yml --ref main
