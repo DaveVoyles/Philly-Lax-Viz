@@ -1,0 +1,109 @@
+name: sync-laxnumbers-ratings
+
+# Weekly sync of LaxNumbers team ratings to the DB.
+# Runs Sunday 8AM UTC (4AM ET) to have fresh ratings for the week.
+on:
+  schedule:
+    - cron: '0 8 * * 0'
+  workflow_dispatch:
+    inputs:
+      view_id:
+        description: 'LaxNumbers view ID (leave blank for all configured views)'
+        required: false
+        default: ''
+      year:
+        description: 'Year to sync (leave blank for current year)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10.33.1'
+  DB_LOCAL_PATH: ${{ github.workspace }}/data/lacrosse.db
+  DB_REMOTE_NAME: lacrosse.db
+  AZ_FILE_SHARE: pll-data
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+concurrency:
+  group: sync-laxnumbers-ratings
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: [self-hosted, pll]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install Azure CLI (self-hosted runner - not pre-installed)
+        run: |
+          if ! command -v az >/dev/null 2>&1; then
+            curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+          fi
+          az --version | head -1
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Download DB from Azure Files
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          mkdir -p data
+          if az storage file exists \
+               --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+               --share-name "${{ env.AZ_FILE_SHARE }}" \
+               --path "${{ env.DB_REMOTE_NAME }}" \
+               --query exists -o tsv | grep -q true; then
+            az storage file download \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --share-name "${{ env.AZ_FILE_SHARE }}" \
+              --path "${{ env.DB_REMOTE_NAME }}" \
+              --dest "${{ env.DB_LOCAL_PATH }}"
+            echo "Downloaded DB: $(du -h ${{ env.DB_LOCAL_PATH }})"
+          else
+            echo "::warning::Remote DB not found; skipping sync"
+            exit 1
+          fi
+
+      - name: Sync LaxNumbers ratings
+        env:
+          DB_PATH: ${{ env.DB_LOCAL_PATH }}
+        run: |
+          FLAGS="--apply"
+          if [ -n "${{ inputs.view_id }}" ]; then FLAGS="$FLAGS --view=${{ inputs.view_id }}"; fi
+          if [ -n "${{ inputs.year }}" ]; then FLAGS="$FLAGS --year=${{ inputs.year }}"; fi
+          echo "Running: syncLaxNumbersRatings.ts $FLAGS"
+          pnpm --filter @pll/ingest exec tsx src/scripts/syncLaxNumbersRatings.ts $FLAGS
+
+      - name: Upload DB to Azure Files
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          az storage file upload \
+            --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+            --share-name "${{ env.AZ_FILE_SHARE }}" \
+            --source "${{ env.DB_LOCAL_PATH }}" \
+            --path "${{ env.DB_REMOTE_NAME }}"
+
+      - name: Azure logout
+        if: always()
+        run: az logout

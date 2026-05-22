@@ -216,6 +216,16 @@ jobs:
             --db=${{ env.DB_LOCAL_PATH || 'data/lacrosse.db' }}
         continue-on-error: true
 
+      - name: Post-ingest data quality check
+        id: data_quality
+        continue-on-error: true
+        env:
+          DB_PATH: ${{ env.DB_LOCAL_PATH }}
+        run: |
+          echo "::group::Data quality check"
+          pnpm --filter @pll/ingest exec tsx src/scripts/checkDataQuality.ts --db="${{ env.DB_LOCAL_PATH }}"
+          echo "::endgroup::"
+
       - name: Upload updated DB to Azure Files
         env:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}

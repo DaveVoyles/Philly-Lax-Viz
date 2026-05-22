@@ -44,6 +44,44 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Install Azure CLI (self-hosted runner - not pre-installed)
+        run: |
+          if ! command -v az >/dev/null 2>&1; then
+            curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+          fi
+
+      - name: Download DB for sitemap generation
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          mkdir -p data
+          if az storage file exists \
+               --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+               --share-name pll-data \
+               --path lacrosse.db \
+               --query exists -o tsv 2>/dev/null | grep -q true; then
+            az storage file download \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --share-name pll-data \
+              --path lacrosse.db \
+              --dest data/lacrosse.db
+            echo "DB downloaded: $(du -h data/lacrosse.db | cut -f1)"
+          else
+            echo "::warning::DB not found on Azure File Share; sitemap will use committed version"
+          fi
+
+      - name: Regenerate sitemap
+        continue-on-error: true
+        env:
+          DB_PATH: ${{ github.workspace }}/data/lacrosse.db
+        run: |
+          if [ -f "data/lacrosse.db" ]; then
+            pnpm --filter @pll/server exec tsx src/scripts/generateSitemap.ts
+            echo "Sitemap regenerated: $(wc -l < packages/web/public/sitemap.xml) lines"
+          else
+            echo "::warning::Skipping sitemap regen - DB not available"
+          fi
+
       - name: Typecheck
         run: pnpm -r typecheck
 

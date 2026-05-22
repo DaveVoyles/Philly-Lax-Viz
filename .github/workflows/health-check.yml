@@ -1,0 +1,35 @@
+name: health-check
+
+# Ping the live API every 30 minutes. Failure triggers a GitHub notification.
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: none
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+concurrency:
+  group: health-check
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping API health
+        run: |
+          START=$(date +%s%3N)
+          HTTP_CODE=$(curl -sf --max-time 10 -o /dev/null -w "%{http_code}" https://api.phillylaxstats.com/api/teams)
+          END=$(date +%s%3N)
+          ELAPSED=$((END - START))
+          echo "HTTP status: ${HTTP_CODE}  elapsed: ${ELAPSED}ms"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::API health check failed - HTTP ${HTTP_CODE} from https://api.phillylaxstats.com/api/teams"
+            exit 1
+          fi
+          echo "API is healthy (${HTTP_CODE} in ${ELAPSED}ms)"

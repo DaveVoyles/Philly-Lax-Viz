@@ -13,7 +13,7 @@ on:
         default: 'false'
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 env:
@@ -89,6 +89,23 @@ jobs:
         if: inputs.dry_run != 'true' && steps.pbla_check.outcome == 'failure'
         run: |
           echo "::warning::New PBLA game results detected on Sportability. Update pblaData.ts then run 'pnpm pbla:check -- --save' to sync the snapshot."
+
+      - name: Save updated snapshot
+        if: inputs.dry_run != 'true' && steps.pbla_check.outcome == 'failure'
+        run: pnpm pbla:check -- --save
+
+      - name: Patch pblaData.ts with new scores
+        if: inputs.dry_run != 'true' && steps.pbla_check.outcome == 'failure'
+        run: pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaData.ts
+
+      - name: Commit and push pblaData.ts update
+        if: inputs.dry_run != 'true' && steps.pbla_check.outcome == 'failure'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/web/src/views/pblaData.ts data/pbla-2026-snapshot.json
+          git diff --staged --quiet || git commit -m "chore(pbla): auto-patch game scores from Sportability $(date -u +%Y-%m-%d)"
+          git push
 
       - name: Trigger Pages rebuild
         if: inputs.dry_run != 'true'

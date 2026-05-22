@@ -77,6 +77,9 @@ pnpm pbla:check                                                             # di
 pnpm pbla:check -- --save                                                   # same, and overwrite snapshot with live data
 pnpm pbla:check -- --generate                                               # fetch standings too; print ready-to-paste TS snippets for pblaData.ts
 pnpm pbla:check -- --verify                                                 # compare snapshot played games vs pblaData.ts (no network; exit 1 on drift)
+pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaData.ts             # auto-patch pblaData.ts game scores from local snapshot
+pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaData.ts --dry-run  # preview patches without writing
+pnpm --filter @pll/ingest exec tsx src/scripts/checkDataQuality.ts         # post-ingest data quality checks (suspicious scores, dupes, stale data)
 cat stats.txt | pnpm --filter @pll/ingest exec tsx src/scripts/parseSportability.ts --type=players  # parse pasted player stats
 cat stats.txt | pnpm --filter @pll/ingest exec tsx src/scripts/parseSportability.ts --type=goalies  # parse pasted goalie stats
 ```
