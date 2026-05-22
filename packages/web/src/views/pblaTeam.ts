@@ -201,7 +201,6 @@ function ensureStyles(): void {
       max-width: 100%;
       border-collapse: collapse;
       font-size: 0.92rem;
-      table-layout: fixed;
       overflow-x: auto;
     }
     .pbla-team-roster th {
@@ -213,13 +212,13 @@ function ensureStyles(): void {
       color: #b0b8c4;
       border-bottom: 1px solid var(--border);
     }
-    .pbla-team-roster th:not(:first-child):not(:nth-child(2)) { text-align: right; }
+    .pbla-team-roster th[data-align="right"] { text-align: right; }
     .pbla-team-roster td {
       padding: 0.5rem 0.4rem;
       border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
       color: #e8e8e8;
     }
-    .pbla-team-roster td:not(:first-child):not(:nth-child(2)) {
+    .pbla-team-roster td[data-align="right"] {
       text-align: right;
       font-variant-numeric: tabular-nums;
     }
@@ -249,6 +248,9 @@ function ensureStyles(): void {
       cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem;
       padding: 0; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.78rem;
       color: #b0b8c4; transition: color 0.15s;
+    }
+    th[data-align="right"] .pbla-sort-btn {
+      justify-content: flex-end; width: 100%;
     }
     .pbla-sort-btn:hover, .pbla-sort-btn:focus-visible, .pbla-sort-btn--active {
       color: var(--team-highlight, #ffd166);
@@ -492,7 +494,7 @@ type FullRosterSortKey = 'jersey' | 'name' | 'position' | 'points' | 'goals' | '
 type GoalieSortKey = 'jersey' | 'name' | 'gp' | 'min' | 'ga' | 'gaa';
 type SortDir = 'asc' | 'desc';
 
-interface ColDef<K extends string> { key: K; label: string; }
+interface ColDef<K extends string> { key: K; label: string; align?: 'left' | 'right'; }
 
 function defaultDir(key: string): SortDir {
   return key === 'name' || key === 'position' ? 'asc' : 'desc';
@@ -500,6 +502,7 @@ function defaultDir(key: string): SortDir {
 
 function makeSortBtn<K extends string>(col: ColDef<K>, activeKey: K, dir: SortDir, onSort: (k: K) => void): HTMLTableCellElement {
   const th = document.createElement('th');
+  if (col.align === 'right') th.setAttribute('data-align', 'right');
   const btn = document.createElement('button');
   const isActive = activeKey === col.key;
   btn.type = 'button';
@@ -516,11 +519,11 @@ function buildFullRosterTable(roster: PblaRosterEntry[], players: PblaPlayer[], 
     { key: 'jersey', label: '#' },
     { key: 'name', label: 'Player' },
     { key: 'position', label: 'Pos' },
-    { key: 'points', label: 'Pts' },
-    { key: 'goals', label: 'G' },
-    { key: 'assists', label: 'A' },
-    { key: 'gp', label: 'GP' },
-    { key: 'pim', label: 'PIM' },
+    { key: 'points', label: 'Pts', align: 'right' },
+    { key: 'goals', label: 'G', align: 'right' },
+    { key: 'assists', label: 'A', align: 'right' },
+    { key: 'gp', label: 'GP', align: 'right' },
+    { key: 'pim', label: 'PIM', align: 'right' },
   ];
   let sortKey: FullRosterSortKey = 'points';
   let sortDir: SortDir = 'desc';
@@ -569,11 +572,11 @@ function buildFullRosterTable(roster: PblaRosterEntry[], players: PblaPlayer[], 
         <td class="pbla-team-roster__jersey">${p.jersey || '-'}</td>
         <td class="pbla-team-roster__name">${nameDisplay}</td>
         <td>${p.position || '-'}</td>
-        <td class="pbla-team-roster__pts">${stats ? stats.points : '-'}</td>
-        <td>${stats ? stats.goals : '-'}</td>
-        <td>${stats ? stats.assists : '-'}</td>
-        <td>${stats ? stats.gp : '-'}</td>
-        <td>${stats ? stats.pim : '-'}</td>
+        <td class="pbla-team-roster__pts" data-align="right">${stats ? stats.points : '-'}</td>
+        <td data-align="right">${stats ? stats.goals : '-'}</td>
+        <td data-align="right">${stats ? stats.assists : '-'}</td>
+        <td data-align="right">${stats ? stats.gp : '-'}</td>
+        <td data-align="right">${stats ? stats.pim : '-'}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -594,10 +597,10 @@ function buildGoalieTable(goalies: PblaGoalie[], animate: boolean): HTMLElement 
   const cols: ColDef<GoalieSortKey>[] = [
     { key: 'jersey', label: '#' },
     { key: 'name', label: 'Goalie' },
-    { key: 'gp', label: 'GP' },
-    { key: 'min', label: 'Min' },
-    { key: 'ga', label: 'GA' },
-    { key: 'gaa', label: 'GAA' },
+    { key: 'gp', label: 'GP', align: 'right' },
+    { key: 'min', label: 'Min', align: 'right' },
+    { key: 'ga', label: 'GA', align: 'right' },
+    { key: 'gaa', label: 'GAA', align: 'right' },
   ];
   let sortKey: GoalieSortKey = 'gaa';
   let sortDir: SortDir = 'asc';
@@ -634,10 +637,10 @@ function buildGoalieTable(goalies: PblaGoalie[], animate: boolean): HTMLElement 
       tr.innerHTML = `
         <td class="pbla-team-roster__jersey">${g.jersey}</td>
         <td class="pbla-team-roster__name">${g.name}</td>
-        <td>${g.gp}</td>
-        <td>${g.min}</td>
-        <td>${g.ga}</td>
-        <td>${g.gaa.toFixed(2)}</td>
+        <td data-align="right">${g.gp}</td>
+        <td data-align="right">${g.min}</td>
+        <td data-align="right">${g.ga}</td>
+        <td data-align="right">${g.gaa.toFixed(2)}</td>
       `;
       tbody.appendChild(tr);
     });
