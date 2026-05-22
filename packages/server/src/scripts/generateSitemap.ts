@@ -81,7 +81,7 @@ export function generateSitemap(options: { dbPath?: string; outputPath?: string 
       { loc: `${SITE_ORIGIN}/`, priority: '1.0', lastmod: latestGameDate },
       { loc: `${SITE_ORIGIN}/#/leaders`, priority: '0.5', lastmod: latestGameDate },
       { loc: `${SITE_ORIGIN}/#/top-teams`, priority: '0.5', lastmod: latestGameDate },
-      { loc: `${SITE_ORIGIN}/#/schedule`, priority: '0.5', lastmod: latestGameDate },
+
       { loc: `${SITE_ORIGIN}/#/commitments`, priority: '0.5', lastmod: latestGameDate },
       { loc: `${SITE_ORIGIN}/#/compare/players`, priority: '0.5', lastmod: latestGameDate },
       { loc: `${SITE_ORIGIN}/#/h2h`, priority: '0.4', lastmod: latestGameDate },

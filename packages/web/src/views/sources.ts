@@ -65,18 +65,7 @@ const SOURCES: SourceCard[] = [
     freshness: (f) => f.piaaLast,
     countLabel: (f) => `${f.counts.piaaTeams} PIAA teams`,
   },
-  {
-    id: 'schedule',
-    title: 'Upcoming schedule',
-    what:
-      'PIAA District 1 CSV export of scheduled games (Leia, W16). Used to render the Schedule view and surface upcoming matchups.',
-    url: 'https://piaad1.org/sports/spring-sports/lacrosse-b/scores-and-rankings/',
-    urlLabel: 'piaad1.org schedule export',
-    notes: 'Refreshed alongside the rankings scrape; staleness shown below.',
-    freshness: (f) => f.scheduleLast,
-    countLabel: (f) =>
-      f.counts.scheduleGames > 0 ? `${f.counts.scheduleGames} scheduled games` : null,
-  },
+
   {
     id: 'branding',
     title: 'Team branding (colors, nicknames, logos)',
