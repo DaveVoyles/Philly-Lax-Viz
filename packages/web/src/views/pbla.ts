@@ -2009,7 +2009,10 @@ function renderUpcomingGamesSection(season: PblaSeason, animate: boolean): HTMLE
 }
 
 function renderGamesSection(season: PblaSeason, animate: boolean): HTMLElement {
-  const games = [...season.games].sort((a, b) => parseGameTimestamp(b) - parseGameTimestamp(a));
+  // Only show games that have been played (non-zero score or forfeit note)
+  const games = [...season.games]
+    .filter((g) => g.homeScore + g.awayScore > 0 || /forfeit/i.test(g.note))
+    .sort((a, b) => parseGameTimestamp(b) - parseGameTimestamp(a));
   const section = document.createElement('section');
   section.className = 'pbla-panel pbla-section';
 
