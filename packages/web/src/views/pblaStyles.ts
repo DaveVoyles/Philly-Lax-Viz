@@ -34,7 +34,7 @@ export function ensureStyles(doc: Document = document): void {
     }
     .pbla-panel {
       position: relative;
-      overflow: hidden;
+      overflow: clip;
       border-radius: 20px;
       border: 1px solid var(--pbla-border);
       background:
@@ -1059,10 +1059,12 @@ export function ensureStyles(doc: Document = document): void {
     }
     @media (max-width: 1040px) {
       .pbla-hero,
-      .pbla-season-summary,
       .pbla-standings-grid,
       .pbla-games-grid {
         grid-template-columns: 1fr;
+      }
+      .pbla-season-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
     @media (max-width: 720px) {
@@ -1078,6 +1080,33 @@ export function ensureStyles(doc: Document = document): void {
       .pbla-hero__title {
         font-size: clamp(1.9rem, 10vw, 2.8rem);
       }
+      .pbla-side-card__text {
+        display: none;
+      }
+      .pbla-hero__subtitle {
+        font-size: 0.9rem;
+        line-height: 1.5;
+        -webkit-line-clamp: 3;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    }
+    @media (max-width: 640px) {
+      /* Hide GP (col 7 in thead, data-attr in tbody) and PIM (col 8 / data-attr) */
+      .pbla-leaders-table th:nth-child(7),
+      .pbla-leaders-table th:nth-child(8),
+      .pbla-leaders-table td[data-player-value="gp"],
+      .pbla-leaders-table td[data-player-value="pim"] {
+        display: none;
+      }
+      .pbla-leaders-table thead tr,
+      .pbla-leaders-table tbody tr {
+        grid-template-columns: 3.5rem minmax(8rem, 1.9fr) minmax(5rem, 1fr) repeat(3, minmax(2.8rem, 0.7fr));
+      }
+      .pbla-data-table {
+        min-width: 0;
+      }
     }
     @media (max-width: 520px) {
       .pbla-season-bar {
@@ -1090,6 +1119,18 @@ export function ensureStyles(doc: Document = document): void {
       .pbla-goalie-lane,
       .pbla-team-card__stats {
         grid-template-columns: 1fr 1fr;
+      }
+      .pbla-season-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      /* Also hide Team column on very small screens */
+      .pbla-leaders-table th:nth-child(3),
+      .pbla-leaders-table td.pbla-team-cell {
+        display: none;
+      }
+      .pbla-leaders-table thead tr,
+      .pbla-leaders-table tbody tr {
+        grid-template-columns: 2.8rem minmax(7rem, 1.9fr) repeat(3, minmax(2.5rem, 0.7fr));
       }
     }
   `;
