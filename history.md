@@ -1,2 +1,3 @@
 - 2026-05-22: Fixed PBLA mobile layout — overflow: clip on panels fixes iOS scroll blocking, leaders table hides GP/PIM columns at <=640px and also Team at <=520px, hero side card text hidden on mobile, summary stats go 2x2 at <=1040px
 - 2026-05-22: Added PBLA 2026 local schedule snapshot (data/pbla-2026-snapshot.json) and checkPblaUpdates.ts script (pnpm pbla:check) to diff live Sportability schedule against the snapshot and surface new game results
+- 2026-05-22: Implemented PBLA workflow improvements: --generate and --verify flags on checkPblaUpdates.ts, CI warning in sync-pbla.yml when new results detected (exit code 1), db:upload reminders added to applyCorrections/applyHarritonWorkbook/syncLaxNumbersRatings
