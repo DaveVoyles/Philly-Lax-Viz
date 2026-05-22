@@ -79,6 +79,17 @@ jobs:
             --account-name pllstorage \
             --output none
 
+      - name: Check PBLA schedule for new results
+        if: inputs.dry_run != 'true'
+        id: pbla_check
+        continue-on-error: true
+        run: pnpm pbla:check
+
+      - name: Warn if new PBLA results need pblaData.ts update
+        if: inputs.dry_run != 'true' && steps.pbla_check.outcome == 'failure'
+        run: |
+          echo "::warning::New PBLA game results detected on Sportability. Update pblaData.ts then run 'pnpm pbla:check -- --save' to sync the snapshot."
+
       - name: Trigger Pages rebuild
         if: inputs.dry_run != 'true'
         env:
