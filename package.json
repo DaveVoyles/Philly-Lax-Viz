@@ -10,7 +10,8 @@
     "ingest": "pnpm --filter @pll/ingest ingest",
     "dev": "concurrently -n server,web -c blue,green \"pnpm --filter @pll/server dev\" \"pnpm --filter @pll/web dev\"",
     "build": "pnpm -r build",
-    "db:upload": "./scripts/db-upload.sh"
+    "db:upload": "./scripts/db-upload.sh",
+    "pbla:check": "pnpm --filter @pll/ingest exec tsx src/scripts/checkPblaUpdates.ts"
   },
   "devDependencies": {
     "concurrently": "^9.0.1",

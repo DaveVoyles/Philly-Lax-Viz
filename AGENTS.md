@@ -73,6 +73,8 @@ pnpm --filter @pll/ingest exec tsx src/scripts/syncPbla.ts               # sync 
 pnpm --filter @pll/ingest exec tsx src/scripts/syncPbla.ts --dry-run     # preview without writing
 pnpm --filter @pll/ingest exec tsx src/scripts/syncPblaVideos.ts         # sync YouTube video IDs into pblaData.ts
 pnpm --filter @pll/ingest exec tsx src/scripts/syncPblaVideos.ts --dry-run
+pnpm pbla:check                                                             # diff live Sportability schedule vs local snapshot (data/pbla-2026-snapshot.json)
+pnpm pbla:check -- --save                                                   # same, and overwrite snapshot with live data
 cat stats.txt | pnpm --filter @pll/ingest exec tsx src/scripts/parseSportability.ts --type=players  # parse pasted player stats
 cat stats.txt | pnpm --filter @pll/ingest exec tsx src/scripts/parseSportability.ts --type=goalies  # parse pasted goalie stats
 ```
