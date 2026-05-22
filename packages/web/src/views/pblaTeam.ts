@@ -2,6 +2,7 @@ import { Application, Graphics } from 'pixi.js';
 import { shouldAnimate, shouldMountWebGL } from '../util/motionPrefs.js';
 import { createAutoCounter } from '../components/animatedCounter.js';
 import { setPageMeta } from '../util/pageMeta.js';
+import { loadPblaSeason } from './pblaLoader.js';
 import {
   SEASONS,
   teamColor,
@@ -806,14 +807,18 @@ function renderTeamContent(
   }
 }
 
-export function render(root: HTMLElement, params: Record<string, string>): void {
+export async function render(root: HTMLElement, params: Record<string, string>): Promise<void> {
   renderToken += 1;
   const token = renderToken;
   clearTimers();
   ensureStyles();
 
   const slug = params.slug ?? '';
-  const result = findTeamBySlug(slug);
+  const liveSeason = await loadPblaSeason();
+  if (token !== renderToken) return;
+
+  const liveTeam = liveSeason.teams.find((entry) => teamSlug(entry.name) === slug);
+  const result = liveTeam ? { team: liveTeam, season: liveSeason } : findTeamBySlug(slug);
 
   if (!result) {
     root.innerHTML = `<div class="pbla-team-empty">

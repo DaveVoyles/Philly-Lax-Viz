@@ -11,6 +11,10 @@ HTML snapshots used by parser & pipeline tests. Refresh by re-saving the live pa
 | `piaa-d1-rankings.snapshot.html` | piaad1.org rankings page snapshot (full page) | 2026-04-22 | `packages/ingest/src/__tests__/piaa.test.ts` |
 | `maxpreps-pa-schools.snapshot.html` | maxpreps.com Pennsylvania schools listing (full page) | 2026-04-22 | `packages/ingest/src/__tests__/maxprepsSchools.test.ts` |
 | `laxnumbers-team-harriton-2026.html` | laxnumbers.com team page for Harriton 2026 season (full page) | 2026-05-19 | parser fixture capture |
+| `sportability/standings-50731-sample.html` | secure.sportability.com PBLA standings table sample (`Standings.asp?LgID=50731`) | 2026-05-22 | `packages/ingest/src/sources/__tests__/sportability.test.ts` |
+| `sportability/scorers-50731-sample.html` | secure.sportability.com PBLA player stats sample (`Statistics.asp?LgID=50731&Pkg=1`) | 2026-05-22 | `packages/ingest/src/sources/__tests__/sportability.test.ts` |
+| `sportability/goalies-50731-sample.html` | secure.sportability.com PBLA goalie stats sample (`Statistics.asp?LgID=50731&Pkg=2`) | 2026-05-22 | `packages/ingest/src/sources/__tests__/sportability.test.ts` |
+| `sportability/schedule-50731-sample.html` | secure.sportability.com PBLA schedule/results sample (`Schedule.asp?LgID=50731`) | 2026-05-22 | `packages/ingest/src/sources/__tests__/sportability.test.ts` |
 
 The first four fixtures were captured 2026-04-22 (per filesystem mtime; repo has no git history yet).
 
@@ -26,6 +30,6 @@ The first four fixtures were captured 2026-04-22 (per filesystem mtime; repo has
 
 ## Adding a new fixture
 
-- Drop the file here with a descriptive lowercase-kebab filename and a `.html` (or `.snapshot.html` for full-page captures) extension.
+- Drop the file here (or in a source-specific subdirectory such as `fixtures/sportability/`) with a descriptive lowercase-kebab filename and a `.html` (or `.snapshot.html` for full-page captures) extension.
 - Add a row to the table above with source URL pattern, capture date, and the test file(s) that consume it.
 - Reference the fixture from tests via a path relative to the test file (existing tests resolve up to repo root, e.g. `resolve(__dirname, '../../../../../fixtures/<name>.html')`).

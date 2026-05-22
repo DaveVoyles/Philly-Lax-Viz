@@ -17,7 +17,6 @@ export interface RouteMatch {
     | 'graph'
     | 'constellation'
     | 'h2h'
-    | 'rivalries'
     | 'schedule'
     | 'commitments'
     | 'sources'
@@ -58,7 +57,6 @@ const routes: RouteDef[] = [
   { name: 'graph', pattern: /^\/graph\/?$/, keys: [] },
   { name: 'constellation', pattern: /^\/constellation\/?$/, keys: [] },
   { name: 'h2h', pattern: /^\/h2h\/?$/, keys: [] },
-  { name: 'rivalries', pattern: /^\/rivalries\/?$/, keys: [] },
   { name: 'schedule', pattern: /^\/schedule\/?$/, keys: [] },
   { name: 'commitments', pattern: /^\/commitments\/?$/, keys: [] },
   { name: 'sources', pattern: /^\/sources\/?$/, keys: [] },

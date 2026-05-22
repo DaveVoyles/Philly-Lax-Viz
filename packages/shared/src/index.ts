@@ -523,3 +523,83 @@ export interface LaxNumbersTeamRating {
   ga: number;
   capturedAt: string;
 }
+
+// ─── PBLA (Philadelphia Box Lacrosse Association) Types ───────────────────────
+
+export interface PblaTeam {
+  id: number;
+  name: string;
+  gp: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  otw: number;
+  otl: number;
+  pts: number;
+  pf: number;
+  pa: number;
+  diff: number;
+  streak: string;
+  color: string;
+  captain?: string;
+  jerseyImg?: string;
+}
+
+export interface PblaPlayer {
+  jersey: number;
+  name: string;
+  team: string;
+  gp: number;
+  goals: number;
+  assists: number;
+  points: number;
+  penalties: number;
+  pim: number;
+}
+
+export interface PblaGoalie {
+  jersey: number;
+  name: string;
+  team: string;
+  gp: number;
+  min: number;
+  ga: number;
+  gaa: number;
+}
+
+export interface PblaRosterEntry {
+  name: string;
+  jersey: string;
+  position: string;
+  notes: string;
+}
+
+export interface PblaGame {
+  gameNum: number;
+  date: string;
+  time: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+  location: string;
+  isPlayoff: boolean;
+  note: string;
+}
+
+export interface PblaSeason {
+  year: number;
+  leagueId: number;
+  label: string;
+  teams: PblaTeam[];
+  players: PblaPlayer[];
+  goalies: PblaGoalie[];
+  rosters: Record<string, PblaRosterEntry[]>;
+  games: PblaGame[];
+}
+
+export interface PblaTeamPalette {
+  primary: string;
+  secondary: string;
+  accent: string;
+}

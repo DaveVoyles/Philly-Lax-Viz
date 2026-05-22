@@ -1,78 +1,18 @@
 // PBLA (Philadelphia Box Lacrosse Association) hardcoded data
 // Source: https://secure.sportability.com/spx/Leagues/ (LgID=50731 for 2026, LgID=50247 for 2025)
-// TODO: Replace with live scraper once PBLA partnership is confirmed
 
-export interface PblaTeam {
-  id: number;
-  name: string;
-  gp: number;
-  wins: number;
-  losses: number;
-  ties: number;
-  otw: number;
-  otl: number;
-  pts: number;
-  pf: number;
-  pa: number;
-  diff: number;
-  streak: string;
-  color: string;
-  captain?: string;
-  jerseyImg?: string;
-}
+// Types are the single source of truth in @pll/shared
+export type {
+  PblaTeam,
+  PblaPlayer,
+  PblaGoalie,
+  PblaRosterEntry,
+  PblaGame,
+  PblaSeason,
+  PblaTeamPalette,
+} from '@pll/shared';
 
-export interface PblaPlayer {
-  jersey: number;
-  name: string;
-  team: string;
-  gp: number;
-  goals: number;
-  assists: number;
-  points: number;
-  penalties: number;
-  pim: number;
-}
-
-export interface PblaGoalie {
-  jersey: number;
-  name: string;
-  team: string;
-  gp: number;
-  min: number;
-  ga: number;
-  gaa: number;
-}
-
-export interface PblaRosterEntry {
-  name: string;
-  jersey: string;
-  position: string;
-  notes: string;
-}
-
-export interface PblaGame {
-  gameNum: number;
-  date: string;
-  time: string;
-  homeTeam: string;
-  awayTeam: string;
-  homeScore: number;
-  awayScore: number;
-  location: string;
-  isPlayoff: boolean;
-  note: string; // 'Overtime', 'Forfeit', 'ShootOut', 'Rainout', or ''
-}
-
-export interface PblaSeason {
-  year: number;
-  leagueId: number;
-  label: string;
-  teams: PblaTeam[];
-  players: PblaPlayer[];
-  goalies: PblaGoalie[];
-  rosters: Record<string, PblaRosterEntry[]>;
-  games: PblaGame[];
-}
+import type { PblaTeam, PblaPlayer, PblaGoalie, PblaRosterEntry, PblaGame, PblaSeason, PblaTeamPalette } from '@pll/shared';
 
 const TEAM_COLORS: Record<string, string> = {
   'More Dudes LC': '#800000',
@@ -88,11 +28,7 @@ const TEAM_COLORS: Record<string, string> = {
   'Black Storm': '#64748b',
 };
 
-export interface TeamPalette {
-  primary: string;
-  secondary: string;
-  accent: string;
-}
+export type TeamPalette = PblaTeamPalette;
 
 const TEAM_PALETTES: Record<string, TeamPalette> = {
   'More Dudes LC': { primary: '#800000', secondary: '#d2b48c', accent: '#ffffff' },
