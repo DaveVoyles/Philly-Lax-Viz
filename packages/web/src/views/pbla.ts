@@ -1419,6 +1419,11 @@ function topPoints(season: PblaSeason): number {
   return season.players.reduce((best, player) => Math.max(best, player.points), 0);
 }
 
+function topPointsPlayer(season: PblaSeason): string {
+  const top = season.players.reduce<PblaPlayer | null>((best, p) => (!best || p.points > best.points) ? p : best, null);
+  return top ? top.name : '';
+}
+
 function defaultSortDirection(key: string): SortDirection {
   return key === 'name' || key === 'team' ? 'asc' : 'desc';
 }
@@ -2219,10 +2224,11 @@ function renderSeasonSummary(season: PblaSeason, animate: boolean): HTMLElement 
   const ranked = [...season.teams].sort(compareTeams);
   const leader = ranked[0];
   const leaderName = leader ? leader.name : 'PBLA';
+  const leaderGoals = leader ? leader.pf : 0;
   summary.append(
     createSummaryCard('Teams', season.teams.length, `${season.teams.length} teams competing this season.`, animate, 60),
-    createSummaryCard('Total goals', sumGoalsFor(season), `${leaderName} leads the league in scoring.`, animate, 140),
-    createSummaryCard('Points leader', topPoints(season), 'Most points by a single player this season.', animate, 220),
+    createSummaryCard('Total goals', sumGoalsFor(season), `${leaderName} leads the league in scoring with ${leaderGoals}.`, animate, 140),
+    createSummaryCard('Points leader', topPoints(season), `Most points by a single player this season by ${topPointsPlayer(season)}.`, animate, 220),
     createSummaryCard('Games played', season.teams.reduce((sum, t) => sum + t.gp, 0) / 2, 'Total games completed so far.', animate, 300),
   );
 
