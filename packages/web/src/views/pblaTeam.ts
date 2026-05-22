@@ -488,7 +488,6 @@ function pickReadableAccent(palette: { primary: string; secondary: string; accen
   return '#e0e0e0';
 }
 
-type RosterSortKey = 'jersey' | 'name' | 'gp' | 'goals' | 'assists' | 'points' | 'pim';
 type FullRosterSortKey = 'jersey' | 'name' | 'position' | 'points' | 'goals' | 'assists' | 'gp' | 'pim';
 type GoalieSortKey = 'jersey' | 'name' | 'gp' | 'min' | 'ga' | 'gaa';
 type SortDir = 'asc' | 'desc';
@@ -510,75 +509,6 @@ function makeSortBtn<K extends string>(col: ColDef<K>, activeKey: K, dir: SortDi
   th.setAttribute('aria-sort', isActive ? (dir === 'asc' ? 'ascending' : 'descending') : 'none');
   th.appendChild(btn);
   return th;
-}
-
-function buildRosterTable(players: PblaPlayer[], animate: boolean, captain?: string): HTMLElement {
-  if (players.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'pbla-team-empty';
-    empty.textContent = 'No player stats available for this team yet.';
-    return empty;
-  }
-
-  const cols: ColDef<RosterSortKey>[] = [
-    { key: 'jersey', label: '#' },
-    { key: 'name', label: 'Player' },
-    { key: 'points', label: 'Pts' },
-    { key: 'goals', label: 'G' },
-    { key: 'assists', label: 'A' },
-    { key: 'gp', label: 'GP' },
-    { key: 'pim', label: 'PIM' },
-  ];
-  let sortKey: RosterSortKey = 'points';
-  let sortDir: SortDir = 'desc';
-  const captainLower = captain?.toLowerCase() ?? '';
-
-  const table = document.createElement('table');
-  table.className = 'pbla-team-roster';
-  const thead = document.createElement('thead');
-  const tbody = document.createElement('tbody');
-  table.append(thead, tbody);
-
-  const render = (): void => {
-    const headRow = document.createElement('tr');
-    headRow.style.cssText = 'opacity:1;transform:none;animation:none';
-    cols.forEach((col) => headRow.appendChild(makeSortBtn(col, sortKey, sortDir, (k) => {
-      if (k === sortKey) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
-      else { sortKey = k; sortDir = defaultDir(k); }
-      render();
-    })));
-    thead.replaceChildren(headRow);
-
-    const sorted = [...players].sort((a, b) => {
-      let r = 0;
-      if (sortKey === 'name') r = a.name.localeCompare(b.name);
-      else r = Number(a[sortKey]) - Number(b[sortKey]);
-      if (r === 0) r = b.points - a.points || a.name.localeCompare(b.name);
-      return sortDir === 'asc' ? r : -r;
-    });
-
-    tbody.replaceChildren();
-    sorted.forEach((p, idx) => {
-      const tr = document.createElement('tr');
-      if (animate && !tbody.hasChildNodes()) tr.style.animationDelay = `${idx * 50 + 100}ms`;
-      else { tr.style.opacity = '1'; tr.style.transform = 'none'; tr.style.animation = 'none'; }
-      const isCaptain = captainLower && p.name.toLowerCase().includes(captainLower.split(' ').pop()!);
-      const nameDisplay = isCaptain ? `${p.name} <span title="Team Captain" style="color:gold">&#11088;</span>` : p.name;
-      tr.innerHTML = `
-        <td class="pbla-team-roster__jersey">${p.jersey}</td>
-        <td class="pbla-team-roster__name">${nameDisplay}</td>
-        <td class="pbla-team-roster__pts">${p.points}</td>
-        <td>${p.goals}</td>
-        <td>${p.assists}</td>
-        <td>${p.gp}</td>
-        <td>${p.pim}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  };
-
-  render();
-  return table;
 }
 
 function buildFullRosterTable(roster: PblaRosterEntry[], players: PblaPlayer[], animate: boolean, captain?: string): HTMLElement {
@@ -828,14 +758,7 @@ function renderTeamContent(
   });
   container.appendChild(stats);
 
-  // Players
-  const playersTitle = document.createElement('h3');
-  playersTitle.className = 'pbla-team-section-title';
-  playersTitle.innerHTML = '&#127941; Roster Stats';
-  container.appendChild(playersTitle);
-
   const players = getTeamPlayers(team.name, season);
-  container.appendChild(buildRosterTable(players, animate, team.captain));
 
   // Goalies
   const goalies = getTeamGoalies(team.name, season);

@@ -1943,8 +1943,12 @@ function renderStandingsSection(
 
 function renderUpcomingGamesSection(season: PblaSeason, animate: boolean): HTMLElement {
   const now = Date.now();
+  const sevenDaysOut = now + 7 * 24 * 60 * 60 * 1000;
   const upcoming = [...season.games]
-    .filter((g) => parseGameTimestamp(g) > now && g.homeScore === 0 && g.awayScore === 0)
+    .filter((g) => {
+      const ts = parseGameTimestamp(g);
+      return ts > now && ts <= sevenDaysOut && g.homeScore === 0 && g.awayScore === 0;
+    })
     .sort((a, b) => parseGameTimestamp(a) - parseGameTimestamp(b));
 
   const section = document.createElement('section');
