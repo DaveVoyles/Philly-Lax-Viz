@@ -82,13 +82,16 @@ export function generateSitemap(options: { dbPath?: string; outputPath?: string 
       { loc: `${SITE_ORIGIN}/#/leaders`, priority: '0.5', lastmod: latestGameDate },
       { loc: `${SITE_ORIGIN}/#/top-teams`, priority: '0.5', lastmod: latestGameDate },
 
+      { loc: `${SITE_ORIGIN}/#/ratings`, priority: '0.5', lastmod: latestGameDate },
       { loc: `${SITE_ORIGIN}/#/commitments`, priority: '0.5', lastmod: latestGameDate },
       { loc: `${SITE_ORIGIN}/#/compare/players`, priority: '0.5', lastmod: latestGameDate },
       { loc: `${SITE_ORIGIN}/#/h2h`, priority: '0.4', lastmod: latestGameDate },
+      { loc: `${SITE_ORIGIN}/#/pbla`, priority: '0.4', lastmod: latestGameDate },
       { loc: `${SITE_ORIGIN}/#/coach/upload`, priority: '0.4', lastmod: latestGameDate },
       { loc: `${SITE_ORIGIN}/#/coach/dashboard`, priority: '0.4', lastmod: latestGameDate },
       { loc: `${SITE_ORIGIN}/#/constellation`, priority: '0.3', lastmod: latestGameDate },
       { loc: `${SITE_ORIGIN}/#/sources`, priority: '0.3', lastmod: latestGameDate },
+      { loc: `${SITE_ORIGIN}/#/status`, priority: '0.3', lastmod: latestGameDate },
       { loc: `${SITE_ORIGIN}/#/guide`, priority: '0.5', lastmod: latestGameDate },
       ...teamRows.map((row) => ({
         loc: `${SITE_ORIGIN}/#/teams/${row.id}`,
