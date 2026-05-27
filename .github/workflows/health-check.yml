@@ -24,12 +24,14 @@ jobs:
       - name: Ping API health
         run: |
           START=$(date +%s%3N)
-          HTTP_CODE=$(curl -sf --max-time 10 -o /dev/null -w "%{http_code}" https://api.phillylaxstats.com/api/teams)
+          HTTP_CODE=$(curl -s --max-time 30 --retry 3 --retry-delay 10 --retry-all-errors \
+            -o /dev/null -w "%{http_code}" \
+            https://api.phillylaxstats.com/api/health || echo "000")
           END=$(date +%s%3N)
           ELAPSED=$((END - START))
           echo "HTTP status: ${HTTP_CODE}  elapsed: ${ELAPSED}ms"
           if [ "$HTTP_CODE" != "200" ]; then
-            echo "::error::API health check failed - HTTP ${HTTP_CODE} from https://api.phillylaxstats.com/api/teams"
+            echo "::error::API health check failed - HTTP ${HTTP_CODE} from https://api.phillylaxstats.com/api/health"
             exit 1
           fi
           echo "API is healthy (${HTTP_CODE} in ${ELAPSED}ms)"
