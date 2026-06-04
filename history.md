@@ -5,3 +5,4 @@
 - 2026-05-28: Fixed health-check.yml constant failures — Azure Container App cold starts exceed old 10s curl timeout (exit code 28); bumped --max-time to 60s, added --retry 2 --retry-delay 10, raised job timeout to 10min; verified passing on next scheduled run
 - 2026-06-04: Fixed all failing CI workflows: sync-pbla Azure storage auth (--connection-string), sync-logos invalid --overwrite arg, stale pages.yml reference; bumped Node.js 20→22 across 6 workflows
 - 2026-06-04: Fixed checkPblaUpdates.ts path resolution (process.cwd() -> fileURLToPath) and --save exit code bug; both sync-pbla and sync-logos now passing
+- 2026-06-04: Fixed patchPblaData.ts path resolution (process.cwd → import.meta.url) and regex pattern (added .*? to tolerate time field between date and homeTeam); patched PBLA games 5-10 scores (2026-05-27 through 2026-06-03) into pblaData.ts
