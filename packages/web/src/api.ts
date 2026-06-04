@@ -79,15 +79,23 @@ export class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const baseUrl = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
   const url = apiUrl(attachSeason(baseUrl));
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
   let res: Response;
   try {
     res = await fetch(url, {
       ...init,
+      signal: controller.signal,
       headers: { Accept: 'application/json', ...(init?.headers ?? {}) },
     });
   } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new ApiError('Request timed out', 0, url);
+    }
     const reason = err instanceof Error ? err.message : 'network error';
     throw new ApiError(`Network error: ${reason}`, 0, url);
+  } finally {
+    clearTimeout(timer);
   }
   if (!res.ok) {
     const text = await res.text().catch(() => '');

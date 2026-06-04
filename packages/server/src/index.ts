@@ -29,15 +29,25 @@ async function main(): Promise<void> {
     stopScheduler();
     try {
       await app.close();
-      db.close();
-      process.exit(0);
     } catch (err) {
       app.log.error(err);
-      process.exit(1);
+    } finally {
+      db.close();
+      process.exit(0);
     }
   };
   process.on('SIGINT', () => void shutdown('SIGINT'));
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('uncaughtException', (err) => {
+    bootLog.error(err, 'uncaughtException — exiting');
+    db.close();
+    process.exit(1);
+  });
+  process.on('unhandledRejection', (reason) => {
+    bootLog.error({ reason }, 'unhandledRejection — exiting');
+    db.close();
+    process.exit(1);
+  });
 
   await app.listen({ port: PORT, host: HOST });
   app.log.info(`@pll/server listening on http://${HOST}:${PORT} (db=${DB_PATH})`);

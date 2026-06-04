@@ -68,8 +68,13 @@ export function openDb(path: string): DatabaseType {
     mkdirSync(dirname(path), { recursive: true });
   }
   const db = new Database(path);
-  const journalMode = process.env.DB_JOURNAL_MODE ?? 'WAL';
+  const VALID_JOURNAL_MODES = ['wal', 'delete', 'truncate', 'persist', 'memory', 'off'];
+  const journalMode = (process.env.DB_JOURNAL_MODE ?? 'WAL').toLowerCase();
+  if (!VALID_JOURNAL_MODES.includes(journalMode)) {
+    throw new Error(`Invalid DB_JOURNAL_MODE "${journalMode}". Valid values: ${VALID_JOURNAL_MODES.join(', ')}`);
+  }
   db.pragma(`journal_mode = ${journalMode}`);
+  db.pragma('busy_timeout = 5000');
   db.pragma('foreign_keys = ON');
   runMigrations(db);
   return db;

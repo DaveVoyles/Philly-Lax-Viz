@@ -93,7 +93,7 @@ export function buildHero(root: HTMLElement): {
   selectorCard.innerHTML = `
     <p class="pbla-side-card__eyebrow">📅 Season selector</p>
     <h2 class="pbla-side-card__title">Current table and last season finish</h2>
-    <p class="pbla-side-card__text">Flip between the current 2026 standings snapshot and the completed 2025 campaign to compare this summer's race with last year's playoff finish.</p>
+    <p class="pbla-side-card__text">Flip between the current ${SEASONS[0]?.year ?? 'live'} standings snapshot and the completed ${SEASONS[1]?.year ?? 'prior'} campaign to compare this summer's race with last year's playoff finish.</p>
   `;
   const selectorBar = document.createElement('div');
   selectorBar.className = 'pbla-season-bar';
@@ -211,10 +211,10 @@ function renderStandingsSection(
         <div class="${streakClass}">${team.streak}</div>
       </div>
       <div class="pbla-team-card__stats">
-        <div class="pbla-team-stat"><span class="pbla-team-stat__label">Pts</span><span class="pbla-team-stat__value" data-team-value="pts"></span></div>
-        <div class="pbla-team-stat"><span class="pbla-team-stat__label">PF</span><span class="pbla-team-stat__value" data-team-value="pf"></span></div>
-        <div class="pbla-team-stat"><span class="pbla-team-stat__label">PA</span><span class="pbla-team-stat__value" data-team-value="pa"></span></div>
-        <div class="pbla-team-stat"><span class="pbla-team-stat__label">Diff</span><span class="pbla-team-stat__value" data-team-value="diff"></span></div>
+        <div class="pbla-team-stat"><span class="pbla-team-stat__label" title="Standing points (3 per win)">Stg Pts</span><span class="pbla-team-stat__value" data-team-value="pts"></span></div>
+        <div class="pbla-team-stat"><span class="pbla-team-stat__label" title="Goals for">GF</span><span class="pbla-team-stat__value" data-team-value="pf"></span></div>
+        <div class="pbla-team-stat"><span class="pbla-team-stat__label" title="Goals against">GA</span><span class="pbla-team-stat__value" data-team-value="pa"></span></div>
+        <div class="pbla-team-stat"><span class="pbla-team-stat__label" title="Goal differential (GF minus GA)">GD</span><span class="pbla-team-stat__value" data-team-value="diff"></span></div>
       </div>
       <div class="pbla-team-card__win">
         <div class="pbla-team-card__win-meta"><span>Win rate</span><span>${Math.round(winPct * 100)}%</span></div>
@@ -491,8 +491,8 @@ function renderLeadersSection(
 
       row.innerHTML = `
         <td class="pbla-rank-cell">${index + 1}${index === 0 ? '<span class="pbla-rank-fire" aria-hidden="true">🔥</span>' : ''}</td>
-        <td class="pbla-player-cell"><span class="pbla-player-cell__jersey">#${player.jersey}</span><span class="pbla-player-cell__name">${player.name}</span></td>
-        <td class="pbla-team-cell"><span class="pbla-team-swatch" style="--swatch-color:${swatch}"></span>${player.team}</td>
+        <td class="pbla-player-cell"><span class="pbla-player-cell__jersey">#${player.jersey ?? '?'}</span><span class="pbla-player-cell__name">${player.name ?? 'Unknown'}</span></td>
+        <td class="pbla-team-cell"><span class="pbla-team-swatch" style="--swatch-color:${swatch}"></span>${player.team ?? '\u2014'}</td>
         <td class="pbla-points-cell" data-player-value="points"></td>
         <td data-player-value="goals"></td>
         <td data-player-value="assists"></td>
@@ -576,8 +576,8 @@ function renderSeasonContent(
     <div class="pbla-section__header">
       <div>
         <span class="pbla-section__eyebrow">Season overview</span>
-        <h2 class="pbla-section__title">${season.year === 2026 ? 'The 2026 season is underway' : '2025 season final standings'}</h2>
-        <p class="pbla-section__subtitle">${season.year === 2026 ? 'Games are live every Monday and Wednesday night at Rizzo Rink. Check the standings, see who is leading the scoring race, and find out where your team sits.' : 'The 2025 PBLA season is in the books. Here is how every team finished and who took home the hardware.'}</p>
+        <h2 class="pbla-section__title">${season.year === (SEASONS[0]?.year ?? season.year) ? `The ${season.year} season is underway` : `${season.year} season final standings`}</h2>
+        <p class="pbla-section__subtitle">${season.year === (SEASONS[0]?.year ?? season.year) ? 'Games are live every Monday and Wednesday night at Rizzo Rink. Check the standings, see who is leading the scoring race, and find out where your team sits.' : `The ${season.year} PBLA season is in the books. Here is how every team finished and who took home the hardware.`}</p>
       </div>
       <div class="pbla-section__meta">${leader ? `<span class="pbla-meta-badge pbla-meta-badge--gold">🏆 1st place: ${leader.name}</span>` : ''}${leadPlayer ? `<span class="pbla-meta-badge pbla-meta-badge--fire">🔥 Points leader: ${leadPlayer.name}</span>` : ''}</div>
     </div>

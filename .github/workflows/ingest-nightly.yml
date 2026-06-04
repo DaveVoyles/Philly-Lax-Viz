@@ -70,6 +70,8 @@ jobs:
 
       - name: Azure login
         id: azure_login
+        # Non-fatal: if Azure credentials are missing/expired the ingest can still run
+        # and populate a local DB; the upload/restart steps handle their own checks.
         continue-on-error: true
         uses: azure/login@v2
         with:
@@ -149,9 +151,9 @@ jobs:
           DB_PATH: ${{ env.DB_LOCAL_PATH }}
           HUDL_EMAIL: ${{ secrets.HUDL_EMAIL }}
           HUDL_PASSWORD: ${{ secrets.HUDL_PASSWORD }}
+        # Non-fatal: Hudl scraper requires authenticated session; if credentials are
+        # missing or the site changes its layout this step fails gracefully.
         continue-on-error: true
-
-      - name: Seed team aliases from anomalies
         run: pnpm --filter @pll/ingest seed:aliases ${{ github.workspace }}/data/lacrosse.db
 
       - name: Run LaxNumbers ingest (PA-only additive)
@@ -214,10 +216,14 @@ jobs:
         run: |
           pnpm --filter @pll/ingest exec tsx src/scripts/applyCorrections.ts \
             --db=${{ env.DB_LOCAL_PATH || 'data/lacrosse.db' }}
+        # Non-fatal: corrections script should not block ingest if it encounters an
+        # unexpected DB state; unapplied corrections remain in the queue for review.
         continue-on-error: true
 
       - name: Post-ingest data quality check
         id: data_quality
+        # Non-fatal: quality check is advisory; failure here emits a warning but must
+        # not abort an otherwise successful ingest run.
         continue-on-error: true
         env:
           DB_PATH: ${{ env.DB_LOCAL_PATH }}
@@ -238,6 +244,8 @@ jobs:
 
       - name: Restart Container App revision
         if: steps.azure_login.outcome == 'success'
+        # Non-fatal: ACA restart is best-effort after DB upload; if the revision
+        # restart fails the container will still pick up the new DB on next request.
         continue-on-error: true
         run: |
           REV=$(az containerapp revision list \
