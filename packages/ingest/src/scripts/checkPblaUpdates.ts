@@ -378,8 +378,9 @@ async function main() {
     console.log(`\nSnapshot saved to ${SNAPSHOT_PATH} (date: ${updated.snapshotDate})`);
   }
 
-  // Exit 1 when changes are detected so CI can use this as a warning signal
-  if (hasChanges) {
+  // Exit 1 when changes are detected so CI can use this as a warning signal.
+  // When --save was requested the save itself is the goal, so exit 0 on success.
+  if (hasChanges && !save) {
     process.exit(1);
   }
 }
