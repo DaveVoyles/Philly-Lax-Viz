@@ -22,7 +22,8 @@
  */
 
 import { readFileSync, writeFileSync } from 'fs';
-import { resolve } from 'path';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import {
   scheduleUrl,
   parseScheduleHtml,
@@ -32,8 +33,10 @@ import {
 import type { SportabilityGame, SportabilityTeam } from '../sources/sportability.js';
 
 const LEAGUE_ID = 50731;
-const SNAPSHOT_PATH = resolve(process.cwd(), 'data/pbla-2026-snapshot.json');
-const PBLA_DATA_PATH = resolve(process.cwd(), 'packages/web/src/views/pblaData.ts');
+const __here = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(__here, '../../../..');
+const SNAPSHOT_PATH = resolve(REPO_ROOT, 'data/pbla-2026-snapshot.json');
+const PBLA_DATA_PATH = resolve(REPO_ROOT, 'packages/web/src/views/pblaData.ts');
 
 interface Snapshot {
   leagueId: number;
