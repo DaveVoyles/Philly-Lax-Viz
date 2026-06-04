@@ -137,6 +137,5 @@ jobs:
               --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
               --share-name   "${{ env.AZ_FILE_SHARE }}" \
               --source "$file_path" \
-              --path "${{ env.LOGOS_REMOTE_DIR }}/$file_name" \
-              --overwrite true
+              --path "${{ env.LOGOS_REMOTE_DIR }}/$file_name"
           done

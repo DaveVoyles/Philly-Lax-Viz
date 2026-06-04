@@ -17,7 +17,7 @@ permissions:
   id-token: write
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   PNPM_VERSION: '10.33.1'
   DB_LOCAL_PATH: ${{ github.workspace }}/data/lacrosse.db
   DB_REMOTE_NAME: lacrosse.db
@@ -51,12 +51,14 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Download DB from Azure Files
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
         run: |
           az storage file download \
             --share-name "$AZ_FILE_SHARE" \
             --path "$DB_REMOTE_NAME" \
             --dest "$DB_LOCAL_PATH" \
-            --account-name pllstorage \
+            --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
             --output none
 
       - name: Sync PBLA data
@@ -71,12 +73,14 @@ jobs:
 
       - name: Upload DB to Azure Files
         if: inputs.dry_run != 'true'
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
         run: |
           az storage file upload \
             --share-name "$AZ_FILE_SHARE" \
             --source "$DB_LOCAL_PATH" \
             --path "$DB_REMOTE_NAME" \
-            --account-name pllstorage \
+            --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
             --output none
 
       - name: Check PBLA schedule for new results
@@ -107,10 +111,10 @@ jobs:
           git diff --staged --quiet || git commit -m "chore(pbla): auto-patch game scores from Sportability $(date -u +%Y-%m-%d)"
           git push
 
-      - name: Trigger Pages rebuild
-        if: inputs.dry_run != 'true'
+      - name: Trigger deploy rebuild
+        if: inputs.dry_run != 'true' && steps.pbla_check.outcome == 'failure'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           sleep 5
-          gh workflow run pages.yml --ref main
+          gh workflow run deploy.yml --ref main
