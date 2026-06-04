@@ -6,3 +6,4 @@
 - 2026-06-04: Fixed all failing CI workflows: sync-pbla Azure storage auth (--connection-string), sync-logos invalid --overwrite arg, stale pages.yml reference; bumped Node.js 20→22 across 6 workflows
 - 2026-06-04: Fixed checkPblaUpdates.ts path resolution (process.cwd() -> fileURLToPath) and --save exit code bug; both sync-pbla and sync-logos now passing
 - 2026-06-04: Fixed patchPblaData.ts path resolution (process.cwd → import.meta.url) and regex pattern (added .*? to tolerate time field between date and homeTeam); patched PBLA games 5-10 scores (2026-05-27 through 2026-06-03) into pblaData.ts
+- 2026-06-04: Added buildGamePattern unit tests (8 cases) and a pre-commit hook (pbla:check --verify) to catch PBLA score drift before commits; guarded patchPblaData.ts main() so vitest can import safely
