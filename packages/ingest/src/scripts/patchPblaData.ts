@@ -9,10 +9,14 @@
 //   pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaData.ts --dry-run
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const SNAPSHOT_PATH = resolve(process.cwd(), 'data/pbla-2026-snapshot.json');
-const PBLA_DATA_PATH = resolve(process.cwd(), 'packages/web/src/views/pblaData.ts');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(__dirname, '../../../..');
+
+const SNAPSHOT_PATH = resolve(REPO_ROOT, 'data/pbla-2026-snapshot.json');
+const PBLA_DATA_PATH = resolve(REPO_ROOT, 'packages/web/src/views/pblaData.ts');
 
 interface SnapshotGame {
   gameNum: number;
@@ -39,9 +43,10 @@ function buildGamePattern(game: SnapshotGame): RegExp {
   const datePat = escapeRegex(game.date);
   const homePat = escapeRegex(game.homeTeam);
   const awayPat = escapeRegex(game.awayTeam);
-  // Match game entry with 0-0 scores, capturing the parts before each score
+  // Match game entry with 0-0 scores. Use .*? between fields to tolerate
+  // intermediate fields like `time` between `date` and `homeTeam`.
   return new RegExp(
-    `(gameNum:\\s*\\d+,\\s*date:\\s*'${datePat}',\\s*homeTeam:\\s*'${homePat}',\\s*awayTeam:\\s*'${awayPat}',\\s*homeScore:\\s*)0(,\\s*awayScore:\\s*)0`,
+    `(date:\\s*'${datePat}'.*?homeTeam:\\s*'${homePat}',\\s*awayTeam:\\s*'${awayPat}',\\s*homeScore:\\s*)0(,\\s*awayScore:\\s*)0`,
     'g'
   );
 }
