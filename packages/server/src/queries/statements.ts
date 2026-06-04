@@ -82,17 +82,21 @@ export function getStatements(db: Database): Statements {
                   THEN 1 ELSE 0 END), 0)
                  FROM games g WHERE g.home_team_id = t.id OR g.away_team_id = t.id) AS derived_ties
        FROM teams t
-       LEFT JOIN piaa_official_teams p ON
-         p.name_normalized = LOWER(t.name)
-         OR p.name_normalized IN (SELECT alias FROM team_aliases WHERE team_id = t.id)
+       LEFT JOIN piaa_official_teams p ON p.id = (
+         SELECT id FROM piaa_official_teams
+         WHERE name_normalized = LOWER(t.name)
+            OR name_normalized IN (SELECT alias FROM team_aliases WHERE team_id = t.id)
+         ORDER BY id ASC
+         LIMIT 1
+       )
        WHERE
-         -- Hide ghost teams: only surface teams that either have observed
-         -- games/players or are mapped to a real PIAA program. Pure parser
-         -- artifacts (stray abbreviations like "BHS", "CBE", "DV") have no
-         -- data attached and no PIAA mapping, so they're filtered out.
-         (SELECT COUNT(*) FROM games WHERE home_team_id = t.id OR away_team_id = t.id) > 0
-         OR EXISTS (SELECT 1 FROM players WHERE team_id = t.id)
-         OR p.id IS NOT NULL
+          -- Hide ghost teams: only surface teams that either have observed
+          -- games/players or are mapped to a real PIAA program. Pure parser
+          -- artifacts (stray abbreviations like "BHS", "CBE", "DV") have no
+          -- data attached and no PIAA mapping, so they're filtered out.
+          (SELECT COUNT(*) FROM games WHERE home_team_id = t.id OR away_team_id = t.id) > 0
+          OR EXISTS (SELECT 1 FROM players WHERE team_id = t.id)
+          OR p.id IS NOT NULL
        ORDER BY t.name COLLATE NOCASE ASC`,
     ),
     getTeamById: db.prepare(
@@ -125,9 +129,13 @@ export function getStatements(db: Database): Statements {
                   THEN 1 ELSE 0 END), 0)
                  FROM games g WHERE g.home_team_id = t.id OR g.away_team_id = t.id) AS derived_ties
        FROM teams t
-       LEFT JOIN piaa_official_teams p ON
-         p.name_normalized = LOWER(t.name)
-         OR p.name_normalized IN (SELECT alias FROM team_aliases WHERE team_id = t.id)
+       LEFT JOIN piaa_official_teams p ON p.id = (
+         SELECT id FROM piaa_official_teams
+         WHERE name_normalized = LOWER(t.name)
+            OR name_normalized IN (SELECT alias FROM team_aliases WHERE team_id = t.id)
+         ORDER BY id ASC
+         LIMIT 1
+       )
        WHERE t.id = ?`,
     ),
     gamesForTeam: db.prepare(

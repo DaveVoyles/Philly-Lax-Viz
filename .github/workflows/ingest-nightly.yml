@@ -218,6 +218,7 @@ jobs:
           fi
 
       - name: Apply community corrections
+        id: apply_corrections
         run: |
           pnpm --filter @pll/ingest exec tsx src/scripts/applyCorrections.ts \
             --db=${{ env.DB_LOCAL_PATH || 'data/lacrosse.db' }}
@@ -238,10 +239,9 @@ jobs:
           echo "::endgroup::"
 
       - name: Upload updated DB to Azure Files
-        # Skip upload if the data quality check hard-failed (exit 1) to avoid
-        # pushing a potentially corrupt DB to production. A warning-only run
-        # (exit 0 with warnings) still uploads.
-        if: steps.data_quality.outcome != 'failure'
+        # Skip upload if corrections or data quality check hard-failed to avoid
+        # pushing a potentially corrupt DB to production.
+        if: steps.apply_corrections.outcome != 'failure' && steps.data_quality.outcome != 'failure'
         env:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
         run: |

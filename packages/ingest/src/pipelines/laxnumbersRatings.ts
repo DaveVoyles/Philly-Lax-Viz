@@ -162,44 +162,50 @@ export async function runLaxNumbersRatings(
 
     result.fetched += ratings.length;
 
-    for (const r of ratings) {
-      // Resolve LaxNumbers team name to our DB team
-      const team = findTeamByName(db, r.name);
-      if (!team) {
-        result.unresolved++;
-        result.anomalies.push({
-          kind: 'unresolved_team',
-          detail: `${r.name} (laxnumbers_id=${r.team_nbr}, view=${view.label})`,
-        });
-        continue;
+    // Wrap all writes for this view in a single transaction so a partial run
+    // cannot leave mixed-season data in laxnumbers_ratings.
+    const writeView = db.transaction(() => {
+      for (const r of ratings) {
+        // Resolve LaxNumbers team name to our DB team
+        const team = findTeamByName(db, r.name);
+        if (!team) {
+          result.unresolved++;
+          result.anomalies.push({
+            kind: 'unresolved_team',
+            detail: `${r.name} (laxnumbers_id=${r.team_nbr}, view=${view.label})`,
+          });
+          continue;
+        }
+
+        result.resolved++;
+
+        if (apply) {
+          // Upsert the rating
+          upsertRating.run(
+            team.id,
+            r.team_nbr,
+            view.id,
+            year,
+            r.ranking,
+            r.rating,
+            r.agd,
+            r.sched,
+            r.wins,
+            r.losses,
+            r.ties,
+            r.gf,
+            r.ga,
+          );
+          result.upserted++;
+
+          // Map the LaxNumbers team_id on our teams table
+          const changes = updateTeamLnId.run(r.team_nbr, team.id, r.team_nbr);
+          if (changes.changes > 0) result.teamIdsMapped++;
+        }
       }
+    });
 
-      result.resolved++;
-
-      if (apply) {
-        // Upsert the rating
-        upsertRating.run(
-          team.id,
-          r.team_nbr,
-          view.id,
-          year,
-          r.ranking,
-          r.rating,
-          r.agd,
-          r.sched,
-          r.wins,
-          r.losses,
-          r.ties,
-          r.gf,
-          r.ga,
-        );
-        result.upserted++;
-
-        // Map the LaxNumbers team_id on our teams table
-        const changes = updateTeamLnId.run(r.team_nbr, team.id, r.team_nbr);
-        if (changes.changes > 0) result.teamIdsMapped++;
-      }
-    }
+    writeView();
 
     // Rate limit between views
     if (views.indexOf(view) < views.length - 1) {

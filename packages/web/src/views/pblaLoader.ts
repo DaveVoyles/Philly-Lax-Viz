@@ -29,6 +29,7 @@ const TEAM_META: Record<string, { captain?: string; jerseyImg?: string }> = {
 };
 
 interface ApiTeamRow {
+  id: number;
   league_id: number;
   name: string;
   gp: number;
@@ -89,7 +90,7 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 function mapTeam(row: ApiTeamRow): PblaTeam {
   const meta = TEAM_META[row.name];
   return {
-    id: 0,
+    id: row.id,
     name: row.name,
     gp: row.gp,
     wins: row.wins,
@@ -169,8 +170,9 @@ async function fetchFromApi(leagueId: number): Promise<PblaSeason | null> {
       gamesRes.json() as Promise<ApiGameRow[]>,
     ]);
 
-    // Only use API data if it actually has content
-    if (teams.length === 0 && players.length === 0) {
+    // Require all core payload arrays to be non-empty before trusting API data.
+    // A partial response (e.g., teams but no games) renders a broken view — fall back instead.
+    if (teams.length === 0 || players.length === 0 || goalies.length === 0 || games.length === 0) {
       return null;
     }
 

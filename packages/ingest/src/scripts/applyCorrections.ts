@@ -166,16 +166,18 @@ export function applyCorrections(
     dryRun: 0,
   };
 
-  for (const row of pending) {
+  // Wrap each correction in its own transaction so a crash mid-loop cannot leave
+  // the entity update committed but the status row uncommitted (or vice versa).
+  const applyOne = db.transaction((row: CorrectionRow) => {
     if (!allowedField(row.entity_type, row.field_name)) {
       rejectCorrection(db, row, summary, dryRun, 'auto-rejected by nightly script: invalid field for entity type');
-      continue;
+      return;
     }
 
     const target = getEntityTarget(row.entity_type);
     if (!target) {
       rejectCorrection(db, row, summary, dryRun, 'auto-rejected by nightly script: unsupported entity type');
-      continue;
+      return;
     }
 
     const currentRow = db
@@ -184,14 +186,14 @@ export function applyCorrections(
 
     if (!currentRow) {
       rejectCorrection(db, row, summary, dryRun, 'auto-rejected by nightly script: target row not found');
-      continue;
+      return;
     }
 
     if (row.entity_type === 'player' && row.field_name === 'name') {
       const currentValue = String(currentRow.value ?? '');
       if (isOutlier(row.field_name, row.new_value, currentValue)) {
         flagOutlier(db, row, summary, dryRun, 'auto-flagged by nightly script: outlier correction requires manual review');
-        continue;
+        return;
       }
 
       if (dryRun) {
@@ -207,20 +209,20 @@ export function applyCorrections(
           },
           'dry-run would apply correction',
         );
-        continue;
+        return;
       }
 
       db.prepare('UPDATE players SET name = ? WHERE id = ?').run(row.new_value, row.entity_id);
       updateCorrectionStatus(db, row.id, 'approved', 'auto-approved by nightly script');
       summary.approved += 1;
-      continue;
+      return;
     }
 
     if (row.entity_type === 'player' && row.field_name === 'jersey_number') {
       const currentValue = String(currentRow.value ?? '');
       if (isOutlier(row.field_name, row.new_value, currentValue)) {
         flagOutlier(db, row, summary, dryRun, 'auto-flagged by nightly script: outlier correction requires manual review');
-        continue;
+        return;
       }
 
       const jerseyNumber = Number.parseInt(row.new_value, 10);
@@ -237,25 +239,25 @@ export function applyCorrections(
           },
           'dry-run would apply correction',
         );
-        continue;
+        return;
       }
 
       db.prepare('UPDATE players SET jersey_number = CAST(? AS INTEGER) WHERE id = ?').run(jerseyNumber, row.entity_id);
       updateCorrectionStatus(db, row.id, 'approved', 'auto-approved by nightly script');
       summary.approved += 1;
-      continue;
+      return;
     }
 
     const newValue = Number.parseInt(row.new_value, 10);
     if (Number.isNaN(newValue)) {
       rejectCorrection(db, row, summary, dryRun, 'auto-rejected by nightly script: new_value is not an integer');
-      continue;
+      return;
     }
 
     const currentValue = Number(currentRow.value ?? 0);
     if (isOutlier(row.field_name, newValue, currentValue)) {
       flagOutlier(db, row, summary, dryRun, 'auto-flagged by nightly script: outlier correction requires manual review');
-      continue;
+      return;
     }
 
     if (dryRun) {
@@ -271,12 +273,16 @@ export function applyCorrections(
         },
         'dry-run would apply correction',
       );
-      continue;
+      return;
     }
 
     db.prepare(`UPDATE ${target.tableName} SET ${row.field_name} = ? WHERE id = ?`).run(newValue, row.entity_id);
     updateCorrectionStatus(db, row.id, 'approved', 'auto-approved by nightly script');
     summary.approved += 1;
+  });
+
+  for (const row of pending) {
+    applyOne(row);
   }
 
   return summary;

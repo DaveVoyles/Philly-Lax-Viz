@@ -16,13 +16,19 @@ interface Query {
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+// Valid source values (post-normalization)
+const ALLOWED_SOURCES = new Set(['philly', 'pa-state']);
+
 // Spec accepts ?source=phillylax; shared types use 'philly'/'pa-state'.
 // Map common aliases so the public API is forgiving. Returns undefined when
 // caller didn't supply one — caller then queries across all sources.
-function normalizeSource(s: string | undefined): string | undefined {
+// Returns false when the value is supplied but not a recognized source.
+function normalizeSource(s: string | undefined): string | undefined | false {
   if (!s) return undefined;
   if (s === 'phillylax') return 'philly';
-  return s;
+  const normalized = s;
+  if (!ALLOWED_SOURCES.has(normalized)) return false;
+  return normalized;
 }
 
 export async function rankingsRoutes(app: FastifyInstance, db: Database): Promise<void> {
@@ -30,6 +36,10 @@ export async function rankingsRoutes(app: FastifyInstance, db: Database): Promis
 
   app.get<{ Querystring: Query }>('/api/rankings', cacheable, async (req, reply) => {
     const source = normalizeSource(req.query.source);
+    if (source === false) {
+      reply.code(400);
+      return { error: 'BadRequest', message: `Unknown source. Allowed: ${[...ALLOWED_SOURCES].join(', ')}` };
+    }
 
     let week = req.query.week;
     if (week !== undefined && !ISO_DATE.test(week)) {

@@ -49,10 +49,29 @@ export async function laxnumbersRatingsRoutes(
   `);
 
   // GET /api/laxnumbers/ratings?year=2026&view=3454
-  app.get<{ Querystring: Query }>('/api/laxnumbers/ratings', cacheable, async (req) => {
-    const year = req.query.year ? parseInt(req.query.year, 10) : new Date().getFullYear();
-    const view = req.query.view ? parseInt(req.query.view, 10) : 3454;
+  app.get<{ Querystring: Query }>('/api/laxnumbers/ratings', cacheable, async (req, reply) => {
+    const yearRaw = req.query.year ? parseInt(req.query.year, 10) : new Date().getFullYear();
+    const viewRaw = req.query.view ? parseInt(req.query.view, 10) : undefined;
 
+    if (!Number.isInteger(yearRaw) || yearRaw < 2000 || yearRaw > 2100) {
+      return reply.status(400).send({ error: 'BadRequest', message: 'year must be a valid integer' });
+    }
+    if (req.query.view !== undefined && (!Number.isInteger(viewRaw) || viewRaw! <= 0)) {
+      return reply.status(400).send({ error: 'BadRequest', message: 'view must be a positive integer' });
+    }
+
+    // If no view specified, pick the most-recently captured view for the year
+    let effectiveView = viewRaw;
+    if (effectiveView === undefined) {
+      const latest = db.prepare(
+        `SELECT view_id FROM laxnumbers_ratings WHERE year = ? ORDER BY captured_at DESC LIMIT 1`,
+      ).get(yearRaw) as { view_id: number } | undefined;
+      if (!latest) return [];
+      effectiveView = latest.view_id;
+    }
+
+    const year = yearRaw;
+    const view = effectiveView;
     const rows = getAll.all(year, view) as RatingRow[];
     return rows.map((r) => ({
       teamId: r.team_id,

@@ -112,6 +112,64 @@ async function main() {
     console.log(`[check] last game: ${lastGame ?? 'none'}`);
   }
 
+  // 5. Negative scores
+  const negScores = db.prepare(`
+    SELECT g.id, g.date,
+           t1.name AS home, g.home_score,
+           t2.name AS away, g.away_score
+    FROM games g
+    JOIN teams t1 ON g.home_team_id = t1.id
+    JOIN teams t2 ON g.away_team_id = t2.id
+    WHERE (g.home_score < 0 OR g.away_score < 0)
+      AND strftime('%Y', g.date) = ?
+  `).all(year) as Array<{ id: number; date: string; home: string; home_score: number; away: string; away_score: number }>;
+
+  for (const g of negScores) {
+    warn(`Negative score: ${g.home} ${g.home_score} vs ${g.away} ${g.away_score} on ${g.date} (game ${g.id})`);
+    issues++;
+  }
+  console.log(`[check] negative scores: ${negScores.length}`);
+
+  // 6. Games with NULL required fields (date, home_team_id, away_team_id)
+  const nullFields = db.prepare(`
+    SELECT id FROM games
+    WHERE date IS NULL OR home_team_id IS NULL OR away_team_id IS NULL
+  `).all() as Array<{ id: number }>;
+
+  for (const g of nullFields) {
+    warn(`Game ${g.id} has NULL in a required field (date/home_team_id/away_team_id)`);
+    issues++;
+  }
+  console.log(`[check] games with null required fields: ${nullFields.length}`);
+
+  // 7. Duplicate players (same name + team_id)
+  const dupePlayers = db.prepare(`
+    SELECT name, team_id, COUNT(*) AS cnt
+    FROM players
+    GROUP BY LOWER(name), team_id
+    HAVING cnt > 1
+  `).all() as Array<{ name: string; team_id: number; cnt: number }>;
+
+  for (const p of dupePlayers) {
+    warn(`Duplicate player: "${p.name}" appears ${p.cnt} times for team_id ${p.team_id}`);
+    issues++;
+  }
+  console.log(`[check] duplicate players: ${dupePlayers.length}`);
+
+  // 8. Duplicate team aliases (same alias text pointing to multiple teams)
+  const dupeAliases = db.prepare(`
+    SELECT alias, COUNT(DISTINCT team_id) AS teams
+    FROM team_aliases
+    GROUP BY LOWER(alias)
+    HAVING teams > 1
+  `).all() as Array<{ alias: string; teams: number }>;
+
+  for (const a of dupeAliases) {
+    warn(`Duplicate team alias: "${a.alias}" maps to ${a.teams} different teams`);
+    issues++;
+  }
+  console.log(`[check] duplicate team aliases: ${dupeAliases.length}`);
+
   db.close();
   console.log(`[checkDataQuality] done — ${issues} issue(s) found`);
   process.exit(issues > 0 ? 1 : 0);
