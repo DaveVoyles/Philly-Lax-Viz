@@ -35,11 +35,11 @@ interface Snapshot {
   games: SnapshotGame[];
 }
 
-function escapeRegex(s: string): string {
+export function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function buildGamePattern(game: SnapshotGame): RegExp {
+export function buildGamePattern(game: SnapshotGame): RegExp {
   const datePat = escapeRegex(game.date);
   const homePat = escapeRegex(game.homeTeam);
   const awayPat = escapeRegex(game.awayTeam);
@@ -94,7 +94,10 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('[patchPblaData] fatal:', err);
-  process.exit(1);
-});
+// Only run when invoked directly, not when imported by tests
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((err) => {
+    console.error('[patchPblaData] fatal:', err);
+    process.exit(1);
+  });
+}

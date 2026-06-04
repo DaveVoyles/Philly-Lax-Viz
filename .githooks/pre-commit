@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Verify pblaData.ts scores are in sync with the local PBLA snapshot.
+# Run "pnpm pbla:check -- --save" to update the snapshot, then
+# "pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaData.ts --apply"
+# to patch any remaining 0-0 scores.
+
+if ! command -v pnpm &>/dev/null; then
+  echo "[pre-commit] pnpm not found; skipping PBLA verify check" >&2
+  exit 0
+fi
+
+if ! pnpm pbla:check -- --verify; then
+  echo ""
+  echo "[pre-commit] PBLA score drift detected. Fix by running:"
+  echo "  pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaData.ts --apply"
+  echo "Then stage the changes and commit again."
+  exit 1
+fi
