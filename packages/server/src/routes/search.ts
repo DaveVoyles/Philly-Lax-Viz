@@ -58,8 +58,9 @@ export async function searchRoutes(app: FastifyInstance, db: Database): Promise<
           ORDER BY (LOWER(p.name) LIKE ?) DESC, LOWER(p.name) ASC
           LIMIT ?`,
       ).all(containsPattern, prefixPattern, limit) as PlayerRow[];
-    } catch {
-      players = [];
+    } catch (err) {
+      app.log.error({ err }, '[search] players query failed');
+      throw err;
     }
 
     let teams: TeamRow[] = [];
@@ -71,8 +72,9 @@ export async function searchRoutes(app: FastifyInstance, db: Database): Promise<
           ORDER BY (LOWER(name) LIKE ?) DESC, LOWER(name) ASC
           LIMIT ?`,
       ).all(containsPattern, prefixPattern, limit) as TeamRow[];
-    } catch {
-      teams = [];
+    } catch (err) {
+      app.log.error({ err }, '[search] teams query failed');
+      throw err;
     }
 
     const hits: (SearchHit & { _prefix: number })[] = [];

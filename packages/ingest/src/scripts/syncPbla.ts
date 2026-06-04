@@ -23,15 +23,29 @@ const log = createLogger({ name: 'ingest:syncPbla' });
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const DB_PATH = process.env.DB_PATH ?? process.env.PLL_DB_PATH ?? path.join(REPO_ROOT, 'data', 'lacrosse.db');
 
-// Default league IDs per season
+// Default league IDs per season — add new entries each season rather than changing the fallback.
 const LEAGUE_IDS: Record<number, number> = {
   2025: 50247,
   2026: 50731,
 };
 
 function getCurrentLeagueId(): number {
+  // Allow explicit override via env var (set in CI or local .env).
+  const envId = process.env.PBLA_LEAGUE_ID ? parseInt(process.env.PBLA_LEAGUE_ID, 10) : NaN;
+  if (!isNaN(envId) && envId > 0) return envId;
+
   const year = new Date().getFullYear();
-  return LEAGUE_IDS[year] ?? LEAGUE_IDS[2026] ?? 50731;
+  if (year in LEAGUE_IDS) return LEAGUE_IDS[year] as number;
+
+  // Fall back to the most recently known league ID and warn so operators notice.
+  const latestYear = Math.max(...Object.keys(LEAGUE_IDS).map(Number));
+  const fallback = LEAGUE_IDS[latestYear]!;
+  console.warn(
+    `[syncPbla] No league ID configured for year ${year}. ` +
+      `Falling back to ${latestYear} ID (${fallback}). ` +
+      `Add ${year} to LEAGUE_IDS in syncPbla.ts or set PBLA_LEAGUE_ID env var.`,
+  );
+  return fallback;
 }
 
 function parseArgs(): { leagueId: number; dryRun: boolean; cookies?: string } {

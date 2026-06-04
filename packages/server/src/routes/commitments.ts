@@ -337,10 +337,21 @@ export async function commitmentsRoutes(app: FastifyInstance, db: Database): Pro
     ).get(fullName) as { id: number } | undefined;
 
     if (!playerRow) {
-      // Try to find team by high school name
-      const teamRow = db.prepare(
-        'SELECT id FROM teams WHERE name LIKE ? COLLATE NOCASE LIMIT 1',
-      ).get(`%${highSchool}%`) as { id: number } | undefined;
+      // Try to find team by high school name; require a unique match to avoid
+      // attaching the commitment to the wrong team.
+      const teamMatches = db.prepare(
+        'SELECT id FROM teams WHERE name LIKE ? COLLATE NOCASE',
+      ).all(`%${highSchool}%`) as { id: number }[];
+
+      if (teamMatches.length > 1) {
+        reply.code(422);
+        return {
+          error: 'AmbiguousTeam',
+          message: `"${highSchool}" matches ${teamMatches.length} teams. Provide a more specific school name.`,
+        };
+      }
+
+      const teamRow = teamMatches[0];
 
       const insertPlayer = db.prepare(
         'INSERT INTO players (name, team_id) VALUES (?, ?)',

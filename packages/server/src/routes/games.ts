@@ -57,7 +57,21 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
   app.get<{ Querystring: ListQuery }>('/api/games', async (req, reply) => {
     const { date } = req.query;
 
-    const hasDateRange = req.query.from !== undefined || req.query.to !== undefined;
+    let season: number | undefined;
+    if (req.query.season !== undefined) {
+      const n = Number(req.query.season);
+      if (!Number.isInteger(n) || n < 1900 || n > 3000) {
+        reply.code(400);
+        return { error: 'BadRequest', message: 'season must be a 4-digit year' };
+      }
+      season = n;
+    }
+
+    // Expand season into a date range so pagination happens in SQL rather than
+    // in-memory (post-fetch JS filtering would return wrong page slices).
+    const fromParam = season ? `${season}-01-01` : req.query.from;
+    const toParam = season ? `${season}-12-31` : req.query.to;
+    const hasDateRange = fromParam !== undefined || toParam !== undefined;
 
     let limit = hasDateRange ? 1000 : 50;
     if (req.query.limit !== undefined) {
@@ -109,24 +123,14 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
       teamId = n;
     }
 
-    let season: number | undefined;
-    if (req.query.season !== undefined) {
-      const n = Number(req.query.season);
-      if (!Number.isInteger(n) || n < 1900 || n > 3000) {
-        reply.code(400);
-        return { error: 'BadRequest', message: 'season must be a 4-digit year' };
-      }
-      season = n;
-    }
-
     let rows: GameRow[];
     if (date && teamId !== undefined) {
       rows = s.listGamesByDateAndTeam.all(date, teamId, teamId, limit, offset) as GameRow[];
     } else if (date) {
       rows = s.listGamesByDate.all(date, limit, offset) as GameRow[];
     } else if (hasDateRange) {
-      const from = req.query.from ?? '0000-01-01';
-      const to = req.query.to ?? '9999-12-31';
+      const from = fromParam ?? '0000-01-01';
+      const to = toParam ?? '9999-12-31';
       rows =
         teamId !== undefined
           ? (s.listGamesByRangeAndTeam.all(from, to, teamId, teamId, limit, offset) as GameRow[])
@@ -135,10 +139,6 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
       rows = s.listGamesByTeam.all(teamId, teamId, limit, offset) as GameRow[];
     } else {
       rows = s.listGames.all(limit, offset) as GameRow[];
-    }
-
-    if (season !== undefined) {
-      rows = rows.filter((r) => (r as GameRow & { season?: number }).season === season);
     }
 
     return rows.map(mapGame);

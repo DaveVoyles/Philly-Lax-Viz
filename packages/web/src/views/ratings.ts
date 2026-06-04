@@ -140,12 +140,12 @@ function renderTable(ratings: LaxNumbersRating[]): string {
         ${logoHtml(r)}
         <a href="#/teams/${r.teamId}">${r.teamName}</a>
       </div></td>
-      <td class="num-cell"><span class="rating-badge ${ratingBadgeClass(r.rating)}">${r.rating.toFixed(1)}</span></td>
+      <td class="num-cell"><span class="rating-badge ${ratingBadgeClass(r.rating)}">${Number.isFinite(r.rating) ? r.rating.toFixed(1) : '&mdash;'}</span></td>
       <td class="num-cell record-cell">${r.wins}-${r.losses}${r.ties ? `-${r.ties}` : ''}</td>
       <td class="num-cell hide-mobile">${r.gf}</td>
       <td class="num-cell hide-mobile">${r.ga}</td>
-      <td class="num-cell hide-mobile">${r.agd > 0 ? '+' : ''}${r.agd.toFixed(1)}</td>
-      <td class="num-cell hide-mobile">${r.sched.toFixed(1)}</td>
+      <td class="num-cell hide-mobile">${Number.isFinite(r.agd) ? `${r.agd > 0 ? '+' : ''}${r.agd.toFixed(1)}` : '&mdash;'}</td>
+      <td class="num-cell hide-mobile">${Number.isFinite(r.sched) ? r.sched.toFixed(1) : '&mdash;'}</td>
     </tr>`,
     )
     .join('');
@@ -170,7 +170,8 @@ function renderTable(ratings: LaxNumbersRating[]): string {
 }
 
 async function loadRatings(viewId: number): Promise<LaxNumbersRating[]> {
-  return getLaxNumbersRatings({ year: 2026, view: viewId });
+  const currentYear = new Date().getFullYear();
+  return getLaxNumbersRatings({ year: currentYear, view: viewId });
 }
 
 export async function render(container: HTMLElement): Promise<void> {

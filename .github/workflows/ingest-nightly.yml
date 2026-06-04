@@ -146,13 +146,18 @@ jobs:
           done
 
       - name: Sync Hudl teams
-        run: pnpm --filter @pll/ingest exec tsx src/scripts/syncHudl.ts --all --db=${{ env.DB_PATH }}
         env:
           DB_PATH: ${{ env.DB_LOCAL_PATH }}
           HUDL_EMAIL: ${{ secrets.HUDL_EMAIL }}
           HUDL_PASSWORD: ${{ secrets.HUDL_PASSWORD }}
         # Non-fatal: Hudl scraper requires authenticated session; if credentials are
         # missing or the site changes its layout this step fails gracefully.
+        continue-on-error: true
+        run: pnpm --filter @pll/ingest exec tsx src/scripts/syncHudl.ts --all --db=${{ env.DB_LOCAL_PATH }}
+
+      - name: Seed team aliases
+        # Non-fatal: alias seeding is additive and advisory; a failure here does
+        # not corrupt existing alias data and can self-heal on the next run.
         continue-on-error: true
         run: pnpm --filter @pll/ingest seed:aliases ${{ github.workspace }}/data/lacrosse.db
 
@@ -233,6 +238,10 @@ jobs:
           echo "::endgroup::"
 
       - name: Upload updated DB to Azure Files
+        # Skip upload if the data quality check hard-failed (exit 1) to avoid
+        # pushing a potentially corrupt DB to production. A warning-only run
+        # (exit 0 with warnings) still uploads.
+        if: steps.data_quality.outcome != 'failure'
         env:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
         run: |

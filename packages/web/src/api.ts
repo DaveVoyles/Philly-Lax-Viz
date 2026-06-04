@@ -76,36 +76,60 @@ export class ApiError extends Error {
   }
 }
 
+const RETRY_STATUSES = new Set([502, 503]);
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 500;
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const baseUrl = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
   const url = apiUrl(attachSeason(baseUrl));
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10_000);
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      ...init,
-      signal: controller.signal,
-      headers: { Accept: 'application/json', ...(init?.headers ?? {}) },
-    });
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new ApiError('Request timed out', 0, url);
+
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
     }
-    const reason = err instanceof Error ? err.message : 'network error';
-    throw new ApiError(`Network error: ${reason}`, 0, url);
-  } finally {
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        ...init,
+        signal: controller.signal,
+        headers: { Accept: 'application/json', ...(init?.headers ?? {}) },
+      });
+    } catch (err) {
+      clearTimeout(timer);
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        throw new ApiError('Request timed out', 0, url);
+      }
+      // Network error — retry unless we're out of attempts.
+      lastErr = err;
+      if (attempt < MAX_RETRIES) continue;
+      const reason = err instanceof Error ? err.message : 'network error';
+      throw new ApiError(`Network error: ${reason}`, 0, url);
+    }
     clearTimeout(timer);
+
+    if (RETRY_STATUSES.has(res.status) && attempt < MAX_RETRIES) {
+      lastErr = new ApiError(`${res.status} ${res.statusText}`, res.status, url);
+      continue;
+    }
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new ApiError(
+        `${res.status} ${res.statusText}${text ? ` — ${text.slice(0, 200)}` : ''}`,
+        res.status,
+        url,
+      );
+    }
+    return (await res.json()) as T;
   }
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new ApiError(
-      `${res.status} ${res.statusText}${text ? ` — ${text.slice(0, 200)}` : ''}`,
-      res.status,
-      url,
-    );
-  }
-  return (await res.json()) as T;
+
+  // Should be unreachable, but TypeScript needs a return.
+  throw lastErr ?? new ApiError('Request failed', 0, url);
 }
 
 type QueryValue = string | number | undefined;
