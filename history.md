@@ -8,3 +8,4 @@
 - 2026-06-04: Fixed patchPblaData.ts path resolution (process.cwd → import.meta.url) and regex pattern (added .*? to tolerate time field between date and homeTeam); patched PBLA games 5-10 scores (2026-05-27 through 2026-06-03) into pblaData.ts
 - 2026-06-04: Added buildGamePattern unit tests (8 cases) and a pre-commit hook (pbla:check --verify) to catch PBLA score drift before commits; guarded patchPblaData.ts main() so vitest can import safely
 - 2026-06-04: Updated PBLA 2026 team standings (all 7 teams through June 3), replaced scoring leaders with top-10 from Sportability, and updated goalie stats with cumulative season data
+- 2026-06-04: Applied round-3 bug fixes (10 items): games.ts season filter moved into SQL, ratings NaN guards, dynamic year, Hudl CI YAML duplicate-run fix, DB upload gated on quality check, sync-pbla timeout, PBLA league ID env var override, search.ts error logging, commitments unique team match, api.ts retry logic
