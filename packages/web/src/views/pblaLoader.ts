@@ -185,7 +185,7 @@ async function fetchFromApi(leagueId: number): Promise<PblaSeason | null> {
       teams: teams.map(mapTeam),
       players: players.map(mapPlayer),
       goalies: goalies.map(mapGoalie),
-      rosters: {}, // Rosters not available from scraper yet
+      rosters: getPblaSeason(PBLA_DEFAULT_SEASON).rosters, // use hardcoded rosters from pblaData.ts
       games: games.map(mapGame),
     };
   } catch {
