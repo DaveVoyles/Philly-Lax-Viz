@@ -3,6 +3,8 @@ import { shouldAnimate, shouldMountWebGL } from '../util/motionPrefs.js';
 import { createAutoCounter } from '../components/animatedCounter.js';
 import { setPageMeta } from '../util/pageMeta.js';
 import { loadPblaSeason } from './pblaLoader.js';
+import { renderTopScorers } from '../charts/index.js';
+import { renderTeamScoreTrend, type TeamScorePoint } from '../charts/teamScoreTrend.js';
 import {
   SEASONS,
   teamColor,
@@ -35,6 +37,32 @@ let renderToken = 0;
 let activeApp: Application | null = null;
 let activeHost: HTMLElement | null = null;
 let pendingTimers: number[] = [];
+let pblaChartHandles: Array<{ destroy(): void }> = [];
+
+function destroyPblaCharts(): void {
+  for (const h of pblaChartHandles) {
+    try { h.destroy(); } catch { /* ignore */ }
+  }
+  pblaChartHandles = [];
+}
+
+function trackPblaChart<T extends { destroy(): void }>(h: T): T {
+  pblaChartHandles.push(h);
+  return h;
+}
+
+/** Build {date, gf, ga} points from PBLA games for this team, oldest first. */
+function buildPblaScoreTrend(teamName: string, season: PblaSeason): TeamScorePoint[] {
+  const name = teamName.toLowerCase();
+  return getTeamGames(teamName, season)
+    .filter((g) => typeof g.homeScore === 'number' && typeof g.awayScore === 'number'
+      && (g.homeScore > 0 || g.awayScore > 0))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((g) => {
+      const isHome = g.homeTeam.toLowerCase() === name;
+      return { date: g.date, gf: isHome ? g.homeScore : g.awayScore, ga: isHome ? g.awayScore : g.homeScore };
+    });
+}
 
 function ensureStyles(): void {
   if (document.getElementById(STYLE_ID)) return;
@@ -736,6 +764,7 @@ function renderTeamContent(
   season: PblaSeason,
   animate: boolean,
 ): void {
+  destroyPblaCharts();
   container.replaceChildren();
 
   // Stat cards
@@ -763,6 +792,46 @@ function renderTeamContent(
   container.appendChild(stats);
 
   const players = getTeamPlayers(team.name, season);
+
+  // Top scorers chart
+  const scorers = [...players]
+    .filter((p) => p.goals + p.assists > 0)
+    .sort((a, b) => (b.goals + b.assists) - (a.goals + a.assists))
+    .slice(0, 5);
+  if (scorers.length > 0) {
+    const scorersTitle = document.createElement('h3');
+    scorersTitle.className = 'pbla-team-section-title';
+    scorersTitle.innerHTML = '&#127919; Top Scorers';
+    container.appendChild(scorersTitle);
+    const scorersSlot = document.createElement('div');
+    scorersSlot.style.cssText = 'margin-bottom:1rem;';
+    container.appendChild(scorersSlot);
+    trackPblaChart(
+      renderTopScorers(
+        scorersSlot,
+        scorers.map((p) => ({ playerName: p.name, goals: p.goals, assists: p.assists })),
+        { height: Math.max(180, scorers.length * 40) },
+      ),
+    );
+  }
+
+  // Season scoring trend chart
+  const trendPoints = buildPblaScoreTrend(team.name, season);
+  if (trendPoints.length > 1) {
+    const trendTitle = document.createElement('h3');
+    trendTitle.className = 'pbla-team-section-title';
+    trendTitle.innerHTML = '&#128200; Scoring Trend';
+    container.appendChild(trendTitle);
+    const trendWrap = document.createElement('div');
+    trendWrap.style.cssText = 'margin-bottom:1rem;';
+    const trendCanvas = document.createElement('canvas');
+    trendCanvas.className = 'team-score-trend';
+    trendWrap.appendChild(trendCanvas);
+    container.appendChild(trendWrap);
+    // Read team accent from CSS variable set on wrapper
+    const accentColor = getComputedStyle(container).getPropertyValue('--team-accent').trim() || '#16a34a';
+    trackPblaChart(renderTeamScoreTrend(trendCanvas, trendPoints, { gfColor: accentColor }));
+  }
 
   // Goalies
   const goalies = getTeamGoalies(team.name, season);
@@ -931,4 +1000,5 @@ export function destroy(): void {
   renderToken += 1;
   clearTimers();
   destroyWebGL();
+  destroyPblaCharts();
 }
