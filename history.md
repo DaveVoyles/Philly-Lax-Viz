@@ -20,3 +20,4 @@
 2026-06-05: Automated PBLA roster gap detection in sync-pbla CI -- opens GitHub issue with paste-ready fix when players missing from pblaData.ts
 - 2026-06-05: Wired patchPblaRosters.ts into sync-pbla CI — rosters now auto-patched and committed every Tue/Thu run; no manual roster entry needed
 - 2026-06-05: Fixed PBLA player stats — patchPblaStats.ts now fetches per-team stats from Sportability (70 players, all shown on team pages); Revolution went from 1 to 10 visible players
+- 2026-06-05: Fixed PBLA team pages to show stats-only players (those in Sportability stats but not in static roster block) — merged as synthetic roster entries in buildFullRosterTable; roster count header updated to include them
