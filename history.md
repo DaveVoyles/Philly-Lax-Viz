@@ -10,3 +10,5 @@
 - 2026-06-04: Updated PBLA 2026 team standings (all 7 teams through June 3), replaced scoring leaders with top-10 from Sportability, and updated goalie stats with cumulative season data
 - 2026-06-04: Applied round-3 bug fixes (10 items): games.ts season filter moved into SQL, ratings NaN guards, dynamic year, Hudl CI YAML duplicate-run fix, DB upload gated on quality check, sync-pbla timeout, PBLA league ID env var override, search.ts error logging, commitments unique team match, api.ts retry logic
 - 2026-06-04: Round-4 bug fixes: PBLA team ID=0, partial-payload fallback, applyCorrections transaction safety, CI upload gate, laxnumbersRatings validation, rankings 400, pipeline transactions, data quality checks expanded, PIAA join deterministic
+- 2026-06-05: Updated the web service worker to use deploy-safe caching strategies and purge stale v2 caches, preventing post-deploy asset 404s.
+- 2026-06-05: Fixed service worker stale-cache 404s (pll-v2→v3, network-first navigation, immutable assets headers) and added proper Cache-Control routes in staticwebapp.config.json
