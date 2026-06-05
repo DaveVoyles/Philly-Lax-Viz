@@ -17,3 +17,4 @@
 - 2026-06-05: Added platform improvements — player autocomplete on Compare page, 8 newly cached API endpoints, per-source freshness table on Status page, 3 new data quality checks (orphaned stats, duplicate player-game rows, invalid jersey numbers)
 - 2026-06-05: Enriched PBLA team pages with top scorers bar chart and GF/GA scoring trend line chart; added chart handle cleanup on season switch and destroy
 2026-06-05: Added pbla:check --roster command to detect PBLA roster gaps against Sportability; added new-team checklist to pbla-guide.md
+2026-06-05: Automated PBLA roster gap detection in sync-pbla CI -- opens GitHub issue with paste-ready fix when players missing from pblaData.ts
