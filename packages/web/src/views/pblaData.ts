@@ -86,12 +86,12 @@ export const SEASONS: PblaSeason[] = [
     leagueId: 50731,
     label: '2026 (Current)',
     teams: [
-      { id: 343516, name: 'Thunder', gp: 3, wins: 3, losses: 0, ties: 0, otw: 0, otl: 0, pts: 9, pf: 35, pa: 15, diff: 20, streak: 'W3', color: '#facc15', captain: 'Jim Glielmi', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Thunder%20jersey.png/:/rs=w:600,cg:true,m' },
+      { id: 343516, name: 'Thunder', gp: 3, wins: 3, losses: 0, ties: 0, otw: 0, otl: 0, pts: 9, pf: 35, pa: 15, diff: 20, streak: 'W3', color: '#facc15', captain: 'Jim Glielmi' },
       { id: 343514, name: 'Pups LC', gp: 3, wins: 2, losses: 1, ties: 0, otw: 0, otl: 0, pts: 6, pf: 34, pa: 18, diff: 16, streak: 'W2', color: '#ff6600', captain: 'Andrew Sloan', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Pups.png/:/rs=w:600,cg:true,m' },
-      { id: 343517, name: 'More Dudes LC', gp: 3, wins: 2, losses: 1, ties: 0, otw: 0, otl: 0, pts: 6, pf: 33, pa: 20, diff: 13, streak: 'W1', color: '#800000', captain: 'Murf Butler', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/MoreDudes.png/:/rs=w:600,cg:true,m' },
-      { id: 343511, name: 'Outlaws', gp: 3, wins: 2, losses: 1, ties: 0, otw: 0, otl: 0, pts: 6, pf: 30, pa: 23, diff: 7, streak: 'W2', color: '#003087', captain: 'Joe Stainer', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Outlaws.png/:/rs=w:600,cg:true,m' },
-      { id: 343512, name: 'Edge', gp: 2, wins: 1, losses: 1, ties: 0, otw: 0, otl: 0, pts: 3, pf: 13, pa: 22, diff: -9, streak: 'L1', color: '#ef4444', captain: 'Matt O\'Brian', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Edge%202025%20Jersey.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:600,cg:true' },
-      { id: 343515, name: 'Revolution', gp: 4, wins: 0, losses: 4, ties: 0, otw: 0, otl: 0, pts: 0, pf: 19, pa: 58, diff: -39, streak: 'L4', color: '#3b82f6', captain: 'Bill Kennedy', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Revolution2026%20(1).png/:/rs=w:600,cg:true,m' },
+      { id: 343517, name: 'More Dudes LC', gp: 3, wins: 2, losses: 1, ties: 0, otw: 0, otl: 0, pts: 6, pf: 33, pa: 20, diff: 13, streak: 'W1', color: '#800000', captain: 'Murf Butler' },
+      { id: 343511, name: 'Outlaws', gp: 3, wins: 2, losses: 1, ties: 0, otw: 0, otl: 0, pts: 6, pf: 30, pa: 23, diff: 7, streak: 'W2', color: '#003087', captain: 'Joe Stainer' },
+      { id: 343512, name: 'Edge', gp: 2, wins: 1, losses: 1, ties: 0, otw: 0, otl: 0, pts: 3, pf: 13, pa: 22, diff: -9, streak: 'L1', color: '#ef4444', captain: 'Matt O\'Brian' },
+      { id: 343515, name: 'Revolution', gp: 4, wins: 0, losses: 4, ties: 0, otw: 0, otl: 0, pts: 0, pf: 19, pa: 58, diff: -39, streak: 'L4', color: '#3b82f6', captain: 'Bill Kennedy' },
       { id: 343513, name: 'Beer Wolves', gp: 2, wins: 0, losses: 2, ties: 0, otw: 0, otl: 0, pts: 0, pf: 13, pa: 21, diff: -8, streak: 'L2', color: '#22c55e', captain: 'Ryan Mackey', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/BeerWolves.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:600,cg:true' },
     ],
     players: [
