@@ -14,3 +14,4 @@
 - 2026-06-05: Fixed service worker stale-cache 404s (pll-v2→v3, network-first navigation, immutable assets headers) and added proper Cache-Control routes in staticwebapp.config.json
 - 2026-06-05: Removed broken PBLA jersey images for 5 teams (wsimg.com returned HTTP 204 - files deleted from GoDaddy hosting); Pups LC and Beer Wolves retained
 - 2026-06-05: Self-hosted all 7 PBLA jersey images in data/logos/ (downloaded from phillyboxlacrosse.org); fixed pblaTeam.ts src rendering to not blindly prepend https:
+- 2026-06-05: Added platform improvements — player autocomplete on Compare page, 8 newly cached API endpoints, per-source freshness table on Status page, 3 new data quality checks (orphaned stats, duplicate player-game rows, invalid jersey numbers)
