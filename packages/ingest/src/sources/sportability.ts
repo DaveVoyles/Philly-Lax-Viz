@@ -93,13 +93,23 @@ export function standingsUrl(leagueId: number): string {
 }
 
 export function scorersUrl(leagueId: number): string {
-  // show1=%20 (space) means "show all" instead of default top 10
+  // show1=%20 (space) means "show all" instead of default top 10 (league-wide top scorers only)
   return `${BASE}/Statistics.asp?LgID=${leagueId}&Pkg=1&show1=%20`;
+}
+
+/** Per-team scorers URL — returns all players on a specific team with any stats. */
+export function scorersTeamUrl(leagueId: number, teamId: number): string {
+  return `${BASE}/Statistics.asp?LgID=${leagueId}&Pkg=1&TmID=${teamId}`;
 }
 
 export function goaliesUrl(leagueId: number): string {
   // show1=%20 (space) means "show all"
   return `${BASE}/Statistics.asp?LgID=${leagueId}&Pkg=2&show1=%20`;
+}
+
+/** Per-team goalies URL — returns all goalies on a specific team with any stats. */
+export function goaliesTeamUrl(leagueId: number, teamId: number): string {
+  return `${BASE}/Statistics.asp?LgID=${leagueId}&Pkg=2&TmID=${teamId}`;
 }
 
 export function scheduleUrl(leagueId: number): string {
@@ -190,14 +200,14 @@ export function parseScorersHtml(html: string): SportabilityPlayer[] {
     const tds = $(tr).find('td');
     if (tds.length < 7) return;
 
-    // Player cell: link text is "92 - Brian Beatson"
+    // Player cell: link text is "92 - Brian Beatson" or just "Andrew Bailey" (no jersey)
     const playerLink = $(tr).find('a[href*="Player.asp"]');
     const playerText = playerLink.text().trim();
-    const playerMatch = playerText.match(/^(\d+)\s*-\s*(.+)$/);
-    if (!playerMatch) return;
+    if (!playerText) return;
 
-    const jersey = parseInt(playerMatch[1]!, 10);
-    const name = playerMatch[2]!.trim();
+    const playerMatch = playerText.match(/^(\d+)\s*-\s*(.+)$/);
+    const jersey = playerMatch ? parseInt(playerMatch[1]!, 10) : -1;
+    const name = playerMatch ? playerMatch[2]!.trim() : playerText;
     const team = $(tds[2]).text().trim();
     if (!name || !team) return;
 

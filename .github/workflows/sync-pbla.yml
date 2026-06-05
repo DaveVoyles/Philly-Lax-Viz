@@ -126,14 +126,19 @@ jobs:
         id: roster_patch
         run: pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaRosters.ts
 
-      - name: Commit and push roster additions
+      - name: Patch player and goalie stats from Sportability
+        if: inputs.dry_run != 'true'
+        id: stats_patch
+        run: pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaStats.ts
+
+      - name: Commit and push roster and stats additions
         if: inputs.dry_run != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add packages/web/src/views/pblaData.ts
           git diff --staged --quiet || (
-            git commit -m "chore(pbla): auto-sync rosters from Sportability $(date -u +%Y-%m-%d)" &&
+            git commit -m "chore(pbla): auto-sync rosters and stats from Sportability $(date -u +%Y-%m-%d)" &&
             git pull --rebase origin main &&
             git push &&
             sleep 5 &&

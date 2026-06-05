@@ -80,6 +80,8 @@ pnpm pbla:check -- --verify                                                 # co
 pnpm pbla:check -- --roster                                                 # fetch live Sportability rosters and diff against pblaData.ts; prints missing players + paste-ready TS
 pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaRosters.ts          # auto-patch pblaData.ts with any players missing from Sportability (run by CI automatically)
 pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaRosters.ts --dry-run  # preview roster patches without writing
+pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaStats.ts             # auto-patch pblaData.ts players/goalies blocks with all stats from Sportability (run by CI automatically)
+pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaStats.ts --dry-run   # preview stats patches without writing
 pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaData.ts             # auto-patch pblaData.ts game scores from local snapshot
 pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaData.ts --dry-run  # preview patches without writing
 pnpm --filter @pll/ingest exec tsx src/scripts/checkDataQuality.ts         # post-ingest data quality checks (suspicious scores, dupes, stale data)
