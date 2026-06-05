@@ -560,6 +560,16 @@ function buildFullRosterTable(roster: PblaRosterEntry[], players: PblaPlayer[], 
   const playerMap = new Map(players.map((p) => [p.name.toLowerCase(), p]));
   const captainLower = captain?.toLowerCase() ?? '';
 
+  // Build a set of roster names (lowercase) to detect stats-only players
+  const rosterNameSet = new Set(roster.map((r) => r.name.toLowerCase()));
+
+  // Merge stats-only players as synthetic roster entries so they appear in the table
+  const statsOnlyEntries: PblaRosterEntry[] = players
+    .filter((p) => !rosterNameSet.has(p.name.toLowerCase()))
+    .map((p) => ({ name: p.name, jersey: String(p.jersey >= 0 ? p.jersey : ''), position: '', notes: '' }));
+
+  const allEntries = [...roster, ...statsOnlyEntries];
+
   const table = document.createElement('table');
   table.className = 'pbla-team-roster';
   const thead = document.createElement('thead');
@@ -576,7 +586,7 @@ function buildFullRosterTable(roster: PblaRosterEntry[], players: PblaPlayer[], 
     })));
     thead.replaceChildren(headRow);
 
-    const sorted = [...roster].sort((a, b) => {
+    const sorted = [...allEntries].sort((a, b) => {
       const sa = playerMap.get(a.name.toLowerCase());
       const sb = playerMap.get(b.name.toLowerCase());
       let r = 0;
@@ -925,7 +935,11 @@ function renderTeamContent(
   if (roster.length > 0) {
     const rosterTitle = document.createElement('h3');
     rosterTitle.className = 'pbla-team-section-title';
-    rosterTitle.innerHTML = '&#128101; Full Roster (' + roster.length + ' players)';
+    // Count includes stats-only players not on the official roster
+    const rosterNameSet = new Set(roster.map((r) => r.name.toLowerCase()));
+    const statsOnlyCount = players.filter((p) => !rosterNameSet.has(p.name.toLowerCase())).length;
+    const totalCount = roster.length + statsOnlyCount;
+    rosterTitle.innerHTML = '&#128101; Full Roster (' + totalCount + ' players)';
     container.appendChild(rosterTitle);
     container.appendChild(buildFullRosterTable(roster, players, animate, team.captain));
   } else if (players.length > 0) {
