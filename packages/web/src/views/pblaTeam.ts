@@ -806,13 +806,18 @@ function renderTeamContent(
     const scorersSlot = document.createElement('div');
     scorersSlot.style.cssText = 'margin-bottom:1rem;';
     container.appendChild(scorersSlot);
-    trackPblaChart(
-      renderTopScorers(
-        scorersSlot,
-        scorers.map((p) => ({ playerName: p.name, goals: p.goals, assists: p.assists })),
-        { height: Math.max(180, scorers.length * 40) },
-      ),
-    );
+    try {
+      trackPblaChart(
+        renderTopScorers(
+          scorersSlot,
+          scorers.map((p) => ({ playerName: p.name, goals: p.goals, assists: p.assists })),
+          { height: Math.max(180, scorers.length * 40) },
+        ),
+      );
+    } catch (err) {
+      console.warn('[pblaTeam] top scorers chart failed', err);
+      scorersSlot.textContent = '';
+    }
   }
 
   // Season scoring trend chart
@@ -828,9 +833,14 @@ function renderTeamContent(
     trendCanvas.className = 'team-score-trend';
     trendWrap.appendChild(trendCanvas);
     container.appendChild(trendWrap);
-    // Read team accent from CSS variable set on wrapper
-    const accentColor = getComputedStyle(container).getPropertyValue('--team-accent').trim() || '#16a34a';
-    trackPblaChart(renderTeamScoreTrend(trendCanvas, trendPoints, { gfColor: accentColor }));
+    try {
+      // Read team accent from CSS variable set on wrapper
+      const accentColor = getComputedStyle(container).getPropertyValue('--team-accent').trim() || '#16a34a';
+      trackPblaChart(renderTeamScoreTrend(trendCanvas, trendPoints, { gfColor: accentColor }));
+    } catch (err) {
+      console.warn('[pblaTeam] score trend chart failed', err);
+      trendWrap.textContent = '';
+    }
   }
 
   // Goalies

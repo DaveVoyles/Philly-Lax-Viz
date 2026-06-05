@@ -17,15 +17,17 @@ import {
 const IS_STATIC = (import.meta as unknown as { env?: Record<string, string | undefined> }).env
   ?.VITE_STATIC_MODE === 'true';
 
-// Metadata not available from scraper — captain names and jersey images
+// Metadata not available from scraper — captain names and jersey images.
+// Self-hosted logos (5 teams) served via /logos/ from the container image.
+// Remaining 2 teams use the working wsimg CDN URLs (GET with redirect works).
 const TEAM_META: Record<string, { captain?: string; jerseyImg?: string }> = {
-  'More Dudes LC': { captain: 'Murf Butler', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/MoreDudes.png/:/rs=w:600,cg:true,m' },
-  Outlaws: { captain: 'Joe Stainer', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Outlaws.png/:/rs=w:600,cg:true,m' },
-  Edge: { captain: "Matt O'Brian", jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Edge%202025%20Jersey.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:600,cg:true' },
-  Thunder: { captain: 'Kyle Williams', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Thunder.png/:/rs=w:600,cg:true,m' },
-  'Pups LC': { captain: 'Adam Segal', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Pups.png/:/rs=w:600,cg:true,m' },
-  'Beer Wolves': { captain: 'Anthony Fabian', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Beer%20Wolves.png/:/rs=w:600,cg:true,m' },
-  Revolution: { captain: 'Dave Voyles', jerseyImg: '//img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Revolution.png/:/rs=w:600,cg:true,m' },
+  'More Dudes LC': { captain: 'Murf Butler', jerseyImg: '/logos/pbla-moredudes.png' },
+  Outlaws: { captain: 'Joe Stainer', jerseyImg: '/logos/pbla-outlaws.png' },
+  Edge: { captain: "Matt O'Brian", jerseyImg: '/logos/pbla-edge.png' },
+  Thunder: { captain: 'Jim Glielmi', jerseyImg: '/logos/pbla-thunder.png' },
+  'Pups LC': { captain: 'Andrew Sloan', jerseyImg: 'https://img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Pups.png/:/rs=w:600,cg:true,m' },
+  'Beer Wolves': { captain: 'Ryan Mackey', jerseyImg: 'https://img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/BeerWolves.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:600,cg:true' },
+  Revolution: { captain: 'Bill Kennedy', jerseyImg: '/logos/pbla-revolution.png' },
 };
 
 interface ApiTeamRow {
