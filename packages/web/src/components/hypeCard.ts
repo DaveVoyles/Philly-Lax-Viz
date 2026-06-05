@@ -1,5 +1,6 @@
 import { Application, Graphics } from 'pixi.js';
 import { createAnimatedCounter, type CounterOptions } from './animatedCounter.js';
+import { apiUrl } from '../apiBase.js';
 
 export interface HypePlayerData {
   playerName: string;
@@ -144,8 +145,8 @@ function buildTeamLine(data: HypePlayerData): HTMLElement {
 
   if (data.teamLogoUrl) {
     const logo = document.createElement('img');
-    // teamLogoUrl may already be prefixed with /logos/ from the API
-    logo.src = data.teamLogoUrl.startsWith('/') ? data.teamLogoUrl : `/logos/${data.teamLogoUrl}`;
+    const rawPath = data.teamLogoUrl.startsWith('/') ? data.teamLogoUrl : `/logos/${data.teamLogoUrl}`;
+    logo.src = /^https?:\/\//i.test(data.teamLogoUrl) ? data.teamLogoUrl : apiUrl(rawPath);
     logo.alt = `${data.teamName} logo`;
     logo.width = 24;
     logo.height = 24;

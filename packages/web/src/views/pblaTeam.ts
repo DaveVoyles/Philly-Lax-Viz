@@ -2,6 +2,7 @@ import { Application, Graphics } from 'pixi.js';
 import { shouldAnimate, shouldMountWebGL } from '../util/motionPrefs.js';
 import { createAutoCounter } from '../components/animatedCounter.js';
 import { setPageMeta } from '../util/pageMeta.js';
+import { apiUrl } from '../apiBase.js';
 import { loadPblaSeason } from './pblaLoader.js';
 import { renderTopScorers } from '../charts/index.js';
 import { renderTeamScoreTrend, type TeamScorePoint } from '../charts/teamScoreTrend.js';
@@ -615,6 +616,72 @@ function buildFullRosterTable(roster: PblaRosterEntry[], players: PblaPlayer[], 
   return table;
 }
 
+function buildLivePlayerTable(players: PblaPlayer[], animate: boolean, captain?: string): HTMLElement {
+  type Key = 'jersey' | 'name' | 'gp' | 'goals' | 'assists' | 'points' | 'pim';
+  const cols: ColDef<Key>[] = [
+    { key: 'jersey', label: '#' },
+    { key: 'name', label: 'Player' },
+    { key: 'gp', label: 'GP', align: 'right' },
+    { key: 'goals', label: 'G', align: 'right' },
+    { key: 'assists', label: 'A', align: 'right' },
+    { key: 'points', label: 'Pts', align: 'right' },
+    { key: 'pim', label: 'PIM', align: 'right' },
+  ];
+  let sortKey: Key = 'points';
+  let sortDir: SortDir = 'desc';
+  const captainLower = captain?.toLowerCase() ?? '';
+
+  const table = document.createElement('table');
+  table.className = 'pbla-team-roster';
+  const thead = document.createElement('thead');
+  const tbody = document.createElement('tbody');
+  table.append(thead, tbody);
+
+  const render = (): void => {
+    const headRow = document.createElement('tr');
+    headRow.style.cssText = 'opacity:1;transform:none;animation:none';
+    cols.forEach((col) => headRow.appendChild(makeSortBtn(col, sortKey, sortDir, (k) => {
+      if (k === sortKey) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+      else { sortKey = k; sortDir = defaultDir(k); }
+      render();
+    })));
+    thead.replaceChildren(headRow);
+
+    const sorted = [...players].sort((a, b) => {
+      let r = 0;
+      switch (sortKey) {
+        case 'name': r = a.name.localeCompare(b.name); break;
+        case 'jersey': r = Number(a.jersey ?? 0) - Number(b.jersey ?? 0); break;
+        default: r = (a[sortKey] as number ?? 0) - (b[sortKey] as number ?? 0); break;
+      }
+      if (r === 0) r = (b.points ?? 0) - (a.points ?? 0) || a.name.localeCompare(b.name);
+      return sortDir === 'asc' ? r : -r;
+    });
+
+    tbody.replaceChildren();
+    sorted.forEach((p, idx) => {
+      const tr = document.createElement('tr');
+      if (animate && !tbody.hasChildNodes()) tr.style.animationDelay = `${idx * 40 + 100}ms`;
+      else { tr.style.opacity = '1'; tr.style.transform = 'none'; tr.style.animation = 'none'; }
+      const isCaptain = captainLower && p.name.toLowerCase().includes(captainLower.split(' ').pop()!);
+      const nameDisplay = isCaptain ? `${p.name} <span title="Team Captain" style="color:gold">&#11088;</span>` : p.name;
+      tr.innerHTML = `
+        <td class="pbla-team-roster__jersey">${p.jersey ?? '-'}</td>
+        <td class="pbla-team-roster__name">${nameDisplay}</td>
+        <td data-align="right">${p.gp}</td>
+        <td data-align="right">${p.goals}</td>
+        <td data-align="right">${p.assists}</td>
+        <td class="pbla-team-roster__pts" data-align="right">${p.points}</td>
+        <td data-align="right">${p.pim}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  };
+
+  render();
+  return table;
+}
+
 function buildGoalieTable(goalies: PblaGoalie[], animate: boolean): HTMLElement {
   if (goalies.length === 0) {
     const empty = document.createElement('div');
@@ -853,7 +920,7 @@ function renderTeamContent(
     container.appendChild(buildGoalieTable(goalies, animate));
   }
 
-  // Full Roster
+  // Full Roster (manual data) or live player stats fallback
   const roster = getTeamRoster(team.name, season);
   if (roster.length > 0) {
     const rosterTitle = document.createElement('h3');
@@ -861,6 +928,12 @@ function renderTeamContent(
     rosterTitle.innerHTML = '&#128101; Full Roster (' + roster.length + ' players)';
     container.appendChild(rosterTitle);
     container.appendChild(buildFullRosterTable(roster, players, animate, team.captain));
+  } else if (players.length > 0) {
+    const rosterTitle = document.createElement('h3');
+    rosterTitle.className = 'pbla-team-section-title';
+    rosterTitle.innerHTML = '&#128101; Player Stats (' + players.length + ' players)';
+    container.appendChild(rosterTitle);
+    container.appendChild(buildLivePlayerTable(players, animate, team.captain));
   }
 
   // Games & Highlights
@@ -948,7 +1021,7 @@ export async function render(root: HTMLElement, params: Record<string, string>):
   hero.className = 'pbla-team-hero';
   const initials = team.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
   const jerseyHtml = team.jerseyImg
-    ? `<img class="pbla-team-hero__jersey" src="${team.jerseyImg}" alt="${team.name} jersey" />`
+    ? `<img class="pbla-team-hero__jersey" src="${apiUrl(team.jerseyImg)}" alt="${team.name} jersey" />`
     : `<div class="pbla-team-hero__emblem">${initials}</div>`;
   const captainHtml = team.captain
     ? `<p class="pbla-team-hero__captain">Captain: <strong>${team.captain}</strong></p>`

@@ -1,4 +1,5 @@
 import { getTeams, type TeamSeasonRecord } from '../api.js';
+import { apiUrl } from '../apiBase.js';
 import { createSeasonSelector, getSelectedSeason } from '../components/seasonSelector.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { createAnimatedCounter } from '../components/animatedCounter.js';
@@ -288,8 +289,9 @@ function ensureStyles(doc: Document = document): void {
 
 function normalizeLogoUrl(logoUrl: string | null): string | null {
   if (!logoUrl) return null;
-  if (/^https?:\/\//i.test(logoUrl) || logoUrl.startsWith('/logos/')) return logoUrl;
-  return `/logos/${logoUrl.replace(/^\/+/, '')}`;
+  if (/^https?:\/\//i.test(logoUrl)) return logoUrl;
+  const path = logoUrl.startsWith('/logos/') ? logoUrl : `/logos/${logoUrl.replace(/^\/+/, '')}`;
+  return apiUrl(path);
 }
 
 function winPct(team: TeamSeasonRecord): number {
