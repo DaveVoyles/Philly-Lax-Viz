@@ -869,7 +869,7 @@ export async function render(root: HTMLElement, params: Record<string, string>):
   hero.className = 'pbla-team-hero';
   const initials = team.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
   const jerseyHtml = team.jerseyImg
-    ? `<img class="pbla-team-hero__jersey" src="https:${team.jerseyImg}" alt="${team.name} jersey" />`
+    ? `<img class="pbla-team-hero__jersey" src="${team.jerseyImg}" alt="${team.name} jersey" />`
     : `<div class="pbla-team-hero__emblem">${initials}</div>`;
   const captainHtml = team.captain
     ? `<p class="pbla-team-hero__captain">Captain: <strong>${team.captain}</strong></p>`
