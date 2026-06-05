@@ -125,6 +125,87 @@ async function loadStatus(card: HTMLElement, doc: Document): Promise<void> {
   ingestLine.appendChild(abs);
   card.appendChild(ingestLine);
 
+  // Per-source freshness table
+  const sourcesHeader = doc.createElement('h2');
+  sourcesHeader.textContent = 'Sources';
+  sourcesHeader.style.cssText = 'margin:1rem 0 .25rem; font-size:1.1rem;';
+  card.appendChild(sourcesHeader);
+
+  const STALE_MS = 48 * 60 * 60 * 1000;
+  const sources: Array<{ label: string; key: keyof FreshnessResponse; url?: string }> = [
+    { label: 'Scoreboards (phillylacrosse.com)', key: 'scoreboardLast', url: 'https://phillylacrosse.com' },
+    { label: 'Recaps (phillylacrosse.com)', key: 'recapsLast', url: 'https://phillylacrosse.com' },
+    { label: 'Rankings (phillylacrosse.com)', key: 'rankingsLast' },
+    { label: 'Schedule (phillylacrosse.com)', key: 'scheduleLast' },
+    { label: 'PIAA District 1 (piaad1.org)', key: 'piaaLast', url: 'https://piaad1.org' },
+    { label: 'Team aliases', key: 'aliasesLast' },
+    { label: 'LaxNumbers stats (phillylaxnumbers.com)', key: 'laxnumbersLast', url: 'https://phillylaxnumbers.com' },
+  ];
+
+  const table = doc.createElement('table');
+  table.style.cssText = 'width:100%; border-collapse:collapse; font-size:.9rem; margin-bottom:.5rem;';
+  const thead = doc.createElement('thead');
+  const hrow = doc.createElement('tr');
+  for (const col of ['Source', 'Last updated', 'Status']) {
+    const th = doc.createElement('th');
+    th.textContent = col;
+    th.style.cssText = 'text-align:left; padding:.3rem .5rem; border-bottom:1px solid #ddd; font-weight:600;';
+    hrow.appendChild(th);
+  }
+  thead.appendChild(hrow);
+  table.appendChild(thead);
+
+  const tbody = doc.createElement('tbody');
+  const now = Date.now();
+  for (const src of sources) {
+    const iso = freshness ? (freshness[src.key] as string | null) : null;
+    const tr = doc.createElement('tr');
+
+    const tdName = doc.createElement('td');
+    tdName.style.cssText = 'padding:.3rem .5rem; border-bottom:1px solid #eee;';
+    if (src.url) {
+      const a = doc.createElement('a');
+      a.href = src.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = src.label;
+      tdName.appendChild(a);
+    } else {
+      tdName.textContent = src.label;
+    }
+
+    const tdTime = doc.createElement('td');
+    tdTime.style.cssText = 'padding:.3rem .5rem; border-bottom:1px solid #eee;';
+    if (iso) {
+      const span = doc.createElement('span');
+      span.title = absolute(iso);
+      span.textContent = relativeFromNow(iso, now);
+      tdTime.appendChild(span);
+    } else {
+      const na = doc.createElement('span');
+      na.className = 'muted';
+      na.textContent = 'never';
+      tdTime.appendChild(na);
+    }
+
+    const tdStatus = doc.createElement('td');
+    tdStatus.style.cssText = 'padding:.3rem .5rem; border-bottom:1px solid #eee;';
+    const isStale = !iso || (now - Date.parse(iso)) > STALE_MS;
+    const badge = doc.createElement('span');
+    badge.textContent = isStale ? 'Stale' : 'Fresh';
+    badge.style.cssText = isStale
+      ? 'color:#b45309; background:#fef3c7; padding:.1rem .4rem; border-radius:4px; font-size:.8rem; font-weight:600;'
+      : 'color:#166534; background:#dcfce7; padding:.1rem .4rem; border-radius:4px; font-size:.8rem; font-weight:600;';
+    tdStatus.appendChild(badge);
+
+    tr.appendChild(tdName);
+    tr.appendChild(tdTime);
+    tr.appendChild(tdStatus);
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  card.appendChild(table);
+
   const counts = freshness?.counts ?? { teams: 0, games: 0, players: 0 } as FreshnessResponse['counts'];
   const countsHeader = doc.createElement('h2');
   countsHeader.textContent = 'Counts';

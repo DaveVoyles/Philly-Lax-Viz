@@ -172,7 +172,7 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
     },
   );
 
-  app.get<{ Querystring: { season?: string } }>('/api/games/calendar', async (req) => {
+  app.get<{ Querystring: { season?: string } }>('/api/games/calendar', cacheable, async (req) => {
     const season = req.query.season?.trim() ?? null;
     return getGameCalendar(db, season).map((row) => ({
       date: row.date,
@@ -180,7 +180,7 @@ export async function gamesRoutes(app: FastifyInstance, db: Database): Promise<v
     }));
   });
 
-  app.get<{ Params: { id: string } }>('/api/games/:id', async (req, reply) => {
+  app.get<{ Params: { id: string } }>('/api/games/:id', cacheable, async (req, reply) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
       reply.code(400);

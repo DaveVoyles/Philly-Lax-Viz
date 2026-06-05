@@ -7,6 +7,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import type { Database } from 'better-sqlite3';
+import { cacheable } from '../plugins/responseCache.js';
 
 export interface SearchHit {
   kind: 'player' | 'team';
@@ -35,7 +36,7 @@ const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 
 export async function searchRoutes(app: FastifyInstance, db: Database): Promise<void> {
-  app.get<{ Querystring: SearchQuery }>('/api/search', async (req) => {
+  app.get<{ Querystring: SearchQuery }>('/api/search', cacheable, async (req) => {
     const raw = (req.query.q ?? '').trim();
     if (raw.length < 2) return [] as SearchHit[];
 

@@ -170,6 +170,49 @@ async function main() {
   }
   console.log(`[check] duplicate team aliases: ${dupeAliases.length}`);
 
+  // 8. Orphaned player stats (stats referencing a non-existent game)
+  const orphanStats = db.prepare(`
+    SELECT COUNT(*) AS cnt
+    FROM player_stats ps
+    WHERE NOT EXISTS (SELECT 1 FROM games g WHERE g.id = ps.game_id)
+  `).get() as { cnt: number };
+
+  if (orphanStats.cnt > 0) {
+    warn(`Orphaned player_stats: ${orphanStats.cnt} stat row(s) reference game_ids not in the games table`);
+    issues++;
+  }
+  console.log(`[check] orphaned player stats: ${orphanStats.cnt}`);
+
+  // 9. Duplicate player-game stat rows (same player appears twice for the same game)
+  const dupeStats = db.prepare(`
+    SELECT ps.player_id, p.name AS player_name, ps.game_id, COUNT(*) AS cnt
+    FROM player_stats ps
+    JOIN players p ON p.id = ps.player_id
+    GROUP BY ps.player_id, ps.game_id
+    HAVING cnt > 1
+    LIMIT 20
+  `).all() as Array<{ player_id: number; player_name: string; game_id: number; cnt: number }>;
+
+  for (const d of dupeStats) {
+    warn(`Duplicate player stat: player "${d.player_name}" (id ${d.player_id}) has ${d.cnt} stat rows for game ${d.game_id}`);
+    issues++;
+  }
+  console.log(`[check] duplicate player-game stat rows: ${dupeStats.length}`);
+
+  // 10. Players with out-of-range jersey numbers
+  const badJerseys = db.prepare(`
+    SELECT p.id, p.name, p.jersey_number
+    FROM players p
+    WHERE p.jersey_number IS NOT NULL
+      AND (p.jersey_number < 0 OR p.jersey_number > 99)
+  `).all() as Array<{ id: number; name: string; jersey_number: number }>;
+
+  for (const p of badJerseys) {
+    warn(`Invalid jersey number: player "${p.name}" (id ${p.id}) has jersey_number=${p.jersey_number}`);
+    issues++;
+  }
+  console.log(`[check] players with invalid jersey numbers: ${badJerseys.length}`);
+
   db.close();
   console.log(`[checkDataQuality] done — ${issues} issue(s) found`);
   process.exit(issues > 0 ? 1 : 0);

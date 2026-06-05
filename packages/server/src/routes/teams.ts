@@ -98,7 +98,7 @@ export async function teamsRoutes(app: FastifyInstance, db: Database): Promise<v
     });
   });
 
-  app.get<{ Params: { id: string } }>('/api/teams/:id', async (req, reply) => {
+  app.get<{ Params: { id: string } }>('/api/teams/:id', cacheable, async (req, reply) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
       reply.code(400);
@@ -146,6 +146,7 @@ export async function teamsRoutes(app: FastifyInstance, db: Database): Promise<v
 
   app.get<{ Params: { id: string }; Querystring: { limit?: string } }>(
     '/api/teams/:id/topScorers',
+    cacheable,
     async (req, reply) => {
       const id = Number(req.params.id);
       if (!Number.isInteger(id) || id <= 0) {

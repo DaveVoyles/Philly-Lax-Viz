@@ -4,6 +4,7 @@ import type { Commitment, PlayerMilestones } from '@pll/shared';
 import { getStatements } from '../queries/statements.js';
 import { listPlayersBySeason } from '../queries/playerList.js';
 import { getCommitmentForPlayer } from './commitments.js';
+import { cacheable } from '../plugins/responseCache.js';
 import {
   mapPlayer,
   mapPlayerStat,
@@ -138,6 +139,7 @@ export function buildPlayerDetail(db: Database, id: number): PlayerDetailResult 
 export async function playersRoutes(app: FastifyInstance, db: Database): Promise<void> {
   app.get<{ Querystring: { season?: string; search?: string; limit?: string } }>(
     '/api/players',
+    cacheable,
     async (req) => {
       const season = req.query.season?.trim() || null;
       const search = req.query.search?.trim() || null;
@@ -152,7 +154,7 @@ export async function playersRoutes(app: FastifyInstance, db: Database): Promise
     },
   );
 
-  app.get<{ Params: { id: string } }>('/api/players/:id', async (req, reply) => {
+  app.get<{ Params: { id: string } }>('/api/players/:id', cacheable, async (req, reply) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
       reply.code(400);
@@ -166,7 +168,7 @@ export async function playersRoutes(app: FastifyInstance, db: Database): Promise
     return detail;
   });
 
-  app.get<{ Params: { id: string } }>('/api/players/:id/milestones', async (req, reply) => {
+  app.get<{ Params: { id: string } }>('/api/players/:id/milestones', cacheable, async (req, reply) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
       reply.code(400);

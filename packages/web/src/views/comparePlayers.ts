@@ -2,7 +2,7 @@
 // Route: #/compare/players?ids=12,34[,56[,78]]
 //
 // Layout:
-//   - Picker bar at top: remove-pill per current id + "Add player ID" input
+//   - Picker bar at top: remove-pill per current id + player search input
 //   - Row of N "player cards", each with header + season totals callouts +
 //     per-game points trend canvas (reuses charts/perGameTrend).
 //
@@ -17,11 +17,14 @@ import {
   getComparePlayers,
   type PlayerDetail,
   type PlayerPerGameStat,
+  searchAll,
+  type SearchHit,
 } from '../api.js';
 import { renderPerGameTrend, type PerGameTrendDatum } from '../charts/index.js';
 
 const MIN_IDS = 2;
 const MAX_IDS = 4;
+const SEARCH_DEBOUNCE_MS = 200;
 
 /** Pure helper — extracted for unit testing without a DOM. */
 export function parseIdsFromHash(hash: string): number[] {
@@ -151,36 +154,131 @@ function buildPicker(ids: ReadonlyArray<number>): HTMLElement {
     pill.appendChild(x);
     wrap.appendChild(pill);
   }
-
+ 
+  const searchWrap = document.createElement('div');
+  searchWrap.style.position = 'relative';
+  searchWrap.style.display = 'inline-block';
+ 
   const input = document.createElement('input');
-  input.type = 'number';
-  input.min = '1';
-  input.placeholder = 'Add player ID';
-  input.style.width = '8rem';
-  input.setAttribute('aria-label', 'Player ID to add');
+  input.type = 'search';
+  input.placeholder = 'Search player name…';
+  input.setAttribute('aria-label', 'Search player name');
+  input.autocomplete = 'off';
+  input.disabled = ids.length >= MAX_IDS;
+  input.style.width = '16rem';
+  input.style.maxWidth = '100%';
+  input.style.padding = '0.35rem 0.6rem';
+  input.style.borderRadius = '4px';
+  input.style.border = '1px solid #888';
+ 
+  const list = document.createElement('ul');
+  list.style.position = 'absolute';
+  list.style.top = '100%';
+  list.style.left = '0';
+  list.style.right = '0';
+  list.style.margin = '0.25rem 0 0 0';
+  list.style.padding = '0';
+  list.style.listStyle = 'none';
+  list.style.background = '#fff';
+  list.style.color = '#111';
+  list.style.border = '1px solid #ccc';
+  list.style.borderRadius = '4px';
+  list.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  list.style.maxHeight = '320px';
+  list.style.overflowY = 'auto';
+  list.style.zIndex = '100';
+  list.style.display = 'none';
+  list.setAttribute('role', 'listbox');
+ 
+  let currentHits: SearchHit[] = [];
+  let debounceHandle: ReturnType<typeof setTimeout> | null = null;
+  let activeRequest = 0;
 
-  const addBtn = document.createElement('button');
-  addBtn.type = 'button';
-  addBtn.textContent = 'Add';
-  addBtn.disabled = ids.length >= MAX_IDS;
-
-  const tryAdd = (): void => {
-    const v = Number(input.value);
-    if (!Number.isInteger(v) || v <= 0) return;
-    if (ids.includes(v)) return;
-    if (ids.length >= MAX_IDS) return;
-    const next = [...ids, v];
-    window.location.hash = buildHash(next);
-  };
-  addBtn.addEventListener('click', tryAdd);
+  function hide(): void {
+    activeRequest += 1;
+    list.style.display = 'none';
+    list.innerHTML = '';
+    currentHits = [];
+  }
+ 
+  function selectHit(hit: SearchHit): void {
+    if (ids.length >= MAX_IDS || ids.includes(hit.id)) return;
+    input.value = '';
+    hide();
+    window.location.hash = buildHash([...ids, hit.id]);
+  }
+ 
+  function renderHits(hits: SearchHit[]): void {
+    currentHits = hits;
+    list.innerHTML = '';
+    if (hits.length === 0) {
+      list.style.display = 'none';
+      return;
+    }
+ 
+    for (const hit of hits) {
+      const li = document.createElement('li');
+      li.style.padding = '0.45rem 0.75rem';
+      li.style.cursor = 'pointer';
+      li.style.borderBottom = '1px solid #eee';
+      li.setAttribute('role', 'option');
+      li.textContent = hit.teamName ? `${hit.name} — ${hit.teamName}` : hit.name;
+      li.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        selectHit(hit);
+      });
+      list.appendChild(li);
+    }
+ 
+    list.style.display = 'block';
+  }
+ 
+  async function runQuery(q: string): Promise<void> {
+    const requestId = activeRequest + 1;
+    activeRequest = requestId;
+    try {
+      const hits = (await searchAll(q)).filter(
+        (hit) => hit.kind === 'player' && !ids.includes(hit.id),
+      );
+      if (requestId !== activeRequest) return;
+      renderHits(hits);
+    } catch {
+      if (requestId !== activeRequest) return;
+      hide();
+    }
+  }
+ 
+  input.addEventListener('input', () => {
+    if (debounceHandle) clearTimeout(debounceHandle);
+    const q = input.value.trim();
+    if (input.disabled || q.length < 2) {
+      hide();
+      return;
+    }
+    debounceHandle = setTimeout(() => {
+      void runQuery(q);
+    }, SEARCH_DEBOUNCE_MS);
+  });
+ 
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Escape') {
+      hide();
+      input.blur();
+      return;
+    }
+    if (e.key === 'Enter' && currentHits.length > 0) {
       e.preventDefault();
-      tryAdd();
+      const first = currentHits[0];
+      if (first) selectHit(first);
     }
   });
-
-  wrap.append(input, addBtn);
+ 
+  document.addEventListener('mousedown', (e) => {
+    if (!searchWrap.contains(e.target as Node)) hide();
+  });
+ 
+  searchWrap.append(input, list);
+  wrap.appendChild(searchWrap);
   return wrap;
 }
 
