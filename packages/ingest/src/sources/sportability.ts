@@ -443,19 +443,45 @@ export function parseTeamRosterHtml(html: string, teamId: number): SportabilityT
 export async function scrapePblaLeague(opts: ScrapeOptions): Promise<SportabilityLeagueData> {
   const { leagueId } = opts;
 
-  const [standingsHtml, scorersHtml, goaliesHtml, scheduleHtml] = await Promise.all([
+  // Fetch standings and schedule in parallel first
+  const [standingsHtml, scheduleHtml] = await Promise.all([
     fetchPage(standingsUrl(leagueId), opts),
-    fetchPage(scorersUrl(leagueId), opts),
-    fetchPage(goaliesUrl(leagueId), opts),
     fetchPage(scheduleUrl(leagueId), opts),
   ]);
+
+  const teams = parseStandingsHtml(standingsHtml);
+
+  // Fetch per-team stats in parallel — the global scorers URL only returns top-10 league-wide.
+  // Per-team queries return all scorers for each team.
+  const teamIds = teams.filter((t) => t.id > 0).map((t) => t.id);
+  const [perTeamScorers, perTeamGoalies] = await Promise.all([
+    Promise.all(teamIds.map((id) => fetchPage(scorersTeamUrl(leagueId, id), opts).then(parseScorersHtml))),
+    Promise.all(teamIds.map((id) => fetchPage(goaliesTeamUrl(leagueId, id), opts).then(parseGoaliesHtml))),
+  ]);
+
+  // Flatten and deduplicate by name+team (in case a player appears in multiple team pages)
+  const playersSeen = new Set<string>();
+  const players: SportabilityPlayer[] = perTeamScorers.flat().filter((p) => {
+    const key = `${p.name.toLowerCase()}|${p.team.toLowerCase()}`;
+    if (playersSeen.has(key)) return false;
+    playersSeen.add(key);
+    return true;
+  });
+
+  const goaliesSeen = new Set<string>();
+  const goalies: SportabilityGoalie[] = perTeamGoalies.flat().filter((g) => {
+    const key = `${g.name.toLowerCase()}|${g.team.toLowerCase()}`;
+    if (goaliesSeen.has(key)) return false;
+    goaliesSeen.add(key);
+    return true;
+  });
 
   return {
     leagueId,
     scrapedAt: new Date().toISOString(),
-    teams: parseStandingsHtml(standingsHtml),
-    players: parseScorersHtml(scorersHtml),
-    goalies: parseGoaliesHtml(goaliesHtml),
+    teams,
+    players,
+    goalies,
     games: parseScheduleHtml(scheduleHtml),
   };
 }
