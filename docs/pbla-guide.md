@@ -296,3 +296,40 @@ Navigation label: "Box Lacrosse" (in main nav, lazy-loaded).
 | Video link throws off grid alignment | Game row uses `1fr auto auto 1fr` grid. Video button has its own column with `justify-self: end`. |
 | `homeTeam`/`awayTeam` confusion | Sportability format: "Away at Home". In our data: `homeTeam` = the team being visited. |
 | Playoff games show TBD | Expected — playoff matchups determined at end of regular season. |
+
+## 12. Adding a New Team (Checklist)
+
+When a new team joins the PBLA league, run through this checklist to prevent roster gaps:
+
+### Pre-season / team onboarding
+
+1. **Add to `pblaData.ts` teams array** — copy an existing team entry, update `id`, `name`, `gp`, `wins`, `losses`, `ties`, `otw`, `otl`, `pts`, `pf`, `pa`, `diff`, `streak`, `color`, `captain`, `jerseyImg`.
+2. **Add to `pblaLoader.ts` TEAM_META** — add an entry with `captain` and `jerseyImg` to the `TEAM_META` map so the live API path picks it up.
+3. **Add roster to `pblaData.ts` rosters block** — use `pbla:check --roster` (see below) to get the full roster from Sportability and paste it in.
+4. **Add logo** if team has a custom logo: place in `data/logos/` as a `.png` or hosted URL, update `jerseyImg`.
+
+### Verifying rosters any time
+
+Run this command to diff all live Sportability rosters against what's in `pblaData.ts`:
+
+```bash
+pnpm pbla:check -- --roster
+```
+
+Output:
+- `OK` — team roster matches
+- `MISSING` — players on Sportability but not in `pblaData.ts` (with paste-ready TS snippets)
+- `ONLY in pblaData.ts` — players in static data but no longer on Sportability (may have left team)
+- `*** has NO roster block ***` — team was added without any roster at all
+
+Exit code 1 when drift is found, 0 when clean — safe to use in CI.
+
+### How Sportability team IDs work
+
+Team IDs (`TmID`) are assigned per-season. Each year a team may get a new ID. The ID is embedded in the standings page link (`Team.asp?LgID=...&TmID=XXXXX`) and is automatically picked up by `pbla:check --roster` via the standings parser — no manual ID lookup needed.
+
+If you need to manually check a team's roster page:
+```
+https://secure.sportability.com/spx/leagues/team.asp?LgID=50731&TmID={TmID}
+```
+See §9 for the current 2026 season team IDs.

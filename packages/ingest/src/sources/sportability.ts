@@ -73,6 +73,17 @@ export interface SportabilityLeagueData {
   games: SportabilityGame[];
 }
 
+export interface SportabilityRosterPlayer {
+  jersey: string;
+  name: string;
+}
+
+export interface SportabilityTeamRoster {
+  teamId: number;
+  teamName: string;
+  players: SportabilityRosterPlayer[];
+}
+
 // --- URL helpers --------------------------------------------------------
 
 const BASE = 'https://secure.sportability.com/spx/Leagues';
@@ -93,6 +104,10 @@ export function goaliesUrl(leagueId: number): string {
 
 export function scheduleUrl(leagueId: number): string {
   return `${BASE}/Schedule.asp?LgID=${leagueId}`;
+}
+
+export function teamRosterUrl(leagueId: number, teamId: number): string {
+  return `https://secure.sportability.com/spx/leagues/team.asp?LgID=${leagueId}&TmID=${teamId}`;
 }
 
 // --- Parsers ------------------------------------------------------------
@@ -353,6 +368,65 @@ async function fetchPage(url: string, opts: ScrapeOptions): Promise<string> {
 }
 
 /**
+ * Parse a Sportability team roster page (team.asp?LgID=...&TmID=...).
+ *
+ * The page is latin-1 encoded. Roster rows have:
+ *   <td align=right>{jersey}</td><td><a ...>{name}</a></td>
+ *
+ * "Bench X" entries (jersey -1 or empty-ish) are placeholder slots and are excluded.
+ */
+export function parseTeamRosterHtml(html: string, teamId: number): SportabilityTeamRoster {
+  const $ = cheerio.load(html);
+
+  // Extract team name from the page heading
+  let teamName = '';
+  $('td.sectionhead, h2, h3, .teamname').each((_i, el) => {
+    const t = $(el).text().trim();
+    if (t && !teamName) teamName = t;
+  });
+  // Fallback: look for a bold header cell
+  if (!teamName) {
+    $('b').each((_i, el) => {
+      const t = $(el).text().trim();
+      if (t.length > 3 && !teamName) teamName = t;
+    });
+  }
+
+  const players: SportabilityRosterPlayer[] = [];
+  const seen = new Set<string>();
+
+  // Roster rows: <td align="right">jersey</td><td><a href="...">Name</a></td>
+  $('tr').each((_i, tr) => {
+    const tds = $(tr).find('td');
+    if (tds.length < 2) return;
+
+    // Find the first td with align=right that looks like a jersey cell
+    let jerseyTd = -1;
+    tds.each((j, td) => {
+      const align = $(td).attr('align') ?? '';
+      if (align.toLowerCase() === 'right' && jerseyTd === -1) jerseyTd = j;
+    });
+    if (jerseyTd === -1) return;
+
+    const jerseyRaw = $(tds[jerseyTd]).text().trim();
+    const nameEl = $(tds[jerseyTd + 1]).find('a');
+    const name = nameEl.text().trim();
+
+    if (!name || name.length < 2) return;
+    // Skip bench/placeholder slots
+    if (jerseyRaw === '-1' || name.toLowerCase().startsWith('bench')) return;
+
+    const key = name.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    players.push({ jersey: jerseyRaw, name });
+  });
+
+  return { teamId, teamName, players };
+}
+
+/**
  * Scrape all PBLA data for a given league from Sportability.
  * Returns structured data ready for DB storage or JSON export.
  */
@@ -374,4 +448,20 @@ export async function scrapePblaLeague(opts: ScrapeOptions): Promise<Sportabilit
     goalies: parseGoaliesHtml(goaliesHtml),
     games: parseScheduleHtml(scheduleHtml),
   };
+}
+
+/**
+ * Fetch and parse a single team's roster from Sportability.
+ */
+export async function fetchTeamRoster(
+  leagueId: number,
+  team: Pick<SportabilityTeam, 'id' | 'name'>,
+  opts: Omit<ScrapeOptions, 'leagueId'>,
+): Promise<SportabilityTeamRoster> {
+  const url = teamRosterUrl(leagueId, team.id);
+  const html = await fetchPage(url, { ...opts, leagueId });
+  const roster = parseTeamRosterHtml(html, team.id);
+  // Use the name from the standings (more reliable than what's on the team page)
+  roster.teamName = team.name;
+  return roster;
 }

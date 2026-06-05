@@ -9,6 +9,7 @@
  *   pnpm pbla:check -- --save         # print diff AND overwrite snapshot with live data
  *   pnpm pbla:check -- --generate     # also fetch standings; output ready-to-paste TS snippets for pblaData.ts
  *   pnpm pbla:check -- --verify       # compare snapshot played games against pblaData.ts (no network call)
+ *   pnpm pbla:check -- --roster       # fetch live rosters and diff against pblaData.ts; prints missing players
  *
  * Outputs:
  *   - NEW RESULT for any game that had 0-0 in snapshot but now has scores
@@ -29,6 +30,7 @@ import {
   parseScheduleHtml,
   standingsUrl,
   parseStandingsHtml,
+  fetchTeamRoster,
 } from '../sources/sportability.js';
 import type { SportabilityGame, SportabilityTeam } from '../sources/sportability.js';
 
@@ -93,9 +95,156 @@ function parsePblaDataGames(): Map<string, { homeScore: number; awayScore: numbe
 }
 
 /**
- * --verify: Compare snapshot played games against pblaData.ts.
- * Prints any discrepancies and returns true if drift was found.
+ * --roster: Parse pblaData.ts and extract all rosters.
+ * Returns a map of teamName -> Set of normalized player names.
  */
+function parsePblaDataRosters(): Map<string, { players: Array<{ name: string; jersey: string }> }> {
+  let text: string;
+  try {
+    text = readFileSync(PBLA_DATA_PATH, 'utf8');
+  } catch {
+    console.error(`Could not read ${PBLA_DATA_PATH}`);
+    return new Map();
+  }
+
+  const result = new Map<string, { players: Array<{ name: string; jersey: string }> }>();
+
+  // Match roster team keys — both quoted ('Beer Wolves': [) and unquoted (Thunder: [)
+  // We capture from the rosters: { block to avoid false matches elsewhere in the file
+  const rostersBlockMatch = /rosters:\s*\{([\s\S]*?)^\s*\}/m.exec(text);
+  const block = rostersBlockMatch ? rostersBlockMatch[1]! : text;
+
+  // Match both 'Quoted Name': [ and UnquotedName: [ as team keys
+  const teamKeyPattern = /^\s+(?:'([^']+)'|([A-Za-z]\w*)):\s*\[/gm;
+  // Match both single and double quoted name values (double quotes used when name contains apostrophe)
+  const playerPattern = /\{\s*name:\s*(?:'([^']+)'|"([^"]+)")[^}]*?jersey:\s*'([^']*)'/g;
+
+  const teamStarts: Array<{ name: string; start: number }> = [];
+  let tm: RegExpExecArray | null;
+  while ((tm = teamKeyPattern.exec(block)) !== null) {
+    const name = tm[1] ?? tm[2] ?? '';
+    if (name) teamStarts.push({ name, start: tm.index });
+  }
+
+  for (let i = 0; i < teamStarts.length; i++) {
+    const { name, start } = teamStarts[i]!;
+    const end = i + 1 < teamStarts.length ? teamStarts[i + 1]!.start : block.length;
+    const teamBlock = block.slice(start, end);
+
+    const players: Array<{ name: string; jersey: string }> = [];
+    playerPattern.lastIndex = 0;
+    let pm: RegExpExecArray | null;
+    while ((pm = playerPattern.exec(teamBlock)) !== null) {
+      players.push({ name: (pm[1] ?? pm[2])!, jersey: pm[3]! });
+    }
+    if (players.length > 0) {
+      result.set(name, { players });
+    }
+  }
+  return result;
+}
+
+/**
+ * --roster: Fetch each team's live roster from Sportability, diff against pblaData.ts.
+ * Prints missing players and paste-ready TS snippets.
+ */
+async function runRosterCheck(teams: SportabilityTeam[]): Promise<boolean> {
+  console.log('=== ROSTER CHECK: Fetching live rosters from Sportability ===\n');
+
+  const staticRosters = parsePblaDataRosters();
+  if (staticRosters.size === 0) {
+    console.error('Could not parse any rosters from pblaData.ts');
+    return true;
+  }
+
+  const UA_HEADERS = {
+    'User-Agent': 'philly-lacrosse-vis/0.1 (+https://phillylaxstats.com) - PBLA roster check',
+    Accept: 'text/html,application/xhtml+xml',
+  };
+
+  let driftFound = false;
+
+  for (const team of teams) {
+    if (!team.id) {
+      console.log(`  SKIP  ${team.name} — no team ID from standings`);
+      continue;
+    }
+
+    process.stdout.write(`Checking ${team.name} (TmID=${team.id})... `);
+
+    let liveRoster;
+    try {
+      liveRoster = await fetchTeamRoster(LEAGUE_ID, team, {
+        fetchFn: (url) =>
+          fetch(url, { headers: UA_HEADERS }) as Promise<{ ok: boolean; status: number; text(): Promise<string> }>,
+      });
+    } catch (err) {
+      console.log(`FAILED (${err instanceof Error ? err.message : err})`);
+      continue;
+    }
+
+    console.log(`${liveRoster.players.length} players`);
+
+    const staticEntry = staticRosters.get(team.name);
+    const staticNames = new Set(
+      (staticEntry?.players ?? []).map(p => p.name.toLowerCase().replace(/\s+/g, ' ').trim()),
+    );
+    const liveNames = new Set(liveRoster.players.map(p => p.name.toLowerCase().replace(/\s+/g, ' ').trim()));
+
+    const missingFromStatic = liveRoster.players.filter(
+      p => !staticNames.has(p.name.toLowerCase().replace(/\s+/g, ' ').trim()),
+    );
+    const onlyInStatic = (staticEntry?.players ?? []).filter(
+      p => !liveNames.has(p.name.toLowerCase().replace(/\s+/g, ' ').trim()),
+    );
+
+    if (missingFromStatic.length === 0 && onlyInStatic.length === 0) {
+      console.log(`  OK    ${team.name} — ${liveRoster.players.length} players match\n`);
+      continue;
+    }
+
+    driftFound = true;
+
+    if (missingFromStatic.length > 0) {
+      console.log(`  MISSING from pblaData.ts (${missingFromStatic.length}):`);
+      for (const p of missingFromStatic) {
+        console.log(`    + ${p.name} (jersey: '${p.jersey}')`);
+      }
+    }
+
+    if (onlyInStatic.length > 0) {
+      console.log(`  ONLY in pblaData.ts / not on Sportability (${onlyInStatic.length}):`);
+      for (const p of onlyInStatic) {
+        console.log(`    - ${p.name} (jersey: '${p.jersey}')`);
+      }
+    }
+
+    if (!staticEntry) {
+      console.log(`  *** Team '${team.name}' has NO roster block in pblaData.ts at all! ***`);
+    }
+
+    // Print paste-ready TS snippet for missing players
+    if (missingFromStatic.length > 0) {
+      console.log(`\n  Paste into pblaData.ts under '${team.name}':`);
+      for (const p of missingFromStatic) {
+        const safeName = p.name.replace(/\s+/g, ' ').trim().replace(/'/g, "\\'");
+        console.log(
+          `        { name: '${safeName}', jersey: '${p.jersey}', position: '', notes: '' },`,
+        );
+      }
+    }
+    console.log();
+  }
+
+  if (driftFound) {
+    console.log('Action needed: update pblaData.ts with the entries above.');
+  } else {
+    console.log('All team rosters match pblaData.ts — no action needed.');
+  }
+  return driftFound;
+}
+
+
 function runVerify(snapshot: Snapshot): boolean {
   console.log('=== VERIFY: Checking snapshot vs pblaData.ts ===\n');
   const pblaGames = parsePblaDataGames();
@@ -205,6 +354,7 @@ async function main() {
   const save = process.argv.includes('--save');
   const generate = process.argv.includes('--generate');
   const verify = process.argv.includes('--verify');
+  const roster = process.argv.includes('--roster');
 
   // Load local snapshot
   let snapshot: Snapshot;
@@ -220,6 +370,28 @@ async function main() {
   // --verify mode: compare snapshot against pblaData.ts without fetching live data
   if (verify) {
     const driftFound = runVerify(snapshot);
+    process.exit(driftFound ? 1 : 0);
+  }
+
+  // --roster mode: fetch live rosters and diff against pblaData.ts
+  if (roster) {
+    console.log(`Fetching standings to get team IDs (LgID=${LEAGUE_ID})...`);
+    const sRes = await fetch(standingsUrl(LEAGUE_ID), {
+      headers: {
+        'User-Agent': 'philly-lacrosse-vis/0.1 (+https://phillylaxstats.com) - PBLA roster check',
+        Accept: 'text/html,application/xhtml+xml',
+      },
+    });
+    if (!sRes.ok) {
+      console.error(`Fetch failed: ${sRes.status}`);
+      process.exit(1);
+    }
+    const teams = parseStandingsHtml(await sRes.text());
+    if (teams.length === 0) {
+      console.error('No teams found in standings — possible HTML change on Sportability');
+      process.exit(1);
+    }
+    const driftFound = await runRosterCheck(teams);
     process.exit(driftFound ? 1 : 0);
   }
 
