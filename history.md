@@ -15,3 +15,4 @@
 - 2026-06-05: Removed broken PBLA jersey images for 5 teams (wsimg.com returned HTTP 204 - files deleted from GoDaddy hosting); Pups LC and Beer Wolves retained
 - 2026-06-05: Self-hosted all 7 PBLA jersey images in data/logos/ (downloaded from phillyboxlacrosse.org); fixed pblaTeam.ts src rendering to not blindly prepend https:
 - 2026-06-05: Added platform improvements — player autocomplete on Compare page, 8 newly cached API endpoints, per-source freshness table on Status page, 3 new data quality checks (orphaned stats, duplicate player-game rows, invalid jersey numbers)
+- 2026-06-05: Enriched PBLA team pages with top scorers bar chart and GF/GA scoring trend line chart; added chart handle cleanup on season switch and destroy
