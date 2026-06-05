@@ -15,6 +15,7 @@ on:
 permissions:
   contents: write
   id-token: write
+  issues: write
 
 env:
   NODE_VERSION: '22'
@@ -120,3 +121,39 @@ jobs:
         run: |
           sleep 5
           gh workflow run deploy.yml --ref main
+
+      - name: Check PBLA rosters for missing players
+        if: inputs.dry_run != 'true'
+        id: roster_check
+        continue-on-error: true
+        run: pnpm pbla:check -- --roster
+
+      - name: Open issue if roster gaps detected
+        if: inputs.dry_run != 'true' && steps.roster_check.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh issue list --label "pbla-roster-gap" --state open --json number --jq 'length')
+          if [ "$EXISTING" -gt "0" ]; then
+            echo "Roster gap issue already open -- skipping duplicate."
+            exit 0
+          fi
+          ROSTER_OUTPUT=$(pnpm pbla:check -- --roster 2>&1 || true)
+          printf '%s\n' \
+            "The nightly sync-pbla workflow detected players on Sportability missing from pblaData.ts." \
+            "" \
+            "How to fix:" \
+            '```bash' \
+            "pnpm pbla:check -- --roster" \
+            '```' \
+            "Copy the paste-ready entries into packages/web/src/views/pblaData.ts and push." \
+            "" \
+            "Raw output:" \
+            '```' \
+            "$ROSTER_OUTPUT" \
+            '```' \
+            > /tmp/roster-issue-body.txt
+          gh issue create \
+            --title "PBLA roster gap detected - $(date -u +%Y-%m-%d)" \
+            --label "pbla-roster-gap" \
+            --body-file /tmp/roster-issue-body.txt
