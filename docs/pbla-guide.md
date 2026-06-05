@@ -299,18 +299,33 @@ Navigation label: "Box Lacrosse" (in main nav, lazy-loaded).
 
 ## 12. Adding a New Team (Checklist)
 
-When a new team joins the PBLA league, run through this checklist to prevent roster gaps:
-
-### Pre-season / team onboarding
+When a new team joins the PBLA at the start of a season:
 
 1. **Add to `pblaData.ts` teams array** — copy an existing team entry, update `id`, `name`, `gp`, `wins`, `losses`, `ties`, `otw`, `otl`, `pts`, `pf`, `pa`, `diff`, `streak`, `color`, `captain`, `jerseyImg`.
 2. **Add to `pblaLoader.ts` TEAM_META** — add an entry with `captain` and `jerseyImg` to the `TEAM_META` map so the live API path picks it up.
-3. **Add roster to `pblaData.ts` rosters block** — use `pbla:check --roster` (see below) to get the full roster from Sportability and paste it in.
-4. **Add logo** if team has a custom logo: place in `data/logos/` as a `.png` or hosted URL, update `jerseyImg`.
+3. **Add an empty roster block** to `pblaData.ts` rosters section: `TeamName: [],`
+4. **CI auto-fills the roster** — the next `sync-pbla` run will call `patchPblaRosters.ts`, fetch the full roster from Sportability, and commit it automatically.
 
-### Verifying rosters any time
+### How roster auto-patching works
 
-Run this command to diff all live Sportability rosters against what's in `pblaData.ts`:
+The `sync-pbla` workflow (Tue/Thu 6AM ET) runs `patchPblaRosters.ts` on every execution:
+
+- Fetches each team's roster page from Sportability
+- Compares against `pblaData.ts` rosters block
+- If any players are missing, inserts them and commits `chore(pbla): auto-sync rosters from Sportability`
+- Triggers a deploy so the live site updates immediately
+
+**You never need to manually enter roster data.** Just add the empty `TeamName: []` block and CI handles the rest on the next run.
+
+### Manual trigger (if you can't wait for the nightly run)
+
+```bash
+pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaRosters.ts --dry-run  # preview
+pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaRosters.ts             # apply
+git add packages/web/src/views/pblaData.ts && git commit -m "chore(pbla): sync rosters" && git push
+```
+
+### Verifying roster state (read-only)
 
 ```bash
 pnpm pbla:check -- --roster
@@ -318,18 +333,10 @@ pnpm pbla:check -- --roster
 
 Output:
 - `OK` — team roster matches
-- `MISSING` — players on Sportability but not in `pblaData.ts` (with paste-ready TS snippets)
-- `ONLY in pblaData.ts` — players in static data but no longer on Sportability (may have left team)
-- `*** has NO roster block ***` — team was added without any roster at all
-
-Exit code 1 when drift is found, 0 when clean — safe to use in CI.
+- `MISSING` — players on Sportability but not in `pblaData.ts`
+- `ONLY in pblaData.ts` — players in static data but no longer on Sportability
+- `*** has NO roster block ***` — team was added without any roster block
 
 ### How Sportability team IDs work
 
-Team IDs (`TmID`) are assigned per-season. Each year a team may get a new ID. The ID is embedded in the standings page link (`Team.asp?LgID=...&TmID=XXXXX`) and is automatically picked up by `pbla:check --roster` via the standings parser — no manual ID lookup needed.
-
-If you need to manually check a team's roster page:
-```
-https://secure.sportability.com/spx/leagues/team.asp?LgID=50731&TmID={TmID}
-```
-See §9 for the current 2026 season team IDs.
+Team IDs (`TmID`) are assigned per-season. The `patchPblaRosters.ts` script reads them automatically from the standings page — no manual ID lookup needed. See §9 for the current 2026 season team IDs.
