@@ -12,3 +12,4 @@
 - 2026-06-04: Round-4 bug fixes: PBLA team ID=0, partial-payload fallback, applyCorrections transaction safety, CI upload gate, laxnumbersRatings validation, rankings 400, pipeline transactions, data quality checks expanded, PIAA join deterministic
 - 2026-06-05: Updated the web service worker to use deploy-safe caching strategies and purge stale v2 caches, preventing post-deploy asset 404s.
 - 2026-06-05: Fixed service worker stale-cache 404s (pll-v2→v3, network-first navigation, immutable assets headers) and added proper Cache-Control routes in staticwebapp.config.json
+- 2026-06-05: Removed broken PBLA jersey images for 5 teams (wsimg.com returned HTTP 204 - files deleted from GoDaddy hosting); Pups LC and Beer Wolves retained
