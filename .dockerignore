@@ -18,14 +18,16 @@ node_modules
 
 # Local data + caches that must NEVER ship in the image
 data
-!data/lacrosse.db
-!data/logos
 fixtures
 **/raw-cache
 *.db
 *.db-journal
 *.sqlite
 *.sqlite-journal
+# Re-include specific data assets needed in the image (must follow exclusions to win)
+!data/lacrosse.db
+!data/logos
+!data/logos/**
 
 # Env + secrets
 .env
