@@ -1,7 +1,7 @@
 {
   "leagueId": 50731,
   "year": 2026,
-  "snapshotDate": "2026-06-09",
+  "snapshotDate": "2026-06-11",
   "note": "Local reference snapshot of the 2026 PBLA season schedule. Update alongside pblaData.ts after each game night. Run 'pnpm pbla:check' to diff against the live Sportability schedule.",
   "games": [
     {
@@ -142,8 +142,8 @@
       "time": "7:00p",
       "homeTeam": "Edge",
       "awayTeam": "Pups LC",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 5,
+      "awayScore": 14,
       "location": "Rizzo Rink",
       "isPlayoff": false
     },
@@ -153,8 +153,8 @@
       "time": "8:00p",
       "homeTeam": "More Dudes LC",
       "awayTeam": "Thunder",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 5,
+      "awayScore": 7,
       "location": "Rizzo Rink",
       "isPlayoff": false
     },
