@@ -11,32 +11,19 @@ description: >
 The Autonomous Fleet Agent coordinates **multiple sub-agents working in parallel** to execute complex, multi-part tasks.
 This file **extends** the base guidelines in `.github/copilot-instructions.md`. All base rules (e.g. security, ADRs, tests, commits, and verification) are fully inherited.
 
-### Fleet-First Decision Rule
-**Fleet is the default.** Before planning, assume parallel execution unless one of the Solo Allowed conditions below is met. When uncertain, choose fleet.
+### When to Use Fleet vs. Solo
 
-**Solo Allowed?** Solo work requires a one-sentence written justification. It is only permitted when ALL three of the following are true:
-- The task is a single logical change touching ≤2 files.
-- Every step depends entirely on the previous step's output (no parallelism is possible).
-- Estimated effort is under 3 minutes (trivially fast).
+**Use Fleet when:** ≥3 genuinely independent workstreams, unfamiliar domain requiring parallel research, or complex multi-part tasks where parallel execution provides clear time/cost savings.
 
-If any condition is not met, use the fleet. Record your justification as: `Solo justification: [reason]` at the top of the plan.
+**Skip Fleet (use solo) when:** Task is sequential, system is familiar, <5 steps, or a straightforward single-agent task. Fleet overhead (fresh sub-agent contexts) isn't justified for small/routine work.
 
-- **Fleet (Parallel):** Default choice. Use when there are ≥2 independent workstreams, research/implementation combos, cross-directory edits, or solo effort >3 mins where parallelism saves time.
-- **Solo (Serial):** Exception only. Requires the written Solo Allowed justification above.
+**Decision:** If uncertain, start solo. Escalate to fleet only if you hit parallelizable bottlenecks. Avoid forcing fleet on sequential tasks just for visibility — a solo agent with checkpoints is often cheaper.
 
 ### Wave Sizing & Planning
 Break work into sequential **Waves**. Each wave consists of parallel **Lanes** mapped to independent outcomes.
 - Track all tasks, waves, and lane status using the database `todos` and `todo_deps` tables.
-- **Wave 0 (Research Phase):** Run broad research/investigation lanes in parallel first.
-- Maintain a **Context Map** and **deterministic IDs** in the plan file (`.github/docs/<date>-<task-slug>-plan.md` or session folder) for Medium/High risk tasks before initiating execution waves.
-
-### Planning ID Schema
-- `REQ-###`: User requirements and acceptance criteria
-- `ASM-###`: Explicit assumptions made
-- `LANE-###`: Agent lane identifiers
-- `VAL-###`: Validation Matrix checks/evidence rows
-- `EVD-###`: Evidence Ledger entries
-- `RISK-###`: Identified risk rows
+- **Wave 0 (Research Phase):** Optional — run parallel research lanes if the domain is unfamiliar or task is high-risk. Skip for routine work.
+- Maintain a **Context Map** in the plan file for Medium/High risk tasks before initiating execution waves.
 
 ### Fleet Sizing Guidance
 Use t-shirt sizing to estimate complexity and determine the active fleet size:
@@ -99,33 +86,31 @@ Map lanes to specific sub-agent types using the `task` tool:
 | **code-review** | `"code-review"` | Pre-commit diff auditing (staged changes) | File execution | **Advanced Reasoning** (`claude-sonnet-4.6`, `claude-opus-4.8`) |
 
 ### Specialist Lane Routing
-Add a specialist check to the Validation Matrix if any of the following are triggered:
-- **UI/Accessibility:** Keyboard flow (Tab navigation, focus states), screen-reader labels (`aria-label`, `alt` text), semantic structure. Route to `general-purpose`.
-- **Security/Auth:** Least-privilege permissions, zero hardcoded secrets/credentials, safe logging (no credentials or PII in logs). Route to `general-purpose` (or `explore` for audit).
-- **Database/Migration:** Pre-migration backups, dry-run preview for destructive SQL (`DROP`, `TRUNCATE`, `ALTER`). Route to `general-purpose`.
-- **QA Sign-off Lane:** Independent verification. No code fixes. Must return the following QA Sign-off report:
-  ```markdown
-  ### QA Sign-off
-  - **Verdict:** pass | fail | blocked
-  - **Checks run:** [commands/steps]
-  - **Coverage:** [happy path, error states, edge cases]
-  - **Bugs found:** [severity, repro, expected, actual, evidence]
-  - **Sign-off notes:** [caveats]
-  ```
+If any of the following domains arise, assign a specialist lane:
+
+**UI/Accessibility:** Route to `general-purpose` — ensure keyboard navigation (Tab flow, focus states), screen-reader labels (`aria-label`, `alt` text), semantic HTML.
+
+**Security/Auth:** Route to `general-purpose` — verify least-privilege scoping, zero hardcoded secrets, safe logging (no credentials/PII).
+
+**Database/Migration:** Route to `general-purpose` — require pre-migration backups and dry-run preview for destructive SQL (`DROP`, `TRUNCATE`, `ALTER`).
+
+**QA Sign-off:** Independent verification lane (no code fixes). Return a brief sign-off: verdict (pass/fail/blocked), checks run, coverage, bugs found.
 
 ---
 
-## 5. Wave 0: Parallel Research Phase & Synthesis
+## 5. Wave 0: Parallel Research Phase & Synthesis (Optional)
 
-### Research Questions
-- For Medium or High risk work, always run a Wave 0 research phase.
-- Assign parallel `explore` or `research` agents to investigate focused questions concurrently.
-- Wave 0 is **strictly read-only**: do not write or edit code files.
+### When to Run Wave 0
+- **Medium or High risk work** with unfamiliar domains
+- **Complex research questions** requiring parallel investigation
+- **Skip if:** Task is routine, domain is familiar, or risk is low
 
-### Synthesis Process
-1. Gather all findings from the active research lanes.
-2. Document patterns, risks, and implementation pathways in the plan file under a `## Findings` section.
-3. Use these findings to build the Context Map and Validation Matrix before initiating Wave 1 implementation.
+### Research Execution
+If Wave 0 is needed:
+- Assign parallel `explore` or `research` agents to focused questions
+- Wave 0 is **strictly read-only**: no code writes
+- Gather findings under a `## Findings` section in the plan
+- Document patterns, risks, and implementation pathways before Wave 1
 
 ---
 
@@ -208,34 +193,33 @@ Deliverable & Done When:
 ### Communication Protocol
 Post brief checkpoints to the user using visual emoji markers:
 ```markdown
-### Checkpoint Format
-🔍 Lane 1 (Han 😉🚀): Audit complete (12 files scanned, 3 patterns found)
-✅ Lane 2 (Yoda 👽✨): Implementation phase 1 complete (4 adapters created, tests pass)
-```
-```markdown
-### Communication Log Table (in Plan File)
-| Time  | Lane | Fleet Name | Update |
-| ----- | ---- | ---------- | ------ |
-| 14:32 | 1    | Han 😉🚀   | 🔍 Audit complete: 12 files scanned |
+### Checkpoint Format (Bullet Style)
+🔍 **Lane 1 (Han 😉🚀):** Audit complete — 12 files scanned, 3 patterns found
+✅ **Lane 2 (Yoda 👽✨):** Implementation phase 1 complete — 4 adapters created, tests pass
 ```
 
-### Mandatory Pre-Launch Announcement
-**Before dispatching any lanes**, the orchestrator MUST post a fleet brief to the user. No lanes may be launched without this announcement appearing first.
+**In the plan file, record updates as:**
+```markdown
+### Progress Log
+- 14:32 Lane 1 (Han): 🔍 Audit complete — 12 files scanned
+- 14:45 Lane 2 (Yoda): 🛠️ Implementing adapters (2/4 done)
+- 15:00 Lane 1 (Han): ✅ Audit final report posted
+```
+
+### Fleet Launch Brief
+Before dispatching lanes, post a brief announcement to the user:
 
 ```markdown
 ### 🚀 Fleet Launch — Wave [N]
-**Task:** [1-line summary of what the fleet will accomplish]
+**Task:** [1-line summary]
 **Risk:** Low | Medium | High
-**Lanes dispatched:**
-
-| Lane     | Agent         | Assignment                                  |
-|----------|---------------|---------------------------------------------|
-| LANE-001 | Han 😉🚀      | [Exact scope Han owns — files, directories] |
-| LANE-002 | Yoda 👽✨     | [Exact scope Yoda owns]                     |
-| LANE-00N | ...           | ...                                         |
+**Lanes:**
+- **Lane 1 (Han 😉🚀):** [Scope — files/directories]
+- **Lane 2 (Yoda 👽✨):** [Scope]
+- **Lane N:** [Scope]
 ```
 
-> Solo tasks are exempt from this announcement but MUST still post the Mandatory Completion Recap below.
+Solo tasks skip this announcement.
 
 ### Mandatory Completion Recap
 After **every wave** (or solo task) the orchestrator MUST post a completion recap to the user. This is non-optional — do not consider a task complete until this recap is posted.
@@ -269,5 +253,251 @@ Always create/update the plan file using the structured format found in **`.gith
 
 ---
 
-**Version:** 5.34
+## 10. Session Economics & Token Efficiency
+
+Token spend is the dominant cost lever. This section documents proven patterns to compress token usage by 40–60% through smarter session boundaries, upfront context, and model selection.
+
+### 10.1 Session Boundaries: The Biggest Lever
+
+**Rule:** Start a new session every **15–20 turns** (or when switching major topics).
+
+Why this matters:
+- Long sessions accumulate conversation history that the model increasingly ignores after ~15 turns.
+- Session resets clear old history — you lose nothing valuable, just noise.
+- Fresh context windows yield **3–5× lower input tokens** for the same logical work.
+- Each new session is a "context checkpoint" that reduces downstream token bloat.
+
+#### When to Reset Sessions
+1. **Turn limit:** After 15–20 turns, end the session proactively.
+2. **Topic shift:** When moving from Phase A → Phase B (e.g., "diagnose" → "fix" → "test"), open a fresh session.
+3. **Hand-off:** When handing work off to a fresh day or human, create a full summary (see Section 10.5).
+
+#### How to Reset
+```bash
+# Option 1: Explicit /clear in CLI
+/clear
+
+# Option 2: Open a new terminal or chat tab
+# Copy the session summary (Section 10.5) as opening context
+# Paste: "Resume task: [summary]"
+```
+
+**Cost Impact:** Prevents 40M–80M token accumulation per long task. Example: "Deploy Fleet Update" (379M tokens) could have been 3–4 focused sessions (~100M total).
+
+---
+
+### 10.2 Task Decomposition: Split Multi-Step Workflows
+
+**Rule:** Break recurring multi-step patterns into separate focused sessions, each owning a complete, self-contained outcome.
+
+#### Bad Pattern (Expensive)
+- Single 30-turn session: "diagnose → implement → test → verify"
+- Conversation history grows; later turns pay the cost of early exploration.
+- **Token cost:** ~300M for complex task.
+
+#### Good Pattern (Efficient)
+- **Session 1:** "Set up [component]" — diagnose, design, plan. (5–8 turns)
+- **Session 2:** "Implement [component]" — code & self-verify. (8–12 turns)
+- **Session 3:** "Test [component]" — run suites, fix failures. (5–8 turns)
+- **Session 4:** "Verify & integrate" — final checks, hand off. (3–5 turns)
+- **Token cost:** ~100M total (3–4 smaller, focused contexts).
+
+#### Workflow Examples
+
+**Example A: Infrastructure Deployment**
+```
+Session 1: "Design deployment architecture"
+→ Outcome: architecture diagram, deployment steps, risk assessment
+
+Session 2: "Set up Kubernetes cluster"
+→ Outcome: cluster running, health checks passing
+
+Session 3: "Deploy application services"
+→ Outcome: services running, logs clean
+
+Session 4: "Verify & monitor"
+→ Outcome: integration complete, monitoring dashboards active
+```
+
+**Example B: Debugging Complex System**
+```
+Session 1: "Collect logs & diagnose root cause"
+→ Outcome: ranked hypothesis list with evidence
+
+Session 2: "Implement fix for top hypothesis"
+→ Outcome: fix applied, local tests pass
+
+Session 3: "Integration test & deploy"
+→ Outcome: production verified, no regressions
+```
+
+---
+
+### 10.3 Front-Load Context: Eliminate Gradual Exploration
+
+**Rule:** Instead of exploring files one-by-one over 20 turns, provide complete context upfront in the opening message.
+
+#### Bad Pattern (Expensive)
+```
+User: "Why is auth failing?"
+Assistant: "I'll investigate. Let me check src/auth.py..."
+[Turn 2] Reads file → asks question
+[Turn 3] Reads related file → more questions
+[Turn 20] Finally makes diagnosis
+```
+- Cost: 20 turns × 15K avg tokens = 300K tokens wasted on exploration.
+
+#### Good Pattern (Efficient)
+```
+User: "Why is auth failing?
+[hcr attached: src/dashboard/auth.py, src/dashboard/api_handlers.py:40-120, logs/error.log, config/auth.yml]"
+Assistant: [Immediate diagnosis with 3–4 ranked hypotheses, no exploration]
+```
+- Cost: 1 turn × 25K tokens (context) + 2 follow-up turns = ~50K total.
+- **Savings:** 6× cheaper.
+
+#### Implementation
+Use `hcr` (GitHub Copilot CLI context referencing) to include files upfront:
+```bash
+# DO THIS
+hcr "Diagnose slow database query" src/db/queries.sql:1-50 logs/slow.log schema.sql
+
+# NOT THIS
+User: "Why is the query slow?"
+[Waits for gradual file reads]
+```
+
+**When to use front-loaded context:**
+- Debugging: Include error logs, code files, configs.
+- Code review: Include staged diff, related files.
+- Architecture review: Include relevant modules, deployment configs.
+- Optimization: Include metrics, profiling output, related code.
+
+---
+
+### 10.4 Model Selection by Task Type
+
+Not all tasks need Opus. Route to the right model to cut costs while maintaining quality.
+
+| Task Type | Use This Model | Why | Cost vs Opus |
+|-----------|---|---|---|
+| Iterative debugging, config questions, error messages | **Claude Haiku 4.5** | Fully capable for "does this look right?" 95+ IQ | ~96% cheaper |
+| Code writing, explanations, design review | **Claude Sonnet 4.6** | Best reasoning-to-cost ratio for implementation | ~10× cheaper |
+| Architecture, multi-file logic, complex reasoning | **Claude Opus 4.8** | Needed only for truly complex decisions | Baseline (1×) |
+| Web research, documentation search | **Gemini Flash** | Fast, cheap, excellent retrieval | ~98% cheaper |
+
+#### Routing Examples
+```
+User: "Is this config syntax right?"
+→ Use: Claude Haiku (config syntax validation, no reasoning needed)
+
+User: "Implement OAuth2 flow for the dashboard"
+→ Use: Claude Sonnet (focused code implementation, moderate complexity)
+
+User: "Design a distributed cache architecture for 10M users"
+→ Use: Claude Opus (complex reasoning, multiple trade-offs)
+
+User: "Find the latest React best practices"
+→ Use: Gemini Flash (web research, retrieval, citations)
+```
+
+**Cost Impact:** Routing 60% of work to Haiku saves ~55% of total token spend.
+
+---
+
+### 10.5 Diagnostic-First Debugging: Eliminate Trial-and-Error
+
+**Rule:** Collect all relevant logs, configs, and context upfront. Ask for a complete diagnosis with ranked hypotheses in 1–2 turns instead of iterating "try this, no try that" for 30 turns.
+
+#### Bad Pattern (Expensive)
+```
+[Turn 1] "Plex is slow"
+[Turn 2] "Try restarting the service"
+[Turn 3] "Still slow, try increasing memory"
+[Turn 4] "Still slow, check disk I/O"
+[Turn 30] "Found it — wrong database index"
+Cost: 30× exploration = ~450K tokens
+```
+
+#### Good Pattern (Efficient)
+```
+[Turn 1] "Plex is slow. [attached: logs, system metrics, configs, recent changes]"
+[Turn 2] "Diagnosis: Ranked hypotheses — (1) Wrong index (evidence: query plan X), 
+(2) Memory pressure (evidence: metrics Y), (3) Disk contention (evidence Z)"
+[Turn 3] "Implement top hypothesis, verify"
+Cost: 3 turns = ~50K tokens
+```
+
+#### Checklist: What to Dump Upfront
+- **Error messages / logs** (last 50 lines)
+- **System metrics** (CPU, memory, disk, network)
+- **Configuration files** (relevant sections, no secrets)
+- **Recent changes** (git log last 5 commits)
+- **Expected behavior** (1 sentence)
+- **Actual behavior** (1 sentence)
+
+---
+
+### 10.6 Session Summary & Handoff Template
+
+When a session approaches 15+ turns **and more work remains**, end it with a complete summary for the next session.
+
+#### Template
+```markdown
+## Session Summary [Date] — [Task Name]
+
+### What Was Done ✅
+- [Completed outcome 1] (brief, 1 line)
+- [Completed outcome 2]
+- [Completed outcome 3]
+
+### What Worked
+- [Technique/pattern that was effective]
+- [Tool/command that saved time]
+
+### What's Left ⬜
+- [Next phase or remaining work — be specific]
+- [Blockers, if any]
+
+### How to Resume 🚀
+1. [Exact starting action]
+2. [Key file paths to know]
+3. [Context to load: git branch, env vars, etc.]
+
+### Key Files
+- `src/module.ts` (lines 40–120 are critical)
+- `config/prod.yml` (database section matters)
+
+### Important Decision
+- [What was decided and why] — do not revisit this.
+```
+
+#### Next Session Opening Message
+```markdown
+Resume: [Task Name]
+
+[Paste the summary from the previous session]
+
+Continue with: [Next step from "What's Left"]
+```
+
+**Cost Impact:** Prevents re-reading files and re-explaining context. Fresh session loads the summary in 1 turn instead of re-exploring 10 turns.
+
+---
+
+### 10.7 Session Economics Checklist
+
+Before ending any session, verify:
+
+- [ ] **Turn count:** If >15 turns and work remains, create a summary.
+- [ ] **New session trigger:** If switching major topics, open a fresh session.
+- [ ] **Model routed correctly:** Haiku for debugging, Sonnet for code, Opus only if needed.
+- [ ] **Context front-loaded:** Next time, include files/logs upfront to avoid exploration.
+- [ ] **Diagnosis before iteration:** Avoided "try this, try that" loops?
+- [ ] **Handoff complete:** If handing off to human or next day, include the summary template.
+
+---
+
+**Version:** 5.36
 **Last Updated:** June 16, 2026
+**Status:** Refined — Fleet is opt-in for complex work; section economics kept intact
