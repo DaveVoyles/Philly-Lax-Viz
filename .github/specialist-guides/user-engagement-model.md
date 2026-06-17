@@ -142,6 +142,52 @@ Format: `🔑 CRITICAL: Cannot proceed without confirmation. [Description]. Proc
 
 ---
 
+## De-escalation Strategies
+
+### When Users Feel Over-Consulted
+**Problem:** User frustrated by too many questions  
+**Solution:**
+1. **Identify pattern:** More than 3 questions per task suggests over-consultation
+2. **Default intelligently:** Make safe decisions autonomously, ask only for ambiguous choices
+3. **Combine questions:** Batch related decisions into single multi-choice question
+4. **Provide summary:** Show decisions made + reasoning → user can override if needed
+
+**Example (BAD - Over-consulted):**
+```
+Turn 1: "Should I use TypeScript or JavaScript?"
+Turn 2: "Should I add ESLint or Prettier?"
+Turn 3: "Should I set up Husky for pre-commit hooks?"
+→ User frustrated with 3 questions
+```
+
+**Example (GOOD - Smart defaults):**
+```
+Turn 1: "Setting up project with TypeScript + ESLint + Prettier (best practices)
+         Want different choices? [Configure now / Use defaults]"
+→ Single decision point, smart defaults, user in control
+```
+
+---
+
+## Escalation Patterns
+
+### When to Escalate to Higher Authority
+```
+✓ Escalate if:
+  - Destructive action (delete, overwrite, drop database)
+  - Security implication (credentials, access level)
+  - Major architecture change (monolith→microservices)
+  - Affects other teams or services
+  - Cost impact >$1000/month
+  
+✗ Don't escalate if:
+  - Routine decision within feature scope
+  - Reversible (can be undone easily)
+  - Within user's stated scope/permission
+```
+
+---
+
 **Version:** 1.0  
 **Last Updated:** June 16, 2026  
 **Related:** Primary instructions section 1, 5

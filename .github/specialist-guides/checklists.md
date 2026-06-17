@@ -28,21 +28,33 @@ lastUpdated: "2026-06-16"
 
 **Secrets & Credentials**
 - ✅ No hardcoded passwords, API keys, tokens
+  - 🤖 Automated: `git-secrets`, `truffleHog` (pre-commit hook)
 - ✅ Credentials never logged or printed
+  - 🤖 Automated: Log sanitizer rules, secret redaction
 - ✅ Secrets use environment variables or secrets manager
+  - 🤖 Automated: Deny commits with .env files, scan for credential patterns
 - ✅ Least-privilege: API tokens scoped to minimum needed
+  - 📋 Manual: Review token scopes, test unauthorized access
 
 **Input & Data**
 - ✅ User input validated before use
+  - 🤖 Automated: Input validation libraries (Joi, Zod, Pydantic)
 - ✅ No SQL injection vulnerabilities
+  - 🤖 Automated: Parameterized queries, ORM validation, SAST scanner (SonarQube)
 - ✅ No XSS vulnerabilities (output escaped)
+  - 🤖 Automated: Template auto-escaping, DomPurify, security linter
 - ✅ No CSRF vulnerabilities (state-changing requests validated)
+  - 🤖 Automated: CSRF token middleware, SameSite cookie enforcement
 
 **Auth & Authorization**
 - ✅ Authentication correct (is user who they claim?)
+  - 📋 Manual: OAuth/JWT validation, MFA testing
 - ✅ Authorization correct (user has permission for action?)
+  - 📋 Manual: Role-based access testing, permission matrix review
 - ✅ Session/token handling secure
+  - 🤖 Automated: Token expiration checks, secure cookie flags
 - ✅ Password storage uses strong hashing (bcrypt, argon2)
+  - 🤖 Automated: Hashing library validation, SAST (forbid weak algorithms)
 
 ---
 

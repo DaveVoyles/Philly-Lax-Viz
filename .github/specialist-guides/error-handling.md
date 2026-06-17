@@ -40,6 +40,180 @@ IF transient error:
 
 ---
 
+## Cascading Failures & Circuit Breaker
+
+### Cascading Failure (Avoid)
+```
+Service A calls Service B (slow)
+  → A waits for response (thread blocked)
+  → B is overwhelmed (many threads waiting)
+  → A exhausts thread pool
+  → A becomes unavailable
+  → C (depends on A) also fails
+  
+Result: System-wide outage from single service slowness
+```
+
+### Circuit Breaker Pattern (Prevention)
+```
+Normal:      A → [✅ Circuit CLOSED] → B
+             Requests flow normally
+
+B Fails:     A detects failure rate >50%
+             [⚠️ Circuit OPEN] ← reject requests
+             Wait 30s
+
+Recovery:    [🔄 Circuit HALF-OPEN] ← test with one request
+             B healthy? → [✅ Circuit CLOSED]
+             B still failing? → [⚠️ Circuit OPEN]
+```
+
+**Implementation:**
+```python
+from pybreaker import CircuitBreaker
+
+breaker = CircuitBreaker(
+  fail_max=5,                    # Open after 5 failures
+  reset_timeout=60,              # Try again after 60s
+  exclude_exceptions=[ValueError] # Don't count validation errors
+)
+
+@breaker
+def call_external_service():
+  return requests.get('https://api.example.com/data')
+```
+
+### Bulkheads (Thread Pool Isolation)
+```
+Thread Pool A (Service A calls):  |####|  ← Max 10 threads
+Thread Pool B (Service B calls):  |##|   ← Max 5 threads
+Thread Pool C (Service C calls):  |#|    ← Max 2 threads
+
+If B fails, only Pool B exhausted; A and C continue
+```
+
+---
+
+## Domain-Specific Error Handling
+
+### Database Errors
+
+**Connection Failures:**
+```python
+try:
+  connection = connect(host, port, timeout=5)
+except TimeoutError:  # Transient
+  retry_with_backoff()
+except PermissionError:  # Permanent
+  log_error("Check credentials and network ACL")
+  fail_immediately()
+```
+
+**Query Errors:**
+```python
+try:
+  result = execute("SELECT * FROM users WHERE id = ?", (user_id,))
+except IntegrityError:  # Permanent (constraint violation)
+  log_error(f"Data integrity issue: {e}")
+  return error_response(400, "Invalid data")
+except OperationalError:  # Transient (connection lost)
+  retry_with_backoff()
+```
+
+**Deadlocks:**
+```python
+def transact_with_retry():
+  for attempt in range(3):
+    try:
+      with transaction():
+        # Update A, then B
+      break
+    except DeadlockError:
+      if attempt < 2:
+        time.sleep(0.1 * (2 ** attempt))
+        continue
+      raise
+```
+
+### API Errors
+
+**Rate Limiting:**
+```python
+response = requests.get(url)
+if response.status_code == 429:  # Transient
+  wait_time = int(response.headers.get('Retry-After', 60))
+  time.sleep(wait_time)
+  retry()
+```
+
+**Auth Errors:**
+```python
+response = requests.get(url, headers={'Authorization': f'Bearer {token}'})
+if response.status_code == 401:  # Permanent (token expired)
+  refresh_token()
+  retry()
+elif response.status_code == 403:  # Permanent (no permission)
+  log_error("Insufficient permissions")
+  fail_immediately()
+```
+
+### File I/O Errors
+
+**Path Not Found:**
+```python
+try:
+  with open(path) as f:
+    content = f.read()
+except FileNotFoundError:  # Permanent
+  log_error(f"File not found: {path}")
+  return default_content()
+```
+
+**File Too Large:**
+```python
+MAX_FILE_SIZE = 20_000_000  # 20MB
+
+if os.path.getsize(path) > MAX_FILE_SIZE:  # Permanent
+  log_error(f"File exceeds {MAX_FILE_SIZE} bytes")
+  return error_response(413, "File too large")
+```
+
+---
+
+## Graceful Degradation & Fallbacks
+
+### Fallback Strategies
+```
+Primary service unavailable?
+  → Try fallback 1 (cache)
+  → Try fallback 2 (secondary service)
+  → Try fallback 3 (hardcoded defaults)
+  → Fail with degraded functionality
+```
+
+**Example:**
+```python
+def get_user_data(user_id):
+  try:
+    # Try primary service
+    return api.get_user(user_id)
+  except ServiceUnavailable:
+    try:
+      # Try cache
+      return cache.get(f'user:{user_id}')
+    except CacheMiss:
+      # Return degraded response
+      return {'id': user_id, 'name': 'Unknown'}
+```
+
+### What to Degrade
+- ✅ **Non-critical features:** Recommendations, analytics, nice-to-haves
+- ✅ **Personalization:** Use defaults instead of user preferences
+- ❌ **Core functionality:** Auth, payments, data integrity
+- ❌ **Security:** Never degrade security for performance
+
+---
+
 ## Logging & Instrumentation
 
 ### Structured Logging Pattern
