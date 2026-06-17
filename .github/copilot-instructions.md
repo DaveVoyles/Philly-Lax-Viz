@@ -6,19 +6,42 @@ description: >
   
   Specialist guides available in .github/specialist-guides/ for error handling,
   code quality, architecture decisions, domain checklists, and user engagement.
-  See specialist-guides-index.md for quick navigation.
+---
+
+## ⚡ Specialist Guide Loading Strategy (Keep Sessions Efficient)
+
+**Default rule:** Load essentials first (covers 80% of tasks). Upgrade to full guide only if essentials insufficient.
+
+### Loading by Task Type (Typical = 6.5K tokens)
+
+| Task | Load | Tokens |
+|------|------|--------|
+| Error handling | error-handling-essentials.md | 0.8K |
+| Code review (5 min) | code-quality-essentials.md | 1K |
+| Security scan | security-essentials.md | 1K |
+| Test strategy | testing-essentials.md | 1.2K |
+| Deployment | deployment-essentials.md | 1K |
+| Architecture | architecture-essentials.md | 1.2K |
+| Multi-specialist? | See guide-pairings.md | 8-15K |
+
+**Single decision?** Load relevant quick-ref card instead: `error-decision-tree.md`, `refactor-decision-tree.md`, `performance-check.md`, etc. (<500 tokens each)
+
+**Need deep expertise?** Load full guide (3-3.5K) only if essentials don't answer the question.
+
 ---
 
 ## Quick Reference: When to Load Specialist Guides
 
-See `.github/specialist-guides-index.md` for quick decision tree.
+**Most Common Tasks:**
+- 🐛 Error handling, logging → `error-handling-essentials.md` (or full for complex error recovery)
+- 👀 Code review, refactoring → `code-quality-essentials.md` (or use `refactor-decision-tree.md` for quick yes/no)
+- 🏗️ Design decisions → `architecture-essentials.md` (or `architecture-decision-template.md` for quick ADR)
+- ✅ Domain-specific work → `checklists.md` (pre-built checklists for API, database, security, etc.)
+- 💬 User questions → `user-engagement-model.md`
+- 🚀 Deployment → `deployment-essentials.md` (or `pre-flight-deployment.md` for quick checklist)
+- 🔒 Security → `security-essentials.md` (or `security-quick-scan.md` for quick audit)
 
-**Most Common:**
-- 🐛 Error handling, logging → `.github/specialist-guides/error-handling.md`
-- 👀 Code review, refactoring → `.github/specialist-guides/code-quality.md`
-- 🏗️ Design decisions → `.github/specialist-guides/architecture-decisions.md`
-- ✅ Domain-specific work → `.github/specialist-guides/checklists.md`
-- 💬 User questions → `.github/specialist-guides/user-engagement-model.md`
+**Multi-specialist workflows** (e.g., OAuth, API design, security audit): See `.github/specialist-guides/guide-pairings.md`
 
 ---
 
@@ -264,8 +287,9 @@ See `.github/specialist-guides/error-handling.md` for comprehensive guidance on:
 
 ---
 
-**Version:** 6.0 (Modular)  
+**Version:** 6.1 (Modular + 3 New Specialists)  
 **Last Updated:** June 16, 2026  
-**Specialist Guides:** 5 available — see `.github/specialist-guides-index.md` for navigation  
-**Token Efficiency:** Primary instructions only (~5.5K tokens). Specialists (~2-4K each) loaded on-demand.  
+**Specialist Guides:** 8 available — see `.github/specialist-guides-index.md` for navigation  
+**New Guides (v6.1):** Testing strategy, deployment & infrastructure, security hardening  
+**Token Efficiency:** Primary instructions only (~5.5K tokens). Specialists (~3-3.5K each) loaded on-demand.  
 **Best For:** Lean primary + focused specialist guidance. Load this for all sessions. Load specialists only when needed.
