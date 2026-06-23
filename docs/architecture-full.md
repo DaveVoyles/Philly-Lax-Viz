@@ -1,11 +1,26 @@
-# Philly Lacrosse Viz — Architecture Reference
+# Philly Lacrosse Viz — Architecture Reference (Full)
+
+> ⚠️ **Token cost:** ~5,400 tokens — **Load quick-refs first unless you need deep understanding**  
+> 
+> **For most tasks, use these instead:**
+> - [index.md](./index.md) (~600 tokens) — navigation decision tree
+> - [quick-refs/commands.md](./quick-refs/commands.md) (~600 tokens) — CLI reference
+> - [quick-refs/db-schema.md](./quick-refs/db-schema.md) (~900 tokens) — DB tables
+> - [quick-refs/api-endpoints.md](./quick-refs/api-endpoints.md) (~750 tokens) — API inventory
+> - [quick-refs/data-sources.md](./quick-refs/data-sources.md) (~600 tokens) — Source summary
+> - [onboarding.md](./onboarding.md) (~1,800 tokens) — Getting started
+>
+> **Only load this file when:**
+> - You need to understand ALL data sources and their parsers
+> - You're refactoring core ingest/pipeline logic
+> - You're writing an ADR for a major architectural change
+> - Quick-refs don't answer your question
+
+---
 
 > **Last updated:** 2026-05-19  
-> **Audience:** agents and contributors joining this repo cold  
+> **Audience:** agents and contributors needing deep system understanding  
 > **Purpose:** single-source-of-truth for how data flows from external sources to the deployed site
->
-> **Quick-start instead?** See `AGENTS.md` at the repo root for commands, hard rules, and conventions.  
-> This doc is the deep-dive reference. AGENTS.md is the 2-minute onboarding.
 
 ---
 
