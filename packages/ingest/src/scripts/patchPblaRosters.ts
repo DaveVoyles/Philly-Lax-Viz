@@ -113,7 +113,7 @@ function formatPlayerEntry(name: string, jersey: string): string {
 // ---------------------------------------------------------------------------
 async function main() {
   console.log(`Fetching standings to get team IDs (LgID=${LEAGUE_ID})...`);
-  const sRes = await fetch(standingsUrl(LEAGUE_ID), { headers: UA_HEADERS });
+  const sRes = await fetch(standingsUrl(LEAGUE_ID), { headers: UA_HEADERS, redirect: 'follow' });
   if (!sRes.ok) {
     console.error(`Standings fetch failed: ${sRes.status}`);
     process.exit(1);
@@ -136,7 +136,7 @@ async function main() {
     try {
       liveRoster = await fetchTeamRoster(LEAGUE_ID, team, {
         fetchFn: (url) =>
-          fetch(url, { headers: UA_HEADERS }) as Promise<{
+          fetch(url, { headers: UA_HEADERS, redirect: 'follow' }) as Promise<{
             ok: boolean;
             status: number;
             text(): Promise<string>;

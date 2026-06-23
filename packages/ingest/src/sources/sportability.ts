@@ -89,7 +89,7 @@ export interface SportabilityTeamRoster {
 const BASE = 'https://secure.sportability.com/spx/Leagues';
 
 export function standingsUrl(leagueId: number): string {
-  return `${BASE}/Standings.asp?LgID=${leagueId}`;
+  return `${BASE}/Standings.asp?LgID=${leagueId}&Type=Reg`;
 }
 
 export function scorersUrl(leagueId: number): string {

@@ -34,7 +34,7 @@ const UA_HEADERS = {
 };
 
 async function fetchHtml(url: string): Promise<string> {
-  const res = await fetch(url, { headers: UA_HEADERS });
+  const res = await fetch(url, { headers: UA_HEADERS, redirect: 'follow' });
   if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
   const buf = await res.arrayBuffer();
   return new TextDecoder('latin1').decode(buf);

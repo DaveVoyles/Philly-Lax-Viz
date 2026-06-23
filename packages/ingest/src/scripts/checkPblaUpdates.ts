@@ -176,7 +176,7 @@ async function runRosterCheck(teams: SportabilityTeam[]): Promise<boolean> {
     try {
       liveRoster = await fetchTeamRoster(LEAGUE_ID, team, {
         fetchFn: (url) =>
-          fetch(url, { headers: UA_HEADERS }) as Promise<{ ok: boolean; status: number; text(): Promise<string> }>,
+          fetch(url, { headers: UA_HEADERS, redirect: 'follow' }) as Promise<{ ok: boolean; status: number; text(): Promise<string> }>,
       });
     } catch (err) {
       console.log(`FAILED (${err instanceof Error ? err.message : err})`);
@@ -327,6 +327,7 @@ async function runGenerate(
       'User-Agent': 'philly-lacrosse-vis/0.1 (+https://phillylaxstats.com) - PBLA generate',
       Accept: 'text/html,application/xhtml+xml',
     },
+    redirect: 'follow',
   });
   if (!res.ok) {
     console.error(`Fetch failed: ${res.status} ${sUrl}`);
@@ -381,6 +382,7 @@ async function main() {
         'User-Agent': 'philly-lacrosse-vis/0.1 (+https://phillylaxstats.com) - PBLA roster check',
         Accept: 'text/html,application/xhtml+xml',
       },
+      redirect: 'follow',
     });
     if (!sRes.ok) {
       console.error(`Fetch failed: ${sRes.status}`);
@@ -403,6 +405,7 @@ async function main() {
       'User-Agent': 'philly-lacrosse-vis/0.1 (+https://phillylaxstats.com) - PBLA update check',
       Accept: 'text/html,application/xhtml+xml',
     },
+    redirect: 'follow',
   });
   if (!res.ok) {
     console.error(`Fetch failed: ${res.status} ${url}`);
