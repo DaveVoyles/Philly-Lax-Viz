@@ -71,7 +71,7 @@ Before running a High Risk wave, document in the plan:
 
 ---
 
-## 4. Agent Registry & Specialist Lane Routing
+## 4. Agent Registry, Pipeline Roles & Strict Path Permissions
 
 ### Agent Registry
 Map lanes to specific sub-agent types using the `task` tool:
@@ -79,11 +79,51 @@ Map lanes to specific sub-agent types using the `task` tool:
 | Agent Type | Tool Parameter (`agent_type`) | Best For | Avoid For | LLM Tier Heuristic |
 | :--- | :--- | :--- | :--- | :--- |
 | **explore** | `"explore"` | Codebase research, symbol lookup, parallel investigation | Implementation | **Flash/Cost-Optimized** (`claude-haiku-4.5`, `gpt-5.4-mini`) |
-| **research**| `"research"` | Web search, package docs, advisories with citations | Repo edits, commands | **Flash/Cost-Optimized** (`claude-haiku-4.5`, `gpt-5.4-mini`) |
+| **research**| `"research"` | Web search, package docs, advisories with citations, **RAG retrieval + re-ranking** | Repo edits, commands | **Flash/Cost-Optimized** (`claude-haiku-4.5`, `gpt-5.4-mini`) |
 | **task** | `"task"` | Running builds, tests, linters, installs (pass/fail) | Complex reasoning | **Flash/Cost-Optimized** (`claude-haiku-4.5`, `gpt-5.4-mini`) |
 | **general-purpose** | `"general-purpose"` | Multi-step coding, complex refactoring, logic | Quick lookups | **Advanced Reasoning** (`claude-sonnet-4.6`, `claude-opus-4.8`) |
 | **Rubber Duck** | `"general-purpose"` (with review-only prompt) | Plan/code critiques, catching blind spots | Modifying files | **Advanced Reasoning** (`claude-sonnet-4.6`, `claude-opus-4.8`) |
 | **code-review** | `"code-review"` | Pre-commit diff auditing (staged changes) | File execution | **Advanced Reasoning** (`claude-sonnet-4.6`, `claude-opus-4.8`) |
+
+---
+
+### Specialized Multi-Agent Pipeline Roles & Permissions
+The multi-agent workflow operates as a secure, sequential pipeline using the central state file (`workflow-state.md`). To maximize safety, enforce **strict path-based write restrictions** per role:
+
+| Pipeline Role | Best Model ID | Temperature | Allowed Actions & Paths | Core Responsibility & Video Rules |
+| :--- | :--- | :--- | :--- | :--- |
+| **Planner** | `gpt-5.4` / `claude-sonnet-4.6` | `0.1`–`0.2` (Low) | Read all. Edit: `workflow-state.md` ONLY. Run bash/web_fetch. | **Clarify first.** Must ask 3–7 high-value clarification questions. Generate plan after user validation. |
+| **Debater** | `claude-sonnet-4.6` / `claude-opus-4.8` | `0.5`–`0.7` (High) | Read all. Edit: `workflow-state.md` ONLY (Debate Note). | **Deep critique.** Challenge assumptions, check edge cases, backward compatibility, performance/security. |
+| **Implementer** | `gpt-5.3-codex` / `claude-sonnet-4.6` | `0.2` (Low) | Read/Edit: **All files** (full codebase access). | **Smallest change.** Implement approved plan. No unrelated refactors. Record files changed & write summary. |
+| **Reviewer** | `gpt-5.3-codex` / `claude-sonnet-4.6` | `0.2` (Low) | Read all. Edit: `workflow-state.md` ONLY. | **Code Auditor.** Review staged changes. Provide precise fix guidance back to Implementer if fails. |
+| **Tester** | `gpt-5-mini` / `claude-haiku-4.5` | `0.1` (Low) | Read all. Edit: `workflow-state.md` ONLY. Run test commands. | **Test Runner.** Execute targeted tests. Record commands, pass/fail status & error stack trace. |
+| **Linter** | `gpt-5-mini` / `claude-haiku-4.5` | `0.1` (Low) | Read all. Edit: `workflow-state.md` ONLY. Run linter scripts. | **Style Cop.** Run formatting/linting scripts. If errors are found, assign back to Implementer. |
+| **Commit Agent**| `gpt-5-mini` / `claude-haiku-4.5` | `0.2` (Low) | Read all. Edit: `workflow-state.md` ONLY. Run `git diff`. | **Message Generator.** Generate clean, semantic commit message matching repo patterns from the final diff. |
+
+*Safety Enforcer Rule:* Except for the **Implementer**, NO agent in the pipeline is permitted to modify any codebase files (source code, tests, configs) directly. This isolates risk and prevents lower-tier or automated models from introducing unintended alterations.
+
+---
+
+### Debater Deep Critique Checklist
+When the pipeline activates the **Debater** role (temperature `0.5`–`0.7` to maximize critical alternative generation), the agent must audit the Planner's proposal using this strict checklist:
+1. **Unnecessary Complexity:** Are there simpler, more direct implementation pathways? Is it over-engineered?
+2. **Missing Steps:** Did the planner skip any essential integration, config updates, or imports?
+3. **Incorrect Assumptions:** Are there any incorrect assumptions about the library behaviors, API interfaces, or existing codebase design?
+4. **Hidden Edge Cases:** What are the failure modes, boundary limits, or empty input handling scenarios?
+5. **Backward Compatibility:** Does this change break any existing APIs, schemas, configurations, or downstream systems?
+6. **Missing Validation:** Are there sufficient unit tests, integration tests, or manual check commands specified?
+7. **Cross-Cutting Risks:** Are there security vulnerabilities, performance bottlenecks, or logging gaps?
+
+*Output Requirement:* If suggestions/fixes are found, the Debater must rewrite or improve the proposed plan in the Debate Note section. If the plan is already optimal, explain precisely why it is acceptable.
+
+---
+
+### Context-7 MCP Helper Guideline
+To prevent hallucination of libraries, dependency APIs, or framework behaviors:
+- Whenever an agent encounters unfamiliar libraries or package requirements, it must query the **Context-7 MCP** tool to retrieve official, up-to-date documentation and code samples.
+- Do NOT guess API signatures or use outdated chat parameters.
+
+---
 
 ### Specialist Lane Routing
 If any of the following domains arise, assign a specialist lane:
@@ -498,6 +538,6 @@ Before ending any session, verify:
 
 ---
 
-**Version:** 5.36
-**Last Updated:** June 16, 2026
-**Status:** Refined — Fleet is opt-in for complex work; section economics kept intact
+**Version:** 5.37
+**Last Updated:** June 20, 2026
+**Status:** Refined — Fleet is opt-in for complex work; specialized agent pipeline with strict path-based write permissions integrated
