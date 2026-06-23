@@ -1,7 +1,7 @@
 {
   "leagueId": 50731,
   "year": 2026,
-  "snapshotDate": "2026-06-18",
+  "snapshotDate": "2026-06-23",
   "note": "Local reference snapshot of the 2026 PBLA season schedule. Update alongside pblaData.ts after each game night. Run 'pnpm pbla:check' to diff against the live Sportability schedule.",
   "games": [
     {
@@ -195,10 +195,10 @@
       "gameNum": 18,
       "date": "2026-06-17",
       "time": "8:00p",
-      "homeTeam": "Pups LC",
-      "awayTeam": "Outlaws",
-      "homeScore": 12,
-      "awayScore": 11,
+      "homeTeam": "Pups LC 12(Overtime)",
+      "awayTeam": "Outlaws 11",
+      "homeScore": 0,
+      "awayScore": 0,
       "location": "Rizzo Rink",
       "isPlayoff": false
     },
@@ -208,8 +208,8 @@
       "time": "7:00p",
       "homeTeam": "Revolution",
       "awayTeam": "Beer Wolves",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 6,
+      "awayScore": 4,
       "location": "Rizzo Rink",
       "isPlayoff": false
     },
@@ -219,8 +219,8 @@
       "time": "8:00p",
       "homeTeam": "Pups LC",
       "awayTeam": "Edge",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 8,
+      "awayScore": 4,
       "location": "Rizzo Rink",
       "isPlayoff": false
     },
