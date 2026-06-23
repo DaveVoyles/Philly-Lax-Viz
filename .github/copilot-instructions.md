@@ -8,6 +8,28 @@ description: >
   code quality, architecture decisions, domain checklists, and user engagement.
 ---
 
+## 📚 Documentation Loading Strategy (Token Efficiency)
+
+**IMPORTANT:** Always start with `docs/index.md` (~600 tokens) when you need project documentation.
+
+### Loading Order
+
+1. **First:** Read `docs/index.md` — decision tree that tells you which doc to load next based on your task
+2. **Then:** Load ONE specific quick-ref from `docs/quick-refs/` based on your need:
+   - Need to run a script? → `commands.md` (~600 tokens)
+   - Need DB structure? → `db-schema.md` (~900 tokens)
+   - Need API info? → `api-endpoints.md` (~750 tokens)
+   - Need source info? → `data-sources.md` (~600 tokens)
+3. **Last (rarely):** Load full architecture only if quick-refs don't answer your question:
+   - `docs/architecture-full.md` (~5,400 tokens)
+   - `docs/onboarding.md` (~1,800 tokens)
+
+**Token savings:** Quick-refs reduce baseline load from ~10,800 tokens to ~1,800 tokens (83% reduction).
+
+**Rule:** Do NOT load multiple full docs unless absolutely necessary. Use quick-refs first.
+
+---
+
 ## ⚡ Specialist Guide Loading Strategy (Keep Sessions Efficient)
 
 **Default rule:** Load essentials first (covers 80% of tasks). Upgrade to full guide only if essentials insufficient.
@@ -60,9 +82,18 @@ description: >
 ### Dry-Run Before Destructive Action
 - 🔄 **Preview:** Always print dry-run preview before destructive actions (DNS deletion, database drops, file removal). Wait for explicit user confirmation.
 
-### Planning Mode
+### Planning Mode & Central Shared State (Multi-Agent Workflow)
+- **Central Shared State File:** For multi-agent workflows, a central state file `workflow-state.md` must be initialized at the repository root using `.github/docs/workflow-state-template.md`. 
+  - This file serves as the canonical session trace and communication channel. 
+  - **Do NOT rely on chat history** as the sole source of truth.
+  - Every agent MUST read this state file before starting work and update *only* the section designated for their role upon completion.
 - **Research:** Read files, directories, documentation freely without user prompting.
 - **No Side Effects:** Do not implement changes, write commits, install dependencies, run migrations.
+- **Planner Protocol:** The Planner must stick to a strict 4-phase sequence:
+  1. *Clarify:* Ask 3–7 high-value clarification questions. Do not write implementation code.
+  2. *Confirm:* Wait for user validation of requirements and acceptance criteria.
+  3. *Plan:* Create the target proposed plan.
+  4. *Handover:* Set the current status and next agent in the shared state file to initiate the Debater critique loop.
 - **Completion:** Document plan, present summary, wait for explicit user approval.
 
 ### User Engagement & Consultation
@@ -101,6 +132,9 @@ See `.github/specialist-guides/user-engagement-model.md` for:
 ### Strict File Size Guard (Max 20KB)
 - **Check Size First:** Verify file size using `wc -c` or `ls` before reading.
 - **Strict Limit:** Do not load files >20KB in full. Use targeted extraction (e.g., `view_range` in the `view` tool, precise `grep` matching) to examine relevant sections.
+
+### Context Strategy (RAG vs Alternatives)
+See `.github/quick-refs/context-strategy-decision.md` for guidance on when to use RAG vs extended context vs prompt caching vs fine-tuning. Includes RAG best practices (hybrid search, re-ranking, chunk combination) and anti-patterns.
 
 ---
 
@@ -287,8 +321,8 @@ See `.github/specialist-guides/error-handling.md` for comprehensive guidance on:
 
 ---
 
-**Version:** 6.1 (Modular + 3 New Specialists)  
-**Last Updated:** June 16, 2026  
+**Version:** 6.2 (Multi-Agent Workflow State & Safety)  
+**Last Updated:** June 20, 2026  
 **Specialist Guides:** 8 available — see `.github/specialist-guides-index.md` for navigation  
 **New Guides (v6.1):** Testing strategy, deployment & infrastructure, security hardening  
 **Token Efficiency:** Primary instructions only (~5.5K tokens). Specialists (~3-3.5K each) loaded on-demand.  

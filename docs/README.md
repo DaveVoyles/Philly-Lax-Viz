@@ -1,39 +1,69 @@
 # Philly Lacrosse Viz — Docs Hub
 
-> Cold-start entrypoint for agents and contributors. Read this first.
-> For repo-wide onboarding (commands, DB schema, conventions), see `AGENTS.md` at the repo root.
-
-### Doc responsibilities
-
-| Doc | Owns | Read when |
-|-----|------|-----------|
-| `AGENTS.md` (repo root) | Quick-start: commands, hard rules, conventions, key file map | Always — first thing to read |
-| `docs/architecture.md` | Deep architecture: data flow, all sources, full DB schema, API inventory, ADRs | Understanding internals |
-| `docs/pipeline-gaps.md` | Actionable backlog of missing CI steps and static export gaps | Planning ingest improvements |
-| `docs/improvements/` | RFC proposals for future work | Choosing next project |
-| `docs/runbooks/` | Step-by-step guides for specific operations | Deploying, importing data, Hudl onboarding |
-| `docs/archive/` | Historical wave plans and session artifacts | Archaeology only |
-
-When both `AGENTS.md` and `architecture.md` cover the same topic, `AGENTS.md` is authoritative for conventions and commands; `architecture.md` is authoritative for system design and data flow.
+> **⚡ For agents:** Start with [index.md](./index.md) (~600 tokens) for token-efficient navigation  
+> **For humans:** This README provides a comprehensive reading order and system overview
 
 ---
 
-## Reading Order
+## Agent Quick-Start (Token-Optimized)
 
-Start here when joining the project cold:
+**Read this first:** [index.md](./index.md) — ultra-minimal decision tree with token costs
 
-| Step | Doc | Why |
-|------|-----|-----|
-| 1 | [architecture.md](./architecture.md) | System map, data flow, package layout, API inventory, static export coverage |
-| 2 | [azure-deployment.md](./azure-deployment.md) | How the stack is deployed; cost model; known pitfalls from live runs |
-| 3 | [pipeline-gaps.md](./pipeline-gaps.md) | What the nightly pipeline does NOT do yet; actionable fix snippets |
-| 4 | [runbooks/source-priority.md](./runbooks/source-priority.md) | Trust hierarchy across data sources; when to invoke each one |
-| 5 | [runbooks/deploy-to-pages.md](./runbooks/deploy-to-pages.md) | How to deploy code and data changes to the live site |
-| 6 | [runbooks/local-data-import.md](./runbooks/local-data-import.md) | Importing external data (spreadsheets, corrections) safely |
-| 7 | [runbooks/correction-workflow.md](./runbooks/correction-workflow.md) | Community corrections lifecycle: submission, outlier detection, auto-approval |
-| 8 | [runbooks/hudl-invitation-flow.md](./runbooks/hudl-invitation-flow.md) | Invite the service account to a Hudl team and register it in admin UI |
-| 9 | [improvements/00-INDEX.md](./improvements/00-INDEX.md) | Prioritized RFC backlog; choose your next wave from here |
-| 10 | [level-up.md](./level-up.md) | Long-term product roadmap: domain, coach uploads, PBLA, Hudl expansion |
+**Then load ONE quick-ref based on your task:**
+- [commands.md](./quick-refs/commands.md) — CLI reference (~600 tokens)
+- [db-schema.md](./quick-refs/db-schema.md) — DB tables (~900 tokens)
+- [api-endpoints.md](./quick-refs/api-endpoints.md) — API inventory (~750 tokens)
+- [data-sources.md](./quick-refs/data-sources.md) — Source summary (~600 tokens)
+
+**Only load full docs when needed:**
+- [onboarding.md](./onboarding.md) — Getting started (~1,800 tokens)
+- [architecture-full.md](./architecture-full.md) — Deep architecture (~5,400 tokens)
+
+**Token savings:** Quick-refs reduce baseline load from ~10,800 to ~1,800 tokens (83%).
+
+---
+
+## Doc Responsibilities (Human-Readable Guide)
+
+## Doc Responsibilities (Human-Readable Guide)
+
+| Doc | Owns | Read when |
+|-----|------|-----------|
+| `index.md` | Ultra-minimal agent index with decision tree | Always — first thing for agents |
+| `quick-refs/commands.md` | All CLI commands, organized by category | Running scripts, dev servers, Azure sync |
+| `quick-refs/db-schema.md` | Table schemas, columns, relationships | DB queries, understanding data model |
+| `quick-refs/api-endpoints.md` | API paths, params, responses | Calling API, adding endpoints |
+| `quick-refs/data-sources.md` | Source URLs, trust hierarchy, sync commands | Understanding data flow, reconciliation |
+| `onboarding.md` | Quick-start: conventions, hard rules, key file map | First-time setup, learning conventions |
+| `architecture-full.md` | Deep architecture: data flow, all sources, full DB schema, ADRs | Understanding internals, major changes |
+| `pipeline-gaps.md` | Actionable backlog of missing CI steps | Planning ingest improvements |
+| `improvements/` | RFC proposals for future work | Choosing next project |
+| `runbooks/` | Step-by-step guides for specific operations | Deploying, importing data, Hudl onboarding |
+| `archive/` | Historical wave plans and session artifacts | Archaeology only |
+
+**Note:** `onboarding.md` replaces the old `AGENTS.md` content with redundancy removed. `AGENTS.md` at the repo root now symlinks to `docs/onboarding.md` for GitHub discoverability.
+
+---
+
+## Reading Order (by depth)
+
+### 🚀 Quick Start (load first — ~1,800 tokens total)
+1. [index.md](./index.md) — decision tree with token costs (~600 tokens)
+2. One quick-ref based on your task:
+   - [commands.md](./quick-refs/commands.md) — CLI reference (~600 tokens)
+   - [db-schema.md](./quick-refs/db-schema.md) — DB tables (~900 tokens)
+   - [api-endpoints.md](./quick-refs/api-endpoints.md) — API inventory (~750 tokens)
+   - [data-sources.md](./quick-refs/data-sources.md) — Source summary (~600 tokens)
+
+### 🧭 Intermediate (as needed)
+3. [onboarding.md](./onboarding.md) — conventions, hard rules, common patterns (~1,800 tokens)
+4. [azure-deployment.md](./azure-deployment.md) — deployment architecture (~1,200 tokens)
+5. [runbooks/](./runbooks/) — operational guides (~varies)
+
+### 🏗️ Deep Dive (rare — only when quick-refs insufficient)
+6. [architecture-full.md](./architecture-full.md) — full system design (~5,400 tokens)
+7. [pipeline-gaps.md](./pipeline-gaps.md) — known missing pieces (~800 tokens)
+8. [improvements/00-INDEX.md](./improvements/00-INDEX.md) — future work (~800 tokens)
 
 ---
 
@@ -73,13 +103,43 @@ Single deployment target — Azure SWA serves the web client, ACA serves the API
 
 ## What Each Doc Covers
 
-### [architecture.md](./architecture.md)
-Full architecture reference. Covers package map (`@pll/ingest`, `@pll/server`, `@pll/shared`, `@pll/web`),
-all data sources, DB schema overview, ingest pipeline stages, nightly CI workflow, static export coverage
-map, API endpoint inventory, key architectural decisions, and known tech debt.
+### [index.md](./index.md)
+Ultra-minimal agent entrypoint. Decision tree: "If you need X, load Y". Token cost estimates for each doc.
+**Token cost:** ~600 tokens.
 
+### Quick-Reference Cards ([quick-refs/](./quick-refs/))
+
+#### [commands.md](./quick-refs/commands.md)
+All CLI commands organized by category: ingest pipeline, PBLA sync, data quality, dedup, Azure sync, etc.
+**Token cost:** ~600 tokens.
+
+#### [db-schema.md](./quick-refs/db-schema.md)
+Table schemas, key columns, relationships, migration history. Excludes implementation details.
+**Token cost:** ~900 tokens.
+
+#### [api-endpoints.md](./quick-refs/api-endpoints.md)
+API endpoint paths, params, responses, cache behavior. Excludes query implementation.
+**Token cost:** ~750 tokens.
+
+#### [data-sources.md](./quick-refs/data-sources.md)
+Source URLs, what they provide, trust hierarchy, sync commands, common issues.
+**Token cost:** ~600 tokens.
+
+---
+
+### [onboarding.md](./onboarding.md)
+Getting started guide. Conventions, hard rules, package map, key file locations, sub-agent protocols.
+**Token cost:** ~1,800 tokens.  
+**When to use:** First-time setup, learning project conventions.
+
+---
+
+### [architecture-full.md](./architecture-full.md)
+Full architecture reference. Covers package map, all data sources, DB schema overview, ingest pipeline 
+stages, nightly CI workflow, API endpoint inventory, key architectural decisions, and known tech debt.
+**Token cost:** ~5,400 tokens.  
 **When to use:** Any time you need to understand how data moves from source to screen, or where a
-specific piece of logic lives.
+specific piece of logic lives. **Load only if quick-refs don't answer your question.**
 
 ---
 
