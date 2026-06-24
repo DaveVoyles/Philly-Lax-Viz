@@ -138,7 +138,7 @@ pnpm --filter @pll/ingest sync:logos
 
 **What it provides:**
 - PA-wide per-game player stats (goals, assists, etc.)
-- Team power ratings (national/regional)
+- Team power ratings (PA East regional conference, view 3454; IAC/Private, view 3468)
 - Game IDs for cross-referencing
 
 **What it does NOT provide:**
