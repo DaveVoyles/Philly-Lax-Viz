@@ -1,4 +1,4 @@
-import { getGameCalendar, getGames, getTeams } from '../api.js';
+import { getDashboardBundle, getGameCalendar, getGames } from '../api.js';
 import type { Game, Team } from '@pll/shared';
 import { renderCalendarHeatmap } from '../charts/calendarHeatmap.js';
 import { renderMarginHistogram } from '../charts/marginHistogram.js';
@@ -11,13 +11,12 @@ import { createSeasonSelector, getSelectedSeason } from '../components/seasonSel
 import { setPageMeta } from '../util/pageMeta.js';
 import { errorBlock } from './dashboard/dashboardErrors.js';
 import { loadDashboardFreshness } from './dashboard/dashboardFreshness.js';
-import { loadHypeCard, loadTeamHypeCard } from './dashboard/dashboardHype.js';
+import { renderPlayerHypeCard, renderTeamHypeCard } from './dashboard/dashboardHype.js';
 import { intFmt, loadLeaderPanel, makeLeaderPanel, pctFmt } from './dashboard/dashboardLeaders.js';
 import {
   buildGameSignature,
   ensureDashboardLiveStyles,
   RECENT_GAME_DAYS,
-  recentGamesQueryWindow,
   recentGamesWithinDays as filterRecentGamesWithinDays,
   renderGamesList,
   shouldAutoRefreshRecentGames,
@@ -210,29 +209,42 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
     gamesTarget: HTMLElement,
     marginTarget: HTMLElement,
     timestampEl: HTMLElement,
+    playerHypeTarget: HTMLElement,
+    teamHypeTarget: HTMLElement,
     season: string,
     onTeamsReady: (teamById: Map<number, Team>) => void,
   ): Promise<void> {
     try {
-      const teams = await getTeams({ season });
-      renderTeamsGrid(teamsTarget, teams);
-      const teamById = new Map<number, Team>(teams.map((team) => [team.id, team]));
-      const [recentGamesResult, allGamesResult] = await Promise.allSettled([
-        getGames({ ...recentGamesQueryWindow(RECENT_GAME_DAYS), season }),
+      // Single bundle request replaces sequential getTeams() → getGames(recent) + getGames(all)
+      const [bundleResult, allGamesResult] = await Promise.allSettled([
+        getDashboardBundle({ season }),
         getGames({ season }),
       ]);
 
-      if (recentGamesResult.status === 'fulfilled') {
-        const games = filterRecentGamesWithinDays(recentGamesResult.value, RECENT_GAME_DAYS);
-        await renderGamesList(gamesTarget, games, teamById);
-        recentGamesState.signature = buildGameSignature(games);
-        recentGamesState.lastUpdated = new Date();
-        updateLastUpdated(timestampEl, season, recentGamesState);
-      } else {
-        gamesTarget.replaceChildren(errorBlock(recentGamesResult.reason));
+      if (bundleResult.status === 'rejected') {
+        teamsTarget.replaceChildren(errorBlock(bundleResult.reason));
+        gamesTarget.replaceChildren(errorBlock(bundleResult.reason));
+        marginTarget.replaceChildren(errorBlock(bundleResult.reason));
+        return;
       }
 
+      const { teams, recentGames: bundledRecentGames, topScorer } = bundleResult.value;
+      renderTeamsGrid(teamsTarget, teams);
+      const teamById = new Map<number, Team>(teams.map((team) => [team.id, team]));
+
+      const games = filterRecentGamesWithinDays(bundledRecentGames, RECENT_GAME_DAYS);
+      await renderGamesList(gamesTarget, games, teamById);
+      recentGamesState.signature = buildGameSignature(games);
+      recentGamesState.lastUpdated = new Date();
+      updateLastUpdated(timestampEl, season, recentGamesState);
+
       onTeamsReady(teamById);
+
+      // Hype cards use data already in the bundle — no extra network calls needed
+      if (topScorer) {
+        hypeCardHandle = renderPlayerHypeCard(playerHypeTarget, topScorer);
+      }
+      teamHypeCardHandle = renderTeamHypeCard(teamHypeTarget, teams);
 
       if (allGamesResult.status === 'fulfilled') {
         const marginData = allGamesResult.value
@@ -280,7 +292,7 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
     foPctPanel.body.textContent = 'Loading…';
     gbPanel.body.textContent = 'Loading…';
 
-    await loadTeamsAndGames(teamsBody, gamesBody, marginChartDiv, lastUpdated, season, (teamById) => {
+    await loadTeamsAndGames(teamsBody, gamesBody, marginChartDiv, lastUpdated, hypeHost, teamHypeHost, season, (teamById) => {
       if (token !== loadToken) return;
       if (!shouldAutoRefreshRecentGames(season)) {
         liveIndicator.style.display = 'none';
@@ -327,20 +339,6 @@ export function render(root: HTMLElement, _params: Record<string, string>): void
     void loadLeaderPanel(savesPanel.body, 'saves', { minGames: 3 }, intFmt, 'Saves', season, dashboardCharts);
     void loadLeaderPanel(foPctPanel.body, 'fo_pct', { minAttempts: 20 }, pctFmt, 'FO %', season, dashboardCharts);
     void loadLeaderPanel(gbPanel.body, 'ground_balls', { minGames: 3 }, intFmt, 'Ground balls', season, dashboardCharts);
-    void loadHypeCard(hypeHost, season).then((handle) => {
-      if (token !== loadToken) {
-        handle?.destroy();
-        return;
-      }
-      hypeCardHandle = handle;
-    });
-    void loadTeamHypeCard(teamHypeHost, season).then((handle) => {
-      if (token !== loadToken) {
-        handle?.destroy();
-        return;
-      }
-      teamHypeCardHandle = handle;
-    });
   }
 
   void loadSeasonData(selectedSeason);

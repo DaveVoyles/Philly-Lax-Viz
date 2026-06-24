@@ -252,6 +252,27 @@ export function getTeam(id: string | number): Promise<TeamDetailResponse> {
   return request<TeamDetailResponse>(`/teams/${encodeURIComponent(String(id))}`);
 }
 
+export interface DashboardTopScorer {
+  playerId: number;
+  playerName: string;
+  teamId: number;
+  teamName: string;
+  teamLogoUrl: string | null;
+  goals: number;
+  assists: number;
+  value: number;
+}
+
+export interface DashboardBundle {
+  teams: TeamSeasonRecord[];
+  recentGames: Game[];
+  topScorer: DashboardTopScorer | null;
+}
+
+export function getDashboardBundle(params?: { season?: string | number | null }): Promise<DashboardBundle> {
+  return request<DashboardBundle>(`/dashboard/bundle${buildQuery(params)}`);
+}
+
 export function getGames(params?: GamesQuery): Promise<Game[]> {
   return request<Game[]>(`/games${buildQuery(params)}`);
 }

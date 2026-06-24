@@ -34,6 +34,7 @@ import uploadRoutes from './routes/upload.js';
 import adminDedupRoutes from './routes/adminDedup.js';
 import hudlRoutes from './routes/hudl.js';
 import { laxnumbersRatingsRoutes } from './routes/laxnumbersRatings.js';
+import { dashboardBundleRoutes } from './routes/dashboardBundle.js';
 import { pblaRoutes } from './routes/pbla.js';
 import responseCache, { type ResponseCacheOptions } from './plugins/responseCache.js';
 
@@ -133,6 +134,7 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
   await app.register(adminDedupRoutes, { db });
   await app.register(hudlRoutes, { db });
   await laxnumbersRatingsRoutes(app, db);
+  await dashboardBundleRoutes(app, db);
   await pblaRoutes(app, db);
 
   return app;
