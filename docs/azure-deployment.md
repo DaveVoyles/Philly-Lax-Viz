@@ -10,12 +10,13 @@ Low-cost single-container deployment of the PLL stack:
 
 > ### Deployment learnings (single-container revision)
 >
-> 1. **Static Web Apps are retired** for this app. The Container App now serves the SPA, API, and logos from one hostname.
+> 1. **Static Web Apps are retired** for this app. The Container App now serves the SPA, API, and logos from one hostname. **GitHub Pages is not used.**
 > 2. **Cold starts**: ACA Consumption with `min-replicas=0` cold-starts in 15-20 seconds after idle. GitHub Actions scheduler jitter made `*/5` keep-warm pings unreliable, so the service now runs with `--min-replicas 1`.
 > 3. **SQLite on Azure Files (SMB) is broken** for this workload. Keep Azure Files only for nightly upload/download of the DB artifact; the live app should not open SQLite directly from the SMB mount.
 > 4. **Container Registry**: GHCR works well for CI/CD here and keeps the deploy path simple.
 > 5. **`az containerapp update --image` does not always replace the running image**. Pair it with a new revision (or let the deploy action create one) so the rollout is unambiguous.
 > 6. **GitHub Actions scheduler jitter is real**. Treat cron-based keep-warm jobs as best effort, not as a substitute for always-on replicas.
+> 7. **Self-hosted runner is macOS with Bash 3.2** — do not use `${VAR,,}` (bash 4 lowercase expansion) in workflow `run:` steps. Use `$(echo "$VAR" | tr '[:upper:]' '[:lower:]')` instead. This applies to any shell string manipulation beyond basic variable substitution.
 
 > The server already honours `DB_PATH` (preferred) and `PLL_DB_PATH` (legacy) env
 > vars and listens on `process.env.PORT` (defaults to 3001 locally; we set 8080

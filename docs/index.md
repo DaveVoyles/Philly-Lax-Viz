@@ -10,7 +10,7 @@
 **What:** TypeScript pnpm monorepo scraping & visualizing Philadelphia high-school boys lacrosse data  
 **Sources:** phillylacrosse.com (RSS), piaad1.org (rankings), maxpreps.com (logos), laxnumbers.com (stats)  
 **Stack:** SQLite → Fastify API → Vite + D3 SPA  
-**Deployed:** Azure Static Web Apps + Container App
+**Deployed:** Azure Container Apps (single container, min-replicas=1) — GitHub Pages and Static Web Apps are **not used**
 
 ---
 
@@ -81,7 +81,7 @@ pnpm build
 | Task | Load order | Estimated tokens |
 |------|------------|------------------|
 | "Run the ingest pipeline" | index.md → commands.md | ~1,200 |
-| "Fix a failing workflow" | index.md → commands.md → runbooks/deploy-to-pages.md | ~2,400 |
+| "Fix a failing workflow" | index.md → commands.md → azure-deployment.md | ~2,400 |
 | "Understand how data flows" | index.md → data-sources.md → architecture-full.md | ~6,600 |
 | "Add a new API endpoint" | index.md → api-endpoints.md → onboarding.md | ~3,200 |
 | "Import coach spreadsheet" | index.md → commands.md → runbooks/local-data-import.md | ~2,100 |
@@ -96,6 +96,7 @@ pnpm build
 3. **After local DB changes:** run `pnpm db:upload` to sync to Azure
 4. **Logo files are `.gif`** not `.png` (MaxPreps serves .gif)
 5. **Never read `.env` files** (project policy)
+6. **CI shell scripts: no `${VAR,,}` bash 4 syntax** — self-hosted runner is macOS with Bash 3.2; use `$(echo "$VAR" | tr '[:upper:]' '[:lower:]')` instead
 
 📖 **Full conventions:** [onboarding.md](./onboarding.md)
 
