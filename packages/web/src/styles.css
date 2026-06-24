@@ -465,6 +465,34 @@ table.stat tbody tr.row-link:focus { outline: 2px solid var(--accent); outline-o
   gap: 1rem;
   margin: 0.5rem 0 1.25rem;
 }
+
+/* Team detail hero — team badge + season pie side by side on desktop, stacked on mobile */
+.team-detail-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+.team-detail-hero__pie {
+  margin-left: auto;
+  flex: 0 0 auto;
+  max-width: 220px;
+  text-align: center;
+}
+@media (max-width: 768px) {
+  .team-detail-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .team-detail-hero__pie {
+    margin-left: 0;
+    width: 100%;
+    max-width: 100%;
+    align-self: center;
+  }
+}
+
 .record-callout {
   flex: 1 1 0;
   min-width: 180px;
@@ -593,6 +621,16 @@ table.stat th.sortable:focus { outline: 2px solid var(--accent); outline-offset:
 .chart-slot[data-chart="teamScoreTrend"] { max-width: 720px; }
 .chart-slot[data-chart="quarterByQuarter"] { max-width: 480px; }
 
+.team-detail-arc-host {
+  width: 100%;
+  max-width: 700px;
+}
+@media (max-width: 768px) {
+  .team-detail-arc-host {
+    max-width: 100%;
+  }
+}
+
 .charts-row {
   display: flex;
   gap: 2rem;
@@ -605,6 +643,9 @@ table.stat th.sortable:focus { outline: 2px solid var(--accent); outline-offset:
   max-width: none;
 }
 @media (max-width: 768px) {
+  .chart-slot {
+    max-width: 100%;
+  }
   .charts-row { flex-direction: column; }
   .charts-row > .chart-slot { min-width: 100%; }
 }
@@ -720,6 +761,13 @@ a.piaa-badge-link:hover { text-decoration: none; }
 .piaa-validation-panel {
   border-left-width: 4px;
   margin: 0;
+}
+.piaa-validation-panel .muted {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.piaa-validation-panel .muted a {
+  word-break: break-all;
 }
 .piaa-validation-panel--match     { border-left-color: #15803d; }
 .piaa-validation-panel--close     { border-left-color: #b45309; }

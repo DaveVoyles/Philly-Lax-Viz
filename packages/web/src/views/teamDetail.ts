@@ -162,7 +162,6 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
 
   const hero = document.createElement('div');
   hero.className = 'team-detail-hero';
-  hero.style.cssText = 'display:flex; align-items:flex-start; gap:1rem; flex-wrap:wrap;';
 
   const titleBlock = document.createElement('div');
   titleBlock.style.cssText = 'display:flex; flex-direction:column; gap:0.25rem;';
@@ -196,7 +195,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
 
   // Pie chart (season record) in top-right of hero banner
   const heroPieWrap = document.createElement('div');
-  heroPieWrap.style.cssText = 'margin-left:auto; flex:0 0 auto; max-width:220px; text-align:center;';
+  heroPieWrap.className = 'team-detail-hero__pie';
   const heroPieLabel = document.createElement('span');
   heroPieLabel.className = 'muted';
   heroPieLabel.style.cssText = 'font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em;';
@@ -530,7 +529,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     arcHeader.style.cssText = 'margin:0 0 0.5rem; font-size:0.95rem;';
     arcSection.appendChild(arcHeader);
     const arcHost = document.createElement('div');
-    arcHost.style.cssText = 'width:100%; max-width:700px;';
+    arcHost.className = 'team-detail-arc-host';
     arcSection.appendChild(arcHost);
     root.appendChild(arcSection);
     trackChart(renderSeasonArc(arcHost, arcGames));
@@ -657,10 +656,18 @@ async function loadTopScorers(slot: HTMLElement, teamId: number): Promise<void> 
   }
   if (!slot.isConnected) return;
   const sorted = [...scorers].sort((a, b) => (b.goals + b.assists) - (a.goals + a.assists));
+  const scorersMargin =
+    window.innerWidth <= 480
+      ? { top: 32, right: 40, bottom: 40, left: 100 }
+      : window.innerWidth <= 768
+        ? { top: 32, right: 48, bottom: 40, left: 130 }
+        : undefined;
+  const scorersOptions = scorersMargin ? { margin: scorersMargin } : undefined;
   trackChart(
     renderTopScorers(
       slot,
       sorted.map((s) => ({ playerName: s.playerName, goals: s.goals, assists: s.assists })),
+      scorersOptions,
     ),
   );
 }

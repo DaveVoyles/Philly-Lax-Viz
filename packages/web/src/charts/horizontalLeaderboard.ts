@@ -13,7 +13,7 @@ import type {
 const DEFAULTS: HorizontalLeaderboardOptions = {
   width: 720,
   height: 480,
-  margin: { top: 32, right: 56, bottom: 40, left: 180 },
+  margin: { top: 32, right: 56, bottom: 40, left: 140 },
   barColor: '#2563eb',
   valueFormat: (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2)),
   xAxisLabel: '',
