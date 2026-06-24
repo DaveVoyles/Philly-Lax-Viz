@@ -6,6 +6,23 @@ Session summary. Open a fresh session to continue.
 
 ## What Was Done
 
+### Mobile layout fixes — team detail page (2026-06-24, session 3)
+
+**Changes shipped in commit `52c453b` (pushed to main, deployed to Azure):**
+
+| Change | Details |
+|---|---|
+| Hero section mobile stacking | Replaced inline `style.cssText` with `.team-detail-hero` / `.team-detail-hero__pie` CSS classes; on ≤768px hero stacks vertically (title above pie chart) |
+| Season Momentum arc | Replaced inline `style.cssText` with `.team-detail-arc-host`; arc goes full-width on mobile |
+| Chart-slot mobile overflow | Added `@media(max-width:768px) { .chart-slot { max-width:100% } }` — per-chart caps (720px etc.) no longer cause horizontal overflow |
+| PIAA validation panel text | Added `word-break:break-word; overflow-wrap:anywhere` so long description strings wrap inside narrow cards |
+| Top Scorers chart label margin | Responsive `margin.left`: 140px default → 130px ≤768px → 100px ≤480px; player labels stay readable at phone widths |
+| `horizontalLeaderboard` default | Reduced default `margin.left` from 180 → 140 px |
+
+**Root cause:** Several sections used `element.style.cssText = '...'` (inline styles), which have higher CSS specificity than stylesheet rules and cannot be overridden by `@media` queries. Replaced with class names.
+
+---
+
 ### Data fixes + UI improvements (2026-06-24, session 2)
 
 **Changes shipped in commit `c4c532d` (pushed to main, deployed to Azure):**
