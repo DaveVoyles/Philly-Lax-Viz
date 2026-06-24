@@ -266,51 +266,32 @@ Copy the **entire JSON output** — you'll paste it into the
 
 ---
 
-## 4b. Migration runbook: SWA → single-container ACA
+## 4b. Migration log: SWA → single-container ACA (completed 2026-06-24)
 
-These steps should be run after the code changes are deployed. They have ~2-5 min of potential DNS propagation delay.
+All steps below were completed on 2026-06-24. This section is kept as an audit trail.
 
-### Step 1: Set min-replicas=1 (eliminates cold starts)
+### ✅ Step 1: Set min-replicas=1
 ```bash
-az containerapp update \
-  --name "$ACA_NAME" \
-  --resource-group "$RG" \
-  --min-replicas 1
+az containerapp update --name pll-server --resource-group pll-rg --min-replicas 1
 ```
 
-### Step 2: Verify custom domain setup on ACA
-If the frontend was served from a custom domain on SWA (e.g. phillylaxstats.com),
-that domain needs to be bound to ACA instead.
+### ✅ Step 2: Custom domain already bound on ACA
+`phillylaxstats.com`, `www.phillylaxstats.com`, and `api.phillylaxstats.com` were already bound to ACA with managed TLS certs. No new binding required.
 
+### ✅ Step 3: DNS updated via Namecheap API
+- `phillylaxstats.com` A record → `4.156.244.210` (ACA IP)
+- `www.phillylaxstats.com` CNAME → `pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io`
+- All Azure domain-verification TXT records preserved
+
+### ✅ Step 4: SWA deleted
 ```bash
-# Add custom domain to ACA
-az containerapp hostname add \
-  --name "$ACA_NAME" \
-  --resource-group "$RG" \
-  --hostname "phillylaxstats.com"
-
-# Bind managed certificate (creates TLS cert automatically)
-az containerapp hostname bind \
-  --name "$ACA_NAME" \
-  --resource-group "$RG" \
-  --hostname "phillylaxstats.com" \
-  --validation-method CNAME
+az staticwebapp delete --name pll-web --resource-group pll-rg --yes
 ```
 
-### Step 3: Update DNS
-Update your DNS provider:
-- Change the CNAME for `phillylaxstats.com` from the SWA default hostname to the ACA FQDN
-- Get ACA FQDN: `az containerapp show --name "$ACA_NAME" --resource-group "$RG" --query properties.configuration.ingress.fqdn -o tsv`
-
-### Step 4: Verify and delete SWA (optional cleanup)
-After DNS propagates and the site loads correctly from ACA:
+### ✅ Step 5: Stale GitHub secret removed
 ```bash
-# Delete the SWA (optional, saves nothing since it was free)
-az staticwebapp delete --name "$SWA_NAME" --resource-group "$RG"
+gh secret delete AZURE_STATIC_WEB_APPS_API_TOKEN
 ```
-
-### Step 5: Remove stale GitHub secrets
-- `AZURE_STATIC_WEB_APPS_API_TOKEN` - no longer used
 
 ## 5. GitHub repo secrets to set
 

@@ -1,4 +1,4 @@
-# Handoff — 2026-06-24 (Session 2)
+# Handoff — 2026-06-24
 
 Session summary. Open a fresh session to continue.
 
@@ -6,19 +6,27 @@ Session summary. Open a fresh session to continue.
 
 ## What Was Done
 
-### Architecture consolidation: SWA + ACA → single container (Wave 1 complete)
+### Architecture consolidation: SWA + ACA → single container (complete)
 
-**Problem:** Cold-start timeouts on `https://api.phillylaxstats.com/api/dashboard/bundle` persisted despite 5-minute health-check pings. Root cause: GitHub Actions scheduler jitter causes actual ping gaps of 8-10 minutes at peak load, not the intended 5 minutes. ACA Consumption with `min-replicas=0` cold-starts in 15-20 seconds, exceeding the default browser request timeout.
+**Problem:** Cold-start timeouts on `https://phillylaxstats.com/api/dashboard/bundle` persisted despite 5-minute health-check pings. Root cause: GitHub Actions scheduler jitter creates actual ping gaps of 8-10 minutes at peak load. ACA Consumption `min-replicas=0` cold-starts in 15-20 seconds, exceeding the default browser request timeout.
 
-**Decision:** Consolidate to a single container with `--min-replicas 1`.
+**Decision:** Consolidate to a single always-on container.
 - Same cost as keeping split + min-replicas=1 (~$5-8/mo)
-- Simpler: one deploy job, no SWA, no cross-origin proxy
+- Simpler: one deploy job, no SWA, no cross-origin proxy, no keep-warm cron hacks
 
-**Code changes completed (Wave 1):**
-- `Dockerfile` — builder stage now builds `packages/web/dist`; runtime stage includes web dist
-- `packages/server/src/app.ts` — serves SPA static files from `/`, SPA fallback in `setNotFoundHandler`
-- `.github/workflows/deploy.yml` — removed `deploy-web` SWA job; removed web bundle build step from CI
-- `docs/azure-deployment.md` — updated architecture, cost table, added migration runbook
+**All changes completed and verified:**
+
+| Change | File(s) |
+|---|---|
+| Web bundle built inside Docker | `Dockerfile` |
+| Fastify serves SPA from `/` + `index.html` fallback | `packages/server/src/app.ts` |
+| SWA deploy job removed | `.github/workflows/deploy.yml` |
+| `min-replicas=1` set on ACA | Azure (via `az containerapp update`) |
+| DNS `phillylaxstats.com` → ACA (`4.156.244.210`) | Namecheap API |
+| DNS `www.phillylaxstats.com` → ACA FQDN | Namecheap API |
+| SWA `pll-web` deleted | Azure |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` secret deleted | GitHub |
+| All docs updated | `docs/` |
 
 ---
 
@@ -26,22 +34,18 @@ Session summary. Open a fresh session to continue.
 
 | Item | Status |
 |---|---|
-| Code changes | ✅ Wave 1 complete — Dockerfile + server + CI updated |
-| Azure min-replicas=1 | ⬜ NOT YET — Wave 2 manual step required |
-| SWA deletion | ⬜ NOT YET — Wave 2 manual step required |
-| DNS migration | ⬜ NOT YET — Wave 2 manual step required |
-| Cold-start timeouts | ⚠️ Will persist until Wave 2 (min-replicas=1) is applied |
+| Production URL | `https://phillylaxstats.com` (single ACA container) |
+| `dashboard/bundle` response time | ~70-440ms (was timing out) |
+| Cold-start timeouts | ✅ Eliminated — `min-replicas=1` always-on |
+| SWA | ✅ Deleted |
+| DNS | ✅ Propagated — both apex and www → ACA |
+| Nightly ingest | ✅ Uploads DB to Azure Files after each run |
+| `api.phillylaxstats.com` subdomain | Still bound on ACA (redundant but harmless) |
 
 ---
 
-## Next Steps (Wave 2 — manual Azure steps)
+## Next Steps
 
-See `docs/azure-deployment.md` Section 4b for exact commands.
-
-1. Deploy the updated code to main (trigger deploy.yml)
-2. Verify the container serves both API and SPA correctly
-3. `az containerapp update --min-replicas 1` (THE fix for timeouts)
-4. Add custom domain `phillylaxstats.com` to ACA
-5. Update DNS CNAME → ACA FQDN
-6. Delete SWA after DNS propagates
-7. Remove `AZURE_STATIC_WEB_APPS_API_TOKEN` GitHub secret
+- Season ends — consider whether a 2027 season pipeline change is needed
+- `checkDataQuality.ts` always exits 1 for advisory issues — consider separating warnings (exit 0) from errors (exit 1)
+- `api.phillylaxstats.com` subdomain can be removed from ACA custom domains if desired (it's redundant — the canonical API URL is now `https://phillylaxstats.com/api/*`)

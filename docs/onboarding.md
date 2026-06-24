@@ -11,8 +11,7 @@
 TypeScript pnpm monorepo that scrapes, parses, and visualizes Philadelphia high-school boys lacrosse data from **phillylacrosse.com** (RSS scoreboards & summaries), **piaad1.org** (official PIAA District 1 rankings), **phillylaxnumbers.com** (LaxNumbers — per-game player stats), and **maxpreps.com** (team logos). Four workspace packages handle ingestion, an HTTP API, shared types, and a D3-based web client.
 
 The site is deployed via:
-- **Azure Static Web Apps** — Vite SPA served from Azure SWA with `/api/*` proxied to the backend
-- **Azure Container App** — live Fastify API at `https://api.phillylaxstats.com`. DB stored in Azure Files, mounted at `/data/`.
+- **Azure Container App** — single Fastify container (`pll-server`) at `https://phillylaxstats.com`. Serves the Vite SPA, all `/api/*` routes, and `/logos/*` static files. DB baked into the image (`/tmp/lacrosse.db`) and refreshed nightly from Azure Files. `min-replicas=1` (always-on, no cold starts).
 
 ---
 
@@ -141,7 +140,7 @@ cp data/lacrosse.db data/lacrosse.db.bak-<context>
 
 **Key CI workflows** (all under `.github/workflows/`):
 - `ingest-nightly.yml` — crawl + parse + ingest + applyCorrections + restart ACA
-- `deploy.yml` — build web + server, deploy to Azure SWA + ACA (triggered on push to main)
+- `deploy.yml` — build server image (includes web bundle), push to GHCR, deploy to ACA (triggered on push to main)
 - `sync-logos.yml` — weekly Sunday logo sync from MaxPreps
 - `sync-pbla.yml` — Tue/Thu 6AM ET: scrape PBLA data from Sportability, upload DB, trigger Pages rebuild
 - `update-azure-config.yml` — ops tool: updates CORS_ORIGINS / env vars on Azure Container App

@@ -12,7 +12,7 @@
 | Constraint | Detail |
 |---|---|
 | **Scale** | Dozens of daily users (coaches + players). No need for CDN, caching layers, or horizontal scaling yet. |
-| **Hosting** | Azure Static Web Apps = production frontend. Azure Container App = API + nightly ingest. Custom domain `www.phillylaxstats.com` points to Azure SWA. |
+| **Hosting** | Single Azure Container App (`pll-server`, `min-replicas=1`) at `https://phillylaxstats.com`. Serves SPA + API + logos from one container. |
 | **Domain** | `PhillyLaxStats.com` (NameCheap, owner-acquired). Will point to Azure once stable. |
 | **Data authority** | Coach-submitted data > Hudl > LaxNumbers > RSS. Manual entries take precedence but are auditable. |
 | **T-shirt sizing** | XS = <1hr, S = 1-3hr, M = 3-8hr. Avoid M+ items; split them. |
@@ -437,7 +437,7 @@ Track architectural decisions made during execution. Add entries here as waves c
 
 | Date | Decision | Rationale | Wave |
 |------|----------|-----------|------|
-| 2026-05-19 | Azure SWA = production, GitHub Pages deprecated | Azure has API + custom domain + TLS + CDN | 1 |
+| 2026-06-24 | Consolidated SWA+ACA into single container | ACA cold starts (15-20s) couldn't be reliably mitigated by cron-based keep-warm; `min-replicas=1` required anyway so consolidation costs same (~$5-8/mo) and removes SWA complexity | — |
 | 2026-05-19 | Coach data overrides scraper data | Coaches are authoritative for their own team's stats | 2 |
 | 2026-05-19 | Multi-league via `league_id` FK (not separate DB) | One DB keeps queries simple; just add a WHERE clause | 4 |
 

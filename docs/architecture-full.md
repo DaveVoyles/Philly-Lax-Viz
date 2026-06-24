@@ -68,8 +68,7 @@ External Sources
 
 | Component | URL | Role |
 |-----------|-----|------|
-| Web (SWA) | https://www.phillylaxstats.com | Vite SPA, all data via live API |
-| API (ACA) | https://api.phillylaxstats.com | Fastify, SQLite on Azure File Share |
+| Web + API (ACA) | https://phillylaxstats.com | Vite SPA + Fastify API in one container, min-replicas=1 |
 
 The web client calls the API directly — there is no static JSON export layer.
 
@@ -407,17 +406,21 @@ This is additive — it supplements phillylacrosse.com data, not replaces it.
 
 ## 10. Deployment
 
-The site is deployed via **Azure Static Web Apps** (free tier). The `deploy.yml` workflow:
-1. Builds the Vite SPA (`pnpm --filter @pll/web build`)
-2. Deploys to Azure SWA using `@azure/static-web-apps-cli`
+The site is deployed via a **single Azure Container App** (`pll-server`, `min-replicas=1`). The `deploy.yml` workflow:
+1. Builds the monorepo (typecheck + tests)
+2. Builds the Docker image — includes Vite SPA build (`pnpm --filter @pll/web build`) and bakes `packages/web/dist` into the image
+3. Pushes to GHCR and deploys to ACA via `azure/container-apps-deploy-action`
 
-All views call the live Fastify API on the Azure Container App. There is no static JSON export step.
+All views call the Fastify API on the same origin. The Fastify server serves:
+- `/api/*` — API routes
+- `/logos/*` — static team logos (GIFs, `Cache-Control: immutable`)
+- `/*` — SPA files from `packages/web/dist/` with SPA fallback (`index.html`) for client-side routes
 
-- **Production URL:** `https://www.phillylaxstats.com/`
-- **SWA staging URL:** `https://victorious-pond-0c5ff000f.7.azurestaticapps.net/`
-- **API backend:** `https://pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io`
+- **Production URL:** `https://phillylaxstats.com/`
+- **API backend:** same origin — `https://phillylaxstats.com/api/*`
+- **ACA FQDN:** `pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io`
 
-SPA routing is handled by `packages/web/public/staticwebapp.config.json` (rewrites all paths to `/index.html` except `/assets/*`, `/logos/*`, `/data/*`).
+SPA routing is handled by `app.ts` `setNotFoundHandler` (returns `index.html` for non-API, non-logos paths).
 
 ---
 
@@ -428,10 +431,10 @@ SPA routing is handled by `packages/web/public/staticwebapp.config.json` (rewrit
 **Why:** The entire dataset is small enough to fit in one file (<50MB), the ingest pipeline runs on a single machine (Mac Mini self-hosted runner), and SQLite requires no separate server process. The DB file is uploaded to Azure File Share and downloaded at the start of each nightly run — effectively using Azure as a persistence layer.  
 **Trade-off:** Concurrent writes are not supported. The pipeline is designed to be single-writer. Read-heavy API queries are fine.
 
-### ADR-002: Azure Static Web Apps as primary deployment
-**Decision:** Azure SWA is the user-facing URL (`www.phillylaxstats.com`); Azure Container App provides the API backend.  
-**Why:** Azure SWA offers free global CDN, automatic HTTPS, SPA routing, and tight integration with the Container App API. All views call the live API directly - no static JSON pre-export needed.  
-**Trade-off:** Requires Azure credentials for deploy; cold-start latency on the API container (mitigated by keep-alive pings in nightly CI).
+### ADR-002: Single container serving SPA + API (2026-06-24)
+**Decision:** Azure Container App (`pll-server`, `min-replicas=1`) serves both the Vite SPA and the Fastify API from `https://phillylaxstats.com`.  
+**Why:** The previous two-service split (Azure SWA + ACA scale-to-zero) produced 15-20 second cold starts because GitHub Actions scheduler jitter made keep-warm pings unreliable. With `min-replicas=1` required anyway, consolidation costs the same (~$5-8/mo) but removes SWA tooling, cross-origin proxy rewrites, and a second CI deploy job.  
+**Trade-off:** No CDN for static assets (negligible for a Philadelphia-metro audience; assets served with `Cache-Control: immutable`).
 
 ### ~~ADR-003: Static JSON export~~ (SUPERSEDED)
 **Status:** Superseded. The static export pattern (`exportStatic.ts`, `staticLoader.ts`, `IS_STATIC` guards) was removed in May 2026 when the site moved fully to Azure SWA with live API calls.
@@ -473,7 +476,7 @@ SPA routing is handled by `packages/web/public/staticwebapp.config.json` (rewrit
 
 ### ~~Static export gaps~~ (RESOLVED)
 
-Static export is no longer used. All views call the live API directly via Azure SWA.
+Static export is no longer used. All views call the live API directly.
 
 ### Data quality
 
@@ -497,14 +500,7 @@ When the 2027 season begins, update:
 
 ### CORS configuration
 
-The Azure Container App (`pll-server`) must have `https://www.phillylaxstats.com` in its
-`CORS_ORIGINS` environment variable. Without this, correction POSTs from the SWA frontend will be
-blocked by CORS.
-
-Steps:
-1. Go to Azure Portal -> Container Apps -> pll-server -> Settings -> Environment variables
-2. Edit `CORS_ORIGINS` to include `https://www.phillylaxstats.com` (comma-separated)
-3. Save and wait for the container to redeploy
+The Azure Container App (`pll-server`) serves the frontend and API from the same origin (`https://phillylaxstats.com`), so CORS is only needed for local development. The `CORS_ORIGINS` environment variable defaults to `http://localhost:5173` for dev. No changes are needed for production correction POSTs.
 
 ### Required GitHub Actions secret
 

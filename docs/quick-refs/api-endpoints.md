@@ -10,7 +10,7 @@
 
 | Environment | URL |
 |-------------|-----|
-| **Production** | `https://api.phillylaxstats.com` |
+| **Production** | `https://phillylaxstats.com` |
 | **Local dev** | `http://localhost:3001` |
 
 ---
@@ -27,7 +27,7 @@
 
 **Example:**
 ```bash
-curl https://api.phillylaxstats.com/api/teams/42
+curl https://phillylaxstats.com/api/teams/42
 ```
 
 ### Games
@@ -40,7 +40,7 @@ curl https://api.phillylaxstats.com/api/teams/42
 
 **Example:**
 ```bash
-curl https://api.phillylaxstats.com/api/games/123
+curl https://phillylaxstats.com/api/games/123
 ```
 
 ### Players
@@ -53,7 +53,7 @@ curl https://api.phillylaxstats.com/api/games/123
 
 **Example:**
 ```bash
-curl https://api.phillylaxstats.com/api/players/456
+curl https://phillylaxstats.com/api/players/456
 ```
 
 ### Leaders
@@ -70,7 +70,7 @@ curl https://api.phillylaxstats.com/api/players/456
 
 **Example:**
 ```bash
-curl "https://api.phillylaxstats.com/api/leaders/players?metric=goals&season=2026&limit=50"
+curl "https://phillylaxstats.com/api/leaders/players?metric=goals&season=2026&limit=50"
 ```
 
 ### Rankings
@@ -309,7 +309,7 @@ X-Cache: HIT | MISS
 Team logos are served statically (not via API routes):
 
 ```
-https://api.phillylaxstats.com/logos/harriton.gif
+https://phillylaxstats.com/logos/harriton.gif
 ```
 
 - **Path:** `/logos/{filename}`
@@ -331,22 +331,22 @@ https://api.phillylaxstats.com/logos/harriton.gif
 
 ### Get team's full season stats
 ```bash
-curl "https://api.phillylaxstats.com/api/teams/42?season=2026"
+curl "https://phillylaxstats.com/api/teams/42?season=2026"
 ```
 
 ### Get recent games
 ```bash
-curl "https://api.phillylaxstats.com/api/games?season=2026&limit=20"
+curl "https://phillylaxstats.com/api/games?season=2026&limit=20"
 ```
 
 ### Get top goal scorers
 ```bash
-curl "https://api.phillylaxstats.com/api/leaders/players?metric=goals&season=2026&limit=50"
+curl "https://phillylaxstats.com/api/leaders/players?metric=goals&season=2026&limit=50"
 ```
 
 ### Search for player
 ```bash
-curl "https://api.phillylaxstats.com/api/search?q=john+doe"
+curl "https://phillylaxstats.com/api/search?q=john+doe"
 ```
 
 ---
