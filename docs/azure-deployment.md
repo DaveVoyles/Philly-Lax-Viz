@@ -458,6 +458,8 @@ az containerapp revision list --name "$ACA_NAME" --resource-group "$RG" \
 | Nightly job: `ResourceNotFound` on file download                   | First run, share is empty                                                    | The workflow already tolerates this — it logs a warning and creates the DB fresh.               |
 | `AuthorizationFailed` from `az` in workflow                        | Service principal lost contributor on `$RG` (e.g. RG recreated)              | Re-run `az ad sp create-for-rbac` and update `AZURE_CREDENTIALS` secret.                        |
 | GHCR pull `unauthorized`                                           | Package is private and ACA has no registry creds                             | Either make the package public, or run §4.6 to attach a PAT.                                     |
+| Deploy workflow queued indefinitely                               | No registered self-hosted runner with `pll` label                            | Start runner on Mac Mini: `cd ~/github-runners/Philly-Lax-Viz && nohup ./run.sh >> runner.log 2>&1 &` — see §CI runner section below. |
+| `docker login` fails: `User interaction not allowed (-25308)`     | macOS keychain blocks credential storage in headless runner                  | Fixed in `deploy.yml` by writing base64 credentials directly to `DOCKER_CONFIG/config.json` rather than using `docker/login-action`. |
 
 ### Live container logs
 
@@ -646,26 +648,91 @@ Bottom line: with `--min-replicas 1`, expect **~$5-10/mo** for typical traffic; 
 
 ---
 
-## Local fallback (when GitHub Actions is unavailable)
+## Local fallback (when GitHub Actions / Mac Mini runner is unavailable)
 
-If CI is blocked (billing, secrets rotation, etc.), deploy directly from a workstation:
+The normal CI path (`push to main → deploy workflow → Mac Mini runner`) can be
+blocked if the runner is offline or Docker credentials have expired. In that
+case, deploy directly from your local workstation in ~5 minutes.
+
+### Prerequisites (one-time)
 
 ```bash
-# 1. Build amd64 image with seed DB baked in
-docker buildx build --platform linux/amd64 \
-  -t adovizacr1771621563.azurecr.io/pll-server:vN --load .
+# Ensure Docker is running locally (Docker Desktop or OrbStack)
+docker info
 
-# 2. Push to ACR (uses admin creds from `az acr credential show`)
-az acr login -n adovizacr1771621563
-docker push adovizacr1771621563.azurecr.io/pll-server:vN
+# Add write:packages scope to your gh token so you can push to GHCR
+gh auth refresh -s write:packages
+# → opens a browser flow; approve it, then come back
 
-# 3. Roll the container app to the new image (force new revision)
-az containerapp update -n pll-server -g pll-rg \
-  --image adovizacr1771621563.azurecr.io/pll-server:vN \
-  --revision-suffix vN \
-  --set-env-vars DB_PATH=/tmp/lacrosse.db PORT=8080 NODE_ENV=production
+# Log in to GHCR with the refreshed token
+gh auth token | docker login ghcr.io -u DaveVoyles --password-stdin
+# → "Login Succeeded"
+```
 
-# 4. Verify both API + SPA
-curl https://phillylaxstats.com/api/health
+### Build, push, and deploy
+
+```bash
+# 1. Build the image for linux/amd64 and push to GHCR
+SHA=$(git rev-parse HEAD)
+docker buildx build \
+  --platform linux/amd64 \
+  --tag "ghcr.io/davevoyles/pll-server:sha-${SHA}" \
+  --tag "ghcr.io/davevoyles/pll-server:latest" \
+  --push \
+  .
+
+# 2. Update the Container App to the new image
+az containerapp update \
+  --name pll-server \
+  --resource-group pll-rg \
+  --image "ghcr.io/davevoyles/pll-server:sha-${SHA}"
+
+# 3. Verify
+curl -sf https://phillylaxstats.com/api/health
 curl -I https://phillylaxstats.com/
 ```
+
+The `docker buildx build` step takes 3–6 minutes on the first run (amd64
+cross-compile via QEMU), but subsequent runs are fast because most layers are
+cached locally.
+
+> **Note on Docker caching:** If source files changed but the build is fully
+> cached, the Docker layer cache may not have detected file modifications. Add
+> `--no-cache-filter builder` to force a rebuild of the source/compile stages
+> without invalidating the base image layers.
+
+---
+
+## CI runner (Mac Mini self-hosted runner)
+
+The `deploy.yml` workflow runs on a self-hosted runner tagged `[self-hosted, pll]`.
+
+### Runner location
+
+```
+~/github-runners/Philly-Lax-Viz/   (on daves-mac-mini.local)
+```
+
+### Starting the runner
+
+```bash
+ssh daves-mac-mini.local
+cd ~/github-runners/Philly-Lax-Viz
+nohup ./run.sh > runner.log 2>&1 &
+tail -f runner.log   # should show: "Listening for Jobs"
+```
+
+### Known issues
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| Runner stops listening after a failed job | GitHub runner process exits on certain failures | Restart manually: `pkill -f 'Philly-Lax-Viz.*Runner' && nohup ./run.sh >> runner.log 2>&1 &` |
+| Docker login fails: `User interaction is not allowed (-25308)` | macOS keychain blocks headless credential storage | The `deploy.yml` workflow writes the GITHUB_TOKEN directly as base64 into the Docker config `auths` section — this bypasses the credential helper entirely |
+| `docker buildx`: error getting credentials | Buildkit runs in a separate process and ignores credential helpers | Fixed in `deploy.yml`: credentials are pre-written to `DOCKER_CONFIG/config.json` before the build step |
+| `PATH` missing `az` or `docker` | Runner uses a minimal shell PATH | Runner `.env` at `~/github-runners/Philly-Lax-Viz/.env` sets `PATH=/opt/homebrew/bin:/usr/local/bin:...` |
+| `write:packages` scope needed | GitHub token must have this scope to push to GHCR | `gh auth refresh -s write:packages` on the machine running the build |
+
+### Runner environment files
+
+- `~/.github-runners/Philly-Lax-Viz/.env` — sets `PATH` and `DOCKER_CONFIG`
+- `~/github-runners/Philly-Lax-Viz/.docker/config.json` — Docker config with `orbstack` context
