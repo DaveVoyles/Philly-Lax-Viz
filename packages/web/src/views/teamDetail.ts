@@ -556,27 +556,6 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   chartsRow.appendChild(topScorersSlot);
   void loadTopScorers(topScorersSlot, teamId);
 
-  const gamesHeader = document.createElement('h2');
-  gamesHeader.textContent = 'Season Games';
-  root.appendChild(gamesHeader);
-
-  // W16 L2 (Leia) — show the next 3 upcoming games for this team if the
-  // schedule scrape has populated them. Lazy-fetched so a missing endpoint
-  // never blocks the rest of the page.
-  const upcomingSlot = document.createElement('div');
-  upcomingSlot.className = 'team-upcoming-slot';
-  root.appendChild(upcomingSlot);
-  void loadUpcoming(upcomingSlot, teamId);
-
-  const gamesPlayed = detail.games.filter((g) => !g.postponed);
-  if (gamesPlayed.length === 0 && detail.games.length === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'muted';
-    empty.textContent = 'No games yet.';
-    root.appendChild(empty);
-    return;
-  }
-
   // Wave H7 Lane 3 (Leia) — season scoring trend (GF/GA per completed game).
   // Hidden when the team has zero completed games so we never render an empty
   // chart for fresh-roster teams or pre-season views.
@@ -598,7 +577,31 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     chartsRow.appendChild(trendWrap);
   }
 
+  // chartsRow must be appended before the Season Games section so the Top
+  // Scorers chart renders in the correct document order and does not visually
+  // overlay the games table on mobile.
   root.appendChild(chartsRow);
+
+  const gamesHeader = document.createElement('h2');
+  gamesHeader.textContent = 'Season Games';
+  root.appendChild(gamesHeader);
+
+  // W16 L2 (Leia) — show the next 3 upcoming games for this team if the
+  // schedule scrape has populated them. Lazy-fetched so a missing endpoint
+  // never blocks the rest of the page.
+  const upcomingSlot = document.createElement('div');
+  upcomingSlot.className = 'team-upcoming-slot';
+  root.appendChild(upcomingSlot);
+  void loadUpcoming(upcomingSlot, teamId);
+
+  const gamesPlayed = detail.games.filter((g) => !g.postponed);
+  if (gamesPlayed.length === 0 && detail.games.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'muted';
+    empty.textContent = 'No games yet.';
+    root.appendChild(empty);
+    return;
+  }
 
   root.appendChild(wrapResponsive(buildGamesTable(detail.games, teamId, teamsById)));
 }
