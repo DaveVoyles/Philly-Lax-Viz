@@ -71,7 +71,7 @@ export function renderTeamScoreTrend(
       : 1;
     canvas.width = Math.round(displayWidth * dpr);
     canvas.height = Math.round(displayHeight * dpr);
-    canvas.style.width = `${displayWidth}px`;
+    canvas.style.width = '100%';
     canvas.style.height = `${displayHeight}px`;
 
     const ctx = canvas.getContext('2d');
