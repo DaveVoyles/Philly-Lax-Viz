@@ -647,7 +647,12 @@ table.stat th.sortable:focus { outline: 2px solid var(--accent); outline-offset:
     max-width: 100%;
   }
   .charts-row { flex-direction: column; }
-  .charts-row > .chart-slot { min-width: 100%; }
+  .charts-row > .chart-slot {
+    min-width: 100%;
+    /* In column layout flex-basis:0 collapses height to 0 (the SVG/canvas
+       overflows rather than pushing siblings down). Switch to natural size. */
+    flex: none;
+  }
 }
 
 .result-w { color: #15803d; font-weight: 600; }
