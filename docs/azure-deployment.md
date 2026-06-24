@@ -1,20 +1,21 @@
 # Azure deployment — Philly Lacrosse Vis
 
-Low-cost, scale-to-zero deployment of the PLL stack:
+Low-cost single-container deployment of the PLL stack:
 
-- **Web** (`@pll/web` — Vite/D3) → **Azure Static Web Apps** (Free tier, global CDN, custom domain).
-- **API** (`@pll/server` — Fastify + better-sqlite3) → **Azure Container Apps** (Consumption plan, scale-to-zero).
-- **DB** (`data/lacrosse.db`) → **baked into the container image** as a seed; copied to ephemeral `/tmp` on container start. Regenerated nightly by the ingest cron, so transient loss on cold-start is acceptable.
+- **App** (`@pll/server` + `@pll/web`) -> **Azure Container Apps** (Consumption plan, `--min-replicas 1`).
+- **Static assets** (`packages/web/dist` + `data/logos/*.gif`) -> served by the Fastify app from the same container.
+- **DB sync** (`data/lacrosse.db`) -> Azure Files share for nightly upload/downloads; do not run live SQLite from SMB.
 
-> **Live deployment** (as of v3): SWA at `https://victorious-pond-0c5ff000f.7.azurestaticapps.net` · API at `https://phillylaxstats.com` · ACR `adovizacr1771621563.azurecr.io`.
+> **Live deployment** (post-migration target): ACA at `https://phillylaxstats.com` · Image `ghcr.io/<owner>/pll-server`.
 
-> ### Deployment learnings (v3, baked from real run)
+> ### Deployment learnings (single-container revision)
 >
-> 1. **Static Web Apps region**: SWA is **not** available in `eastus`. The bootstrap script provisions SWA in `eastus2` (separate `SWA_LOCATION` var) while the rest of the stack stays in `eastus`.
-> 2. **SQLite on Azure Files (SMB) is broken** for this workload. Even with `journal_mode=DELETE`, SMB does not support the byte-range locks SQLite needs for the migration transaction → `SQLITE_BUSY` on every start. **Solution**: don't put SQLite on SMB. Set `DB_PATH=/tmp/lacrosse.db` so the DB lives on the container's ephemeral disk, and bake the seed DB into the image so cold-starts are populated. The Azure Files share + volume mount can be removed entirely.
-> 3. **Container Registry**: GHCR push needs the `write:packages` scope, which `gh auth refresh` only grants via interactive browser. **Use ACR** (admin user enabled) for non-interactive `docker push` from CI or local. Bootstrap creates the ACR.
-> 4. **`az containerapp update --image` does not always replace the running image**. Pair it with `--revision-suffix vN` to force a new revision: `az containerapp update -n pll-server -g pll-rg --image .../pll-server:v3 --revision-suffix v3 --set-env-vars DB_PATH=/tmp/lacrosse.db`.
-> 5. **GitHub Actions billing**: if the account hits a spending-limit error, the deploy.yml workflow fails before doing anything. Local docker push to ACR + `az containerapp update` is the documented fallback (see "Local fallback" below).
+> 1. **Static Web Apps are retired** for this app. The Container App now serves the SPA, API, and logos from one hostname.
+> 2. **Cold starts**: ACA Consumption with `min-replicas=0` cold-starts in 15-20 seconds after idle. GitHub Actions scheduler jitter made `*/5` keep-warm pings unreliable, so the service now runs with `--min-replicas 1`.
+> 3. **SQLite on Azure Files (SMB) is broken** for this workload. Keep Azure Files only for nightly upload/download of the DB artifact; the live app should not open SQLite directly from the SMB mount.
+> 4. **Container Registry**: GHCR works well for CI/CD here and keeps the deploy path simple.
+> 5. **`az containerapp update --image` does not always replace the running image**. Pair it with a new revision (or let the deploy action create one) so the rollout is unambiguous.
+> 6. **GitHub Actions scheduler jitter is real**. Treat cron-based keep-warm jobs as best effort, not as a substitute for always-on replicas.
 
 > The server already honours `DB_PATH` (preferred) and `PLL_DB_PATH` (legacy) env
 > vars and listens on `process.env.PORT` (defaults to 3001 locally; we set 8080
@@ -28,60 +29,60 @@ Numbers are list price for `eastus`, single low-traffic instance.
 
 | Resource                                              | SKU                          | Est. monthly |
 | ----------------------------------------------------- | ---------------------------- | -----------: |
-| Azure Static Web Apps                                 | Free                         |       **$0** |
-| Azure Container Apps (Consumption, scale-to-zero)     | 0.5 vCPU / 1 GiB, ~5 min/day |     ~**$1**¹ |
-| Azure Files (Standard LRS, 1 GiB share)               | Standard_LRS                 |    ~**$0.06** |
-| Storage transactions (nightly upload + reads)         | <100k/mo                     |    ~**$0.10** |
-| Container Registry (we use **GHCR**, not ACR)         | n/a                          |       **$0** |
-| Egress (≤1 GiB/mo while traffic is light)             | First 100 GiB free           |       **$0** |
-| Log Analytics (default ACA logs, 5 GB free)           | Pay-as-you-go                |    ~**$0–2** |
-| **Total**                                             |                              |  **~$1–4/mo** |
-
-¹ Container Apps Consumption: first **180,000 vCPU-seconds** and **360,000 GiB-seconds**
-   per month are free per subscription. With scale-to-zero + ~5 min of warm time per
-   day this stays inside the free grant for almost any month. Budget **$8/mo** to
-   cover spikes (cold-start traffic, occasional manual pulls).
+| Azure Container Apps (Consumption, min-replicas=1)    | 0.5 vCPU / 1 GiB, always-on  |   **~$5–8** |
+| Azure Files (Standard LRS, 1 GiB share)               | Standard_LRS                 |   ~**$0.06** |
+| Storage transactions (nightly upload + reads)         | <100k/mo                     |   ~**$0.10** |
+| Container Registry (GHCR)                             | n/a                          |      **$0** |
+| Egress (≤1 GiB/mo while traffic is light)             | First 100 GiB free           |      **$0** |
+| Log Analytics (default ACA logs, 5 GB free)           | Pay-as-you-go                |   ~**$0–2** |
+| **Total**                                             |                              | **~$5–10/mo** |
 
 Set a hard budget alert (see [§9](#9-cost-monitoring)).
 
-### Why two services instead of one?
+### Architecture decision: single container (2026-06-24)
 
-**Decision (2026-06-24): Keep SWA + ACA split. Do not consolidate.**
+**Decision: Consolidated to single Azure Container App serving both static files and API.**
 
-The SWA (Free tier, CDN-backed) serves static files at $0. If we moved to a single container serving both static assets and the API, the container would need to stay warm longer (serving every page load, not just API calls), increasing billable ACA time. Consolidating saves ~$0.16/mo in Azure Files costs but adds more container CPU time — net result is **more expensive** with no meaningful user-experience benefit.
+The previous two-service setup (SWA free + ACA scale-to-zero) produced unpredictable 15–20 second cold starts because:
+1. `min-replicas=0` causes cold starts on any request after ~5 minutes of idle
+2. The GitHub Actions health-check pinger (`*/5 * * * *`) has scheduler jitter of 2–5 minutes at peak load, creating actual gaps of 8–10 minutes between pings
 
-The cold-start UX problem is addressed separately by pinging every 5 minutes (`health-check.yml`). If that proves insufficient, the next step is `--min-replicas 1` (~$5–8/mo), not consolidation.
+The fix requires `--min-replicas 1` (always-on container). With that requirement the cost split becomes:
+- Keep split (SWA free + ACA min-replicas=1): ~$5–9/mo
+- Single container (ACA min-replicas=1, no SWA): ~$5–8/mo
+
+Same cost, simpler architecture: one service, one deploy job, no cross-origin proxy rewrite, no SWA tooling.
+
+The CDN advantage of SWA is negligible for a Philadelphia-metro audience. Static assets in the container are served with `Cache-Control: public, max-age=31536000, immutable` headers.
 
 ---
 
 ## 2. Architecture
 
 ```
-                ┌──────────────────────────────┐
-   browser  ──► │  Azure Static Web Apps       │  (Free, global CDN)
-                │  - serves packages/web/dist  │
-                └──────────────┬───────────────┘
-                               │ /api/* fetch
-                               ▼
-                ┌──────────────────────────────┐
-                │  Azure Container Apps        │  (Consumption, scale 0→1)
-                │  Image: ghcr.io/<owner>/     │
-                │         pll-server:<sha>     │
-                │  Env:   DB_PATH=/data/...    │
-                │  Mount: /data ──┐            │
-                └──────────────┬──┘            │
-                               ▼               │
-                ┌──────────────────────────────┴┐
-                │  Azure Files share `pll-data` │  (1 GiB, Standard LRS)
-                │  └─ lacrosse.db               │
-                └──────────────┬────────────────┘
-                               ▲
-                               │ nightly upload
-                ┌──────────────┴───────────────┐
-                │  GitHub Actions              │
-                │  - deploy.yml      (push)    │
-                │  - ingest-nightly.yml (cron) │
-                └──────────────────────────────┘
+              ┌──────────────────────────────────────┐
+ browser  ──► │  Azure Container Apps (min-replicas=1)│  (Consumption plan, always-on)
+              │  Fastify server - 0.5 vCPU / 1 GiB  │
+              │                                      │
+              │  /           -> packages/web/dist/  │  (SPA static files + fallback)
+              │  /api/*      -> API routes          │
+              │  /logos/*    -> data/logos/         │
+              │                                      │
+              │  Image: ghcr.io/<owner>/pll-server  │
+              │  DB_PATH=/tmp/lacrosse.db           │
+              └──────────────────┬───────────────────┘
+                                 ▼
+              ┌──────────────────────────────────────┐
+              │  Azure Files share `pll-data`        │  (1 GiB, Standard LRS)
+              │  └─ lacrosse.db                      │
+              └──────────────────┬───────────────────┘
+                                 ▲
+                                 │ nightly upload
+              ┌──────────────────┴───────────────────┐
+              │  GitHub Actions                      │
+              │  - deploy.yml      (push to main)    │
+              │  - ingest-nightly.yml (cron)         │
+              └──────────────────────────────────────┘
 ```
 
 ---
@@ -126,7 +127,7 @@ export RG=pll-rg
 export LOCATION=eastus
 export STORAGE_ACCOUNT=pllstorage$RANDOM     # must be globally unique, lowercase
 export FILE_SHARE=pll-data
-export SWA_NAME=pll-web
+export SWA_NAME=pll-web                      # legacy only; used for SWA cleanup in §4b
 export ACA_ENV=pll-env
 export ACA_NAME=pll-server
 export ACA_STORAGE_NAME=plldata               # the *named* mount inside ACA env
@@ -139,23 +140,11 @@ export GHCR_OWNER=<your-github-username-or-org>
 az group create --name "$RG" --location "$LOCATION"
 ```
 
-### 4.2 Static Web App (Free)
+### 4.2 Static Web App (legacy only)
 
-```bash
-az staticwebapp create \
-  --name "$SWA_NAME" \
-  --resource-group "$RG" \
-  --location "$LOCATION" \
-  --sku Free
-```
+SWA is no longer part of the active architecture. Skip this section for new deployments.
 
-Grab the deployment token (you'll paste this into GitHub):
-
-```bash
-az staticwebapp secrets list \
-  --name "$SWA_NAME" --resource-group "$RG" \
-  --query 'properties.apiKey' -o tsv
-```
+Keep `$SWA_NAME` only if you are migrating an older split deployment and want a handle for cleanup in §4b.
 
 ### 4.3 Storage account + Azure Files share for SQLite
 
@@ -202,7 +191,7 @@ az containerapp env storage set \
   --access-mode ReadWrite
 ```
 
-### 4.5 Container App (with `/data` mount, scale-to-zero)
+### 4.5 Container App (serves SPA + API, always-on)
 
 The first create uses a placeholder image; the deploy workflow will roll the
 real GHCR image in afterward.
@@ -215,7 +204,7 @@ az containerapp create \
   --image mcr.microsoft.com/azuredocs/containerapps-helloworld:latest \
   --target-port 8080 \
   --ingress external \
-  --min-replicas 0 \
+  --min-replicas 1 \
   --max-replicas 1 \
   --cpu 0.5 --memory 1.0Gi \
   --env-vars DB_PATH=/data/lacrosse.db PORT=8080 NODE_ENV=production
@@ -277,6 +266,52 @@ Copy the **entire JSON output** — you'll paste it into the
 
 ---
 
+## 4b. Migration runbook: SWA → single-container ACA
+
+These steps should be run after the code changes are deployed. They have ~2-5 min of potential DNS propagation delay.
+
+### Step 1: Set min-replicas=1 (eliminates cold starts)
+```bash
+az containerapp update \
+  --name "$ACA_NAME" \
+  --resource-group "$RG" \
+  --min-replicas 1
+```
+
+### Step 2: Verify custom domain setup on ACA
+If the frontend was served from a custom domain on SWA (e.g. phillylaxstats.com),
+that domain needs to be bound to ACA instead.
+
+```bash
+# Add custom domain to ACA
+az containerapp hostname add \
+  --name "$ACA_NAME" \
+  --resource-group "$RG" \
+  --hostname "phillylaxstats.com"
+
+# Bind managed certificate (creates TLS cert automatically)
+az containerapp hostname bind \
+  --name "$ACA_NAME" \
+  --resource-group "$RG" \
+  --hostname "phillylaxstats.com" \
+  --validation-method CNAME
+```
+
+### Step 3: Update DNS
+Update your DNS provider:
+- Change the CNAME for `phillylaxstats.com` from the SWA default hostname to the ACA FQDN
+- Get ACA FQDN: `az containerapp show --name "$ACA_NAME" --resource-group "$RG" --query properties.configuration.ingress.fqdn -o tsv`
+
+### Step 4: Verify and delete SWA (optional cleanup)
+After DNS propagates and the site loads correctly from ACA:
+```bash
+# Delete the SWA (optional, saves nothing since it was free)
+az staticwebapp delete --name "$SWA_NAME" --resource-group "$RG"
+```
+
+### Step 5: Remove stale GitHub secrets
+- `AZURE_STATIC_WEB_APPS_API_TOKEN` - no longer used
+
 ## 5. GitHub repo secrets to set
 
 Settings → Secrets and variables → Actions → **New repository secret**.
@@ -284,7 +319,7 @@ Settings → Secrets and variables → Actions → **New repository secret**.
 | Secret                            | Value source                                                          | Used by                     |
 | --------------------------------- | --------------------------------------------------------------------- | --------------------------- |
 | `AZURE_CREDENTIALS`               | full JSON from `az ad sp create-for-rbac --sdk-auth` (§4.7)           | deploy, ingest-nightly      |
-| `AZURE_STATIC_WEB_APPS_API_TOKEN` | `az staticwebapp secrets list … --query properties.apiKey` (§4.2)     | deploy                      |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | ~~`az staticwebapp secrets list …`~~ | ~~deploy~~ — **no longer needed after SWA removal** |
 | `ACA_RESOURCE_GROUP`              | `pll-rg` (your `$RG`)                                                 | deploy, ingest-nightly      |
 | `ACA_NAME`                        | `pll-server` (your `$ACA_NAME`)                                       | deploy, ingest-nightly      |
 | `AZURE_STORAGE_ACCOUNT`           | `$STORAGE_ACCOUNT`                                                    | ingest-nightly              |
@@ -295,7 +330,7 @@ You can do it from the CLI instead:
 
 ```bash
 gh secret set AZURE_CREDENTIALS              < sp.json
-gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN -b "<token>"
+# Legacy only during migration: AZURE_STATIC_WEB_APPS_API_TOKEN (remove after SWA cleanup)
 gh secret set ACA_RESOURCE_GROUP              -b "$RG"
 gh secret set ACA_NAME                        -b "$ACA_NAME"
 gh secret set AZURE_STORAGE_ACCOUNT           -b "$STORAGE_ACCOUNT"
@@ -314,33 +349,20 @@ gh run watch
 
 What happens:
 
-1. `build-and-test` — installs, typechecks, runs all tests, builds web bundle.
-2. `deploy-web` — uploads `packages/web/dist` to the Static Web App.
-3. `deploy-server` — builds + pushes `ghcr.io/<owner>/pll-server:sha-<sha>`,
-   then runs `azure/container-apps-deploy-action@v2` to roll the new revision.
+1. `build-and-test` - installs dependencies, optionally regenerates the sitemap from Azure Files, then typechecks and runs tests.
+2. `deploy-server` - downloads the latest DB seed, builds + pushes `ghcr.io/<owner>/pll-server:sha-<sha>` (including `packages/web/dist`), then runs `azure/container-apps-deploy-action@v2` to roll the new revision.
 
-URLs:
+URL:
 
 ```bash
-az staticwebapp show       --name "$SWA_NAME"   --resource-group "$RG" --query defaultHostname -o tsv
-az containerapp show       --name "$ACA_NAME"   --resource-group "$RG" --query properties.configuration.ingress.fqdn -o tsv
+az containerapp show --name "$ACA_NAME" --resource-group "$RG" --query properties.configuration.ingress.fqdn -o tsv
 ```
 
-Wire the SWA to call the Container App by setting the API base in the web bundle
-(or via SWA's "linked backends" if/when SWA adds Container Apps as a first-class
-linked backend). The simplest thing today is a same-origin proxy via
-`staticwebapp.config.json`:
-
-```json
-{
-  "routes": [
-    { "route": "/api/*", "rewrite": "https://<aca-fqdn>/api/{*api}" }
-  ]
-}
-```
-
-Place that file in `packages/web/dist` (or `packages/web/public`) before the
-deploy step.
+The same ACA hostname now serves everything:
+- `/` -> SPA static files from `packages/web/dist`
+- `/api/*` -> Fastify API routes
+- `/logos/*` -> `data/logos/`
+- Unknown non-API routes -> `index.html` SPA fallback
 
 ---
 
@@ -348,16 +370,22 @@ deploy step.
 
 ```bash
 # 1. Create CNAME at your DNS provider:
-#    pll.example.com  CNAME  <swa-default-hostname>
+#    pll.example.com  CNAME  <aca-fqdn>
 
-# 2. Bind it to the SWA (will validate the CNAME):
-az staticwebapp hostname set \
-  --name "$SWA_NAME" \
+# 2. Add + bind it to the Container App:
+az containerapp hostname add \
+  --name "$ACA_NAME" \
   --resource-group "$RG" \
   --hostname pll.example.com
+
+az containerapp hostname bind \
+  --name "$ACA_NAME" \
+  --resource-group "$RG" \
+  --hostname pll.example.com \
+  --validation-method CNAME
 ```
 
-The Free SKU supports custom domains + auto-managed TLS at no extra cost.
+ACA supports managed TLS for the bound hostname. If you are migrating from SWA, finish the cleanup steps in §4b.
 
 ---
 
@@ -399,7 +427,7 @@ at 02:00 ET.
 
 ## 9. Cost monitoring
 
-### Set a hard $8/mo budget alert
+### Set a hard $10/mo budget alert
 
 ```bash
 SUB_ID=$(az account show --query id -o tsv)
@@ -407,7 +435,7 @@ SUB_ID=$(az account show --query id -o tsv)
 az consumption budget create \
   --budget-name pll-monthly \
   --category Cost \
-  --amount 8 \
+  --amount 10 \
   --time-grain Monthly \
   --start-date $(date -u +%Y-%m-01) \
   --end-date   $(date -u -v+12m +%Y-%m-01) \
@@ -429,7 +457,7 @@ az consumption usage list --top 20 -o table
 ### Useful Container Apps queries
 
 ```bash
-# Are we actually scaling to zero overnight?
+# Are replicas staying warm as expected?
 az containerapp revision list --name "$ACA_NAME" --resource-group "$RG" \
   --query '[].{name:name, replicas:properties.replicas, active:properties.active}' -o table
 ```
@@ -440,12 +468,12 @@ az containerapp revision list --name "$ACA_NAME" --resource-group "$RG" \
 
 | Symptom                                                            | Likely cause                                                                 | Fix                                                                                              |
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| First request after idle takes 15–20 s                             | Container App cold start (scale-from-zero)                                   | health-check.yml pings `/api/teams` every **5 min** to keep container warm. If cold starts persist, set `--min-replicas 1` (~$5–8/mo extra). |
+| First request after idle takes 15–20 s                             | Container App is still allowed to scale from zero                            | Set `--min-replicas 1` to keep container always-on. The 5-min ping strategy was retired - GitHub Actions scheduler jitter allowed 8-10 min idle gaps. |
 | `SQLITE_BUSY: database is locked`                                  | Two writers (server + ingest) hitting the same file at the same time         | Nightly job restarts the revision *after* upload. Don't run ad-hoc `pnpm ingest` against prod.  |
 | `Error: Could not locate the bindings file. better_sqlite3.node`   | Native module mismatched between build & runtime stage                       | Rebuild image — both stages must be the same `node:20-alpine`. Don't downgrade base in one stage.|
 | Container App returns 503                                          | Image failed health check or app crashed on boot                             | `az containerapp logs show --name $ACA_NAME -g $RG --follow`                                     |
-| Web app shows blank page                                           | Wrong `app_location` / missing `index.html` in upload                        | Confirm `packages/web/dist/index.html` exists in the artifact, redeploy.                         |
-| `/api/*` returns 404 from SWA                                      | Missing `staticwebapp.config.json` rewrite to ACA FQDN                       | Add the rewrite (see [§6](#6-first-deploy)) and redeploy.                                         |
+| Web app shows blank page                                           | `packages/web/dist` was not copied into the container image, or the old revision is still live | Rebuild and redeploy the container image, then verify `packages/web/dist/index.html` exists in the image. |
+| Direct navigation to a SPA route returns 404                       | Container is serving an old revision without the SPA fallback                | Deploy the latest server image so `setNotFoundHandler` can serve `index.html` for non-API routes. |
 | Nightly job: `ResourceNotFound` on file download                   | First run, share is empty                                                    | The workflow already tolerates this — it logs a warning and creates the DB fresh.               |
 | `AuthorizationFailed` from `az` in workflow                        | Service principal lost contributor on `$RG` (e.g. RG recreated)              | Re-run `az ad sp create-for-rbac` and update `AZURE_CREDENTIALS` secret.                        |
 | GHCR pull `unauthorized`                                           | Package is private and ACA has no registry creds                             | Either make the package public, or run §4.6 to attach a PAT.                                     |
@@ -510,7 +538,7 @@ az containerapp revision restart \
 ```
 Dockerfile                              # multi-stage image for @pll/server
 .dockerignore
-.github/workflows/deploy.yml            # push to main -> SWA + ACA
+.github/workflows/deploy.yml            # push to main -> single ACA deploy
 .github/workflows/ingest-nightly.yml    # cron 06:00 UTC -> Azure Files round-trip
 infra/azure-bootstrap.sh                # one-shot az CLI provisioning
 docs/azure-deployment.md                # this file
@@ -568,8 +596,8 @@ can do this for you — these are *your* identity and *your* money.
    `ghcr.io/<owner>/pll-server:<sha>`. Make sure you have a personal access
    token (or an OIDC config) that can push there.
 6. **Custom domain (optional).** If you want `pll.example.com` instead of
-   `<random>.azurestaticapps.net`, you need DNS access to that domain. You
-   can add it post-deploy via Azure Portal → Static Web Apps → Custom domains.
+   `<random>.<region>.azurecontainerapps.io`, you need DNS access to that domain.
+   You can add it post-deploy via Azure Container Apps hostname binding.
 7. **GitHub OIDC trust** for Azure (recommended over a long-lived service
    principal secret). You will need:
    - Tenant ID (`az account show --query tenantId -o tsv`)
@@ -592,30 +620,26 @@ End-to-end, assuming the checklist above is satisfied:
 
 ```bash
 # 1. One-time: provision Azure resources (RG, storage, file share, ACA env,
-#    SWA, GHCR pull secret, Log Analytics workspace).
+#    ACA app, GHCR pull access, Log Analytics workspace).
 bash infra/azure-bootstrap.sh
 
-# 2. Set GitHub Actions secrets (the bootstrap script prints these values).
-#    The deploy workflow needs them to authenticate to Azure + push to GHCR.
-gh secret set AZURE_TENANT_ID       --body "<from-bootstrap>"
-gh secret set AZURE_SUBSCRIPTION_ID --body "<from-bootstrap>"
-gh secret set AZURE_CLIENT_ID       --body "<from-bootstrap>"
-gh secret set AZURE_RG              --body "pll-rg"
-gh secret set AZURE_ACA_NAME        --body "pll-server"
-gh secret set AZURE_SWA_TOKEN       --body "<from az staticwebapp secrets list>"
+# 2. Set GitHub Actions secrets from §5.
+#    Required today: AZURE_CREDENTIALS, ACA_RESOURCE_GROUP, ACA_NAME,
+#    AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_KEY.
 
 # 3. Push to main (or merge a PR). The deploy workflow will:
-#    - build the web bundle and ship it to Static Web Apps
+#    - build + test the monorepo
 #    - build + push the server image to ghcr.io/<owner>/pll-server:<sha>
+#      (including packages/web/dist)
 #    - update the Container App to the new image
 git push origin main
 
 # 4. Watch it deploy:
 gh run watch
 
-# 5. Smoke the live API once Actions go green:
+# 5. Smoke the live site once Actions go green:
 curl -sf https://pll-server.<random>.<region>.azurecontainerapps.io/api/health
-curl -sf https://pll-server.<random>.<region>.azurecontainerapps.io/api/freshness
+curl -sf https://pll-server.<random>.<region>.azurecontainerapps.io/
 ```
 
 The first deploy takes ~6-8 minutes (image push + container revision spin-up).
@@ -637,8 +661,7 @@ testing changed the original estimate. Two notes:
   in-memory cache; below that the queries are sub-millisecond and not worth
   optimising.
 
-Bottom line: still **~$1-4/mo** for typical traffic; **$8/mo** budget alert
-remains a safe ceiling.
+Bottom line: with `--min-replicas 1`, expect **~$5-10/mo** for typical traffic; a **$10/mo** budget alert remains a safe ceiling.
 
 ---
 
@@ -661,13 +684,7 @@ az containerapp update -n pll-server -g pll-rg \
   --revision-suffix vN \
   --set-env-vars DB_PATH=/tmp/lacrosse.db PORT=8080 NODE_ENV=production
 
-# 4. Verify
+# 4. Verify both API + SPA
 curl https://phillylaxstats.com/api/health
-
-# 5. Build + deploy the web bundle to SWA
-VITE_API_BASE_URL=https://phillylaxstats.com \
-  pnpm --filter @pll/web build
-SWA_TOKEN=$(az staticwebapp secrets list -n pll-web -g pll-rg --query "properties.apiKey" -o tsv)
-npx -y @azure/static-web-apps-cli deploy packages/web/dist \
-  --deployment-token "$SWA_TOKEN" --env production
+curl -I https://phillylaxstats.com/
 ```

@@ -43,6 +43,12 @@ RUN pnpm rebuild better-sqlite3
 COPY packages/shared ./packages/shared
 COPY packages/ingest ./packages/ingest
 COPY packages/server ./packages/server
+COPY packages/web ./packages/web
+
+# Build the web bundle so it can be baked into the runtime image
+ARG VITE_API_BASE_URL=""
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+RUN pnpm --filter @pll/web build
 
 # Optional typecheck — fail fast if the image source is broken.
 # (Skipped by default to keep CI separate; uncomment if you want belt-and-braces.)
@@ -73,6 +79,7 @@ COPY --from=builder --chown=app:app /app/tsconfig.base.json     ./tsconfig.base.
 COPY --from=builder --chown=app:app /app/packages/shared        ./packages/shared
 COPY --from=builder --chown=app:app /app/packages/ingest        ./packages/ingest
 COPY --from=builder --chown=app:app /app/packages/server        ./packages/server
+COPY --from=builder --chown=app:app /app/packages/web/dist      ./packages/web/dist
 
 # Bundle a seed DB so the container has data on first boot. The runtime copies
 # this to /data on startup if /data is empty (Azure Files SMB cannot host

@@ -1,5 +1,7 @@
 // buildApp(db) — pure factory so tests can pass a :memory: DB.
 
+import { existsSync } from 'node:fs';
+import type { ServerResponse } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -43,6 +45,7 @@ export interface BuildOptions {
    *  default pino, or `false`/undefined to disable. */
   logger?: Logger | boolean;
   logosDir?: string;
+  webDistDir?: string | false;
   responseCache?: ResponseCacheOptions | false;
 }
 
@@ -50,6 +53,7 @@ export interface BuildOptions {
 // relative to the repo root (../../.. from packages/server/src/).
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const DEFAULT_LOGOS_DIR = path.join(REPO_ROOT, 'data', 'logos');
+const DEFAULT_WEB_DIST = path.join(REPO_ROOT, 'packages', 'web', 'dist');
 
 export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<FastifyInstance> {
   // Fastify v5 API: pre-built pino instances go on `loggerInstance`; the
@@ -86,6 +90,31 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
     await app.register(responseCache, opts.responseCache ?? {});
   }
 
+  let spaStaticRegistered = false;
+  if (opts.webDistDir !== false) {
+    const webDistRoot = opts.webDistDir ?? DEFAULT_WEB_DIST;
+    if (existsSync(webDistRoot)) {
+      await app.register(fastifyStatic, {
+        root: webDistRoot,
+        prefix: '/',
+        wildcard: false,
+        globIgnore: ['logos/**'],
+        index: 'index.html',
+        list: false,
+        cacheControl: true,
+        setHeaders: (res, filePath: string) => {
+          const rawResponse = res as unknown as ServerResponse;
+          if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
+            rawResponse.setHeader('Cache-Control', 'no-store');
+          } else if (filePath.includes('/assets/')) {
+            rawResponse.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          }
+        },
+      });
+      spaStaticRegistered = true;
+    }
+  }
+
   await app.register(fastifyStatic, {
     root: opts.logosDir ?? DEFAULT_LOGOS_DIR,
     prefix: '/logos/',
@@ -103,8 +132,16 @@ export async function buildApp(db: Database, opts: BuildOptions = {}): Promise<F
     reply.code(500).send({ error: 'InternalServerError', message });
   });
 
-  app.setNotFoundHandler((_req, reply) => {
-    reply.code(404).send({ error: 'NotFound', message: 'Route not found' });
+  app.setNotFoundHandler((req, reply) => {
+    // API and logos routes that don't exist are genuine 404s.
+    if (req.url.startsWith('/api/') || req.url.startsWith('/logos/')) {
+      return reply.code(404).send({ error: 'NotFound', message: 'Route not found' });
+    }
+    // All other paths are SPA client-side routes - serve index.html.
+    if (spaStaticRegistered) {
+      return reply.sendFile('index.html');
+    }
+    return reply.code(404).send({ error: 'NotFound', message: 'Route not found' });
   });
 
   app.decorate('db', db);

@@ -1,8 +1,7 @@
 name: deploy
 
-# Build + ship on every push to main.
-# Web -> Azure Static Web Apps (Free tier).
-# Server -> GHCR image -> Azure Container Apps (Consumption, scale-to-zero).
+# Build + ship the single container on every push to main.
+# Container image -> GHCR -> Azure Container Apps (Consumption, scale-to-zero).
 on:
   push:
     branches: [main]
@@ -25,7 +24,7 @@ concurrency:
 
 jobs:
   # ---------------------------------------------------------------------
-  # 1. Build + test the whole monorepo once. Both web and server reuse it.
+  # 1. Build + test the whole monorepo once before container deploy.
   # ---------------------------------------------------------------------
   build-and-test:
     runs-on: [self-hosted, pll]
@@ -88,54 +87,8 @@ jobs:
       - name: Test
         run: pnpm -r test
 
-      - name: Build web bundle
-        env:
-          VITE_API_BASE_URL: https://api.phillylaxstats.com
-        run: pnpm --filter @pll/web build
-
-      - name: Upload web bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-dist
-          path: packages/web/dist
-          if-no-files-found: error
-          retention-days: 7
-
   # ---------------------------------------------------------------------
-  # 2. Deploy the static web bundle to Azure Static Web Apps (Free).
-  # ---------------------------------------------------------------------
-  deploy-web:
-    needs: build-and-test
-    # Use GitHub-hosted runner: the SWA CLI downloads an x86_64 StaticSitesClient
-    # binary that cannot run on the arm64 self-hosted runner.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Download web bundle
-        uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: packages/web/dist
-
-      - name: Deploy to Azure Static Web Apps
-        # Use swa CLI directly instead of the Docker-based action to avoid
-        # arm64/amd64 emulation issues on the self-hosted runner.
-        run: |
-          npx --yes @azure/static-web-apps-cli@2.0.9 deploy packages/web/dist \
-            --deployment-token ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }} \
-            --env production
-
-  # ---------------------------------------------------------------------
-  # 3. Build + push the server image, then update the Container App.
+  # 2. Build + push the server image, then update the Container App.
   # ---------------------------------------------------------------------
   deploy-server:
     needs: build-and-test
