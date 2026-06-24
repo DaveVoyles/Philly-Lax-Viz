@@ -241,7 +241,12 @@ jobs:
       - name: Upload updated DB to Azure Files
         # Skip upload if corrections or data quality check hard-failed to avoid
         # pushing a potentially corrupt DB to production.
-        if: steps.apply_corrections.outcome != 'failure' && steps.data_quality.outcome != 'failure'
+        # Use .conclusion (not .outcome) so that continue-on-error:true steps that
+        # fail don't block the upload. .outcome reflects the raw exit code; .conclusion
+        # reflects the continue-on-error-adjusted result (failure → success when
+        # continue-on-error:true). checkDataQuality exits 1 for any advisory warning,
+        # which was causing the upload to be silently skipped on every run.
+        if: steps.apply_corrections.conclusion != 'failure' && steps.data_quality.conclusion != 'failure'
         env:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
         run: |
