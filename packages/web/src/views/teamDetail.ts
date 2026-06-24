@@ -232,7 +232,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   recordCallout.className = piaa ? 'record-callout record-callout--piaa' : 'record-callout';
   const recordLabel = document.createElement('span');
   recordLabel.className = 'callout-label';
-  recordLabel.style.cssText = 'display:flex; align-items:center; gap:.4rem;';
+  recordLabel.style.cssText = 'display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; min-width:0;';
   const recordLabelText = document.createElement('span');
   recordLabelText.textContent = piaa ? 'PIAA Record' : 'Record';
   recordLabel.append(
@@ -279,7 +279,7 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     derivedCallout.className = 'record-callout record-callout--secondary';
     const derivedLabel = document.createElement('span');
     derivedLabel.className = 'callout-label';
-    derivedLabel.style.cssText = 'display:flex; align-items:center; gap:.4rem;';
+    derivedLabel.style.cssText = 'display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; min-width:0;';
     const derivedLabelText = document.createElement('span');
     derivedLabelText.textContent = 'PhillyLacrosse coverage';
     derivedLabel.append(derivedLabelText, renderProvenanceBadge({ source: 'phillylacrosse' }));
@@ -319,21 +319,40 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   root.appendChild(callouts);
 
   type TeamRatingEntry = Awaited<ReturnType<typeof getLaxNumbersTeamRating>>[number];
+  const getLaxNumbersScope = (viewId: number): { label: string; note: string } => {
+    switch (viewId) {
+      case 3454:
+        return { label: 'PA East', note: 'PA East regional ranking' };
+      case 3468:
+        return { label: 'IAC/Private', note: 'IAC/Private regional ranking' };
+      default:
+        return { label: 'Regional', note: 'Regional ranking' };
+    }
+  };
   void (async () => {
     try {
       const ratings: TeamRatingEntry[] = await getLaxNumbersTeamRating(teamId);
       const entry = ratings[0];
       if (!entry || !callouts.isConnected) return;
+      const scope = getLaxNumbersScope(entry.viewId);
+      const ratingUrl = `https://www.laxnumbers.com/ratings.php?y=${entry.year}&v=${entry.viewId}`;
 
       const ratingCard = document.createElement('div');
       ratingCard.className = 'record-callout';
-      const ratingLabel = document.createElement('span');
+      const ratingLabel = document.createElement('a');
       ratingLabel.className = 'callout-label';
-      ratingLabel.textContent = 'LaxNumbers Rating';
+      ratingLabel.href = ratingUrl;
+      ratingLabel.target = '_blank';
+      ratingLabel.rel = 'noopener noreferrer';
+      ratingLabel.textContent = `LaxNumbers Rating (${scope.label}) ↗`;
       const ratingValue = document.createElement('span');
       ratingValue.className = 'callout-value';
       ratingValue.textContent = `#${entry.ranking} (${entry.rating.toFixed(1)})`;
-      ratingCard.append(ratingLabel, ratingValue);
+      const ratingNote = document.createElement('span');
+      ratingNote.className = 'muted';
+      ratingNote.style.fontSize = '0.8rem';
+      ratingNote.textContent = scope.note;
+      ratingCard.append(ratingLabel, ratingValue, ratingNote);
       callouts.appendChild(ratingCard);
     } catch {
       // Fail silently so missing ratings never block or break the team detail page.
@@ -347,7 +366,8 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
     const panel = document.createElement('div');
     panel.className = `record-callout piaa-validation-panel piaa-validation-panel--${validation.status}`;
     const heading = document.createElement('strong');
-    heading.style.cssText = 'display:flex; align-items:center; gap:.4rem; font-size:0.85rem;';
+    heading.style.cssText =
+      'display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; min-width:0; font-size:0.85rem;';
     const inlineBadge = renderPiaaBadge({
       validation,
       derived,

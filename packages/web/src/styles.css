@@ -474,8 +474,21 @@ table.stat tbody tr.row-link:focus { outline: 2px solid var(--accent); outline-o
   background: var(--table-stripe);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  position: relative;
 }
-.callout-label { font-size: 0.8em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.record-callout > * { min-width: 0; }
+.callout-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  max-width: 100%;
+  font-size: 0.8em;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 .callout-value { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
 
 .record-callout--piaa {

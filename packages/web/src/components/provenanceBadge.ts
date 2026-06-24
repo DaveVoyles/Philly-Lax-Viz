@@ -60,6 +60,7 @@ export function renderProvenanceBadge(opts: ProvenanceBadgeOptions): HTMLElement
     ' text-transform:uppercase; letter-spacing:.02em;' +
     ` background:${style.bg}; color:${style.fg};` +
     ` border:1px solid ${style.border};` +
+    ' max-width:100%; overflow:hidden; text-overflow:ellipsis;' +
     ' vertical-align:middle; white-space:nowrap;';
   return span;
 }
