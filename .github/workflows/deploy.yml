@@ -127,15 +127,16 @@ jobs:
           fi
 
       - name: Log in to GHCR
-        # Use plain docker login so credentials are written directly into the
-        # config file as base64 (avoids macOS keychain on self-hosted runner).
+        # Write credentials directly as base64 into the Docker config auths
+        # section. This bypasses macOS keychain and is readable by buildkit
+        # which runs in a separate process and ignores credential helpers.
         run: |
-          # Temporarily disable credsStore so Docker writes auths inline
           CONFIG_DIR="${DOCKER_CONFIG:-$HOME/.docker}"
           mkdir -p "$CONFIG_DIR"
-          echo '{"auths":{},"currentContext":"orbstack"}' > "$CONFIG_DIR/config.json"
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
-            -u "${{ github.actor }}" --password-stdin
+          AUTH=$(echo -n "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" | base64 | tr -d '\n')
+          printf '{"auths":{"ghcr.io":{"auth":"%s"}},"currentContext":"orbstack"}\n' "$AUTH" \
+            > "$CONFIG_DIR/config.json"
+          echo "Docker config written for ghcr.io"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
