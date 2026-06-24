@@ -6,7 +6,27 @@ Session summary. Open a fresh session to continue.
 
 ## What Was Done
 
-### Mobile layout fixes — team detail page (2026-06-24, session 3)
+### Mobile layout fixes round 2 + runner setup (2026-06-24, session 4)
+
+**Changes shipped (deployed via local `docker buildx build --push`):**
+
+| Change | Details |
+|---|---|
+| Canvas overlay fix | `teamScoreTrend.ts`: `canvas.style.width` changed from `${displayWidth}px` → `'100%'`; buildkit was using the pixel value (640px) overriding CSS `max-width:100%`, causing the chart to overflow and overlay the games table on mobile |
+| Callout height collapse fix | `styles.css`: added `flex: 0 0 auto` to `.record-callout` on ≤768px; `flex-basis:0` + `overflow:hidden` was collapsing card height so text was clipped |
+| CI docker login fix | `.github/workflows/deploy.yml`: replaced `docker/login-action@v3` (sets keychain) with a shell step that writes credentials directly as base64 into Docker config `auths` (readable by buildkit without a credential helper) |
+
+**Mac Mini self-hosted runner (`pll` label) set up at:**
+`~/github-runners/Philly-Lax-Viz/` with:
+- File-based Python credential helper at `bin/docker-credential-osxkeychain`
+- Runner `.env` with homebrew + local bin in PATH, `DOCKER_CONFIG` pointing to runner's docker dir
+- OrbStack `currentContext` set in runner Docker config
+- **Known issue:** runner stops listening after a failed job — needs manual restart (`nohup ./run.sh > runner.log 2>&1 &`)
+- `write:packages` scope needed on the GitHub token for GHCR pushes (authorize via `gh auth refresh -s write:packages`)
+
+---
+
+### Mobile layout fixes round 1 (2026-06-24, session 3)
 
 **Changes shipped in commit `52c453b` (pushed to main, deployed to Azure):**
 
