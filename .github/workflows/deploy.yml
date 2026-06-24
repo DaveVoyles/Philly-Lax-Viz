@@ -169,8 +169,9 @@ jobs:
         id: image_tag
         # OCI image references must be lowercase; github.repository_owner may
         # contain uppercase letters (e.g. DaveVoyles), so we normalise here.
+        # Use tr instead of ${,,} — macOS ships with Bash 3.2 which lacks that expansion.
         run: |
-          OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
+          OWNER_LC=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
           echo "sha_tag=ghcr.io/${OWNER_LC}/pll-server:sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Azure login
