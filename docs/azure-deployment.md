@@ -44,6 +44,14 @@ Numbers are list price for `eastus`, single low-traffic instance.
 
 Set a hard budget alert (see [§9](#9-cost-monitoring)).
 
+### Why two services instead of one?
+
+**Decision (2026-06-24): Keep SWA + ACA split. Do not consolidate.**
+
+The SWA (Free tier, CDN-backed) serves static files at $0. If we moved to a single container serving both static assets and the API, the container would need to stay warm longer (serving every page load, not just API calls), increasing billable ACA time. Consolidating saves ~$0.16/mo in Azure Files costs but adds more container CPU time — net result is **more expensive** with no meaningful user-experience benefit.
+
+The cold-start UX problem is addressed separately by pinging every 5 minutes (`health-check.yml`). If that proves insufficient, the next step is `--min-replicas 1` (~$5–8/mo), not consolidation.
+
 ---
 
 ## 2. Architecture
@@ -432,7 +440,7 @@ az containerapp revision list --name "$ACA_NAME" --resource-group "$RG" \
 
 | Symptom                                                            | Likely cause                                                                 | Fix                                                                                              |
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| First request after idle takes 5–10 s                              | Container App cold start (scale-from-zero)                                   | Expected on Consumption. Set `--min-replicas 1` (≈ $5–8/mo extra) if unacceptable.               |
+| First request after idle takes 15–20 s                             | Container App cold start (scale-from-zero)                                   | health-check.yml pings `/api/teams` every **5 min** to keep container warm. If cold starts persist, set `--min-replicas 1` (~$5–8/mo extra). |
 | `SQLITE_BUSY: database is locked`                                  | Two writers (server + ingest) hitting the same file at the same time         | Nightly job restarts the revision *after* upload. Don't run ad-hoc `pnpm ingest` against prod.  |
 | `Error: Could not locate the bindings file. better_sqlite3.node`   | Native module mismatched between build & runtime stage                       | Rebuild image — both stages must be the same `node:20-alpine`. Don't downgrade base in one stage.|
 | Container App returns 503                                          | Image failed health check or app crashed on boot                             | `az containerapp logs show --name $ACA_NAME -g $RG --follow`                                     |

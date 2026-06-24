@@ -21,3 +21,4 @@
 - 2026-06-05: Wired patchPblaRosters.ts into sync-pbla CI — rosters now auto-patched and committed every Tue/Thu run; no manual roster entry needed
 - 2026-06-05: Fixed PBLA player stats — patchPblaStats.ts now fetches per-team stats from Sportability (70 players, all shown on team pages); Revolution went from 1 to 10 visible players
 - 2026-06-05: Fixed PBLA team pages to show stats-only players (those in Sportability stats but not in static roster block) — merged as synthetic roster entries in buildFullRosterTable; roster count header updated to include them
+- 2026-06-24: Fixed nightly ingest DB upload gate (.outcome → .conclusion) so production DB now updates daily; added /api/dashboard/bundle endpoint to reduce dashboard from 5 API calls to 2; bumped health-check to every 5min to prevent 15-20s ACA cold starts; documented decision to keep SWA+ACA two-service split as most cost-effective option
