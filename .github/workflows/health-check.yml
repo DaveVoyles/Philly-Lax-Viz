@@ -1,9 +1,11 @@
 name: health-check
 
-# Ping the live API every 30 minutes. Failure triggers a GitHub notification.
+# Ping the live API every 5 minutes to keep the Azure Container App warm.
+# Without this, ACA (Consumption plan, scale-to-zero) cold-starts take 15-20s,
+# causing dashboard timeouts for users hitting the site after a quiet period.
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:
