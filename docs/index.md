@@ -10,7 +10,10 @@
 **What:** TypeScript pnpm monorepo scraping & visualizing Philadelphia high-school boys lacrosse data  
 **Sources:** phillylacrosse.com (RSS), piaad1.org (rankings), maxpreps.com (logos), laxnumbers.com (stats)  
 **Stack:** SQLite → Fastify API → Vite + D3 SPA  
-**Deployed:** Azure Container Apps (single container, min-replicas=1) — GitHub Pages and Static Web Apps are **not used**
+**Deployed:** Azure Container Apps (single container, min-replicas=1)
+
+> ❌ **GitHub Pages is NOT used. Azure Static Web Apps is NOT used.**  
+> Do not suggest, configure, or reference either. All static assets are served directly by the Fastify container on Azure Container Apps.
 
 ---
 
