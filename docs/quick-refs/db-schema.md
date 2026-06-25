@@ -9,7 +9,7 @@
 ## Quick Facts
 
 - **DB file:** `data/lacrosse.db` (SQLite)
-- **Current version:** `user_version = 23`
+- **Current version:** `user_version = 25`
 - **Test DB:** `data/lacrosse.test.db` (vitest only, never touch live DB)
 - **Migrations:** `packages/ingest/src/migrations/NNN_*.sql` (applied by `user_version` pragma)
 
@@ -397,7 +397,7 @@ manual_uploads
 
 ```sql
 -- Check DB version
-PRAGMA user_version;  -- should be 23
+PRAGMA user_version;  -- should be 25
 
 -- List all teams
 SELECT id, name, slug, logo_url FROM teams ORDER BY name;

@@ -16,7 +16,7 @@ Generated 2026-04-24 by a 5-agent design fleet.
 | [06](./06-game-flow-chart.md) | Game flow chart (cumulative period scoring) | Visualization | S–M (~1.5 days) | Low |
 | [07](./07-centralized-logger-rollout.md) | Centralized Pino logger rollout | Tech debt | S (~1.5 days) | Low |
 | [08](./08-domain-type-consolidation.md) | Domain type consolidation in `@pll/shared` | Tech debt | M (~1 day, but exposes drift) | Medium |
-| [09](./09-github-hosted-runner-oidc-deploy.md) | GitHub-hosted runner + OIDC + ACR managed identity | DevOps | S (~2.5 hrs) | Medium |
+| [09](./09-github-hosted-runner-oidc-deploy.md) | ~~GitHub-hosted runner + OIDC + ACR managed identity~~ | DevOps | S (~2.5 hrs) | Medium | **Partially resolved 2026-06-25** — Mac Mini runner is back, Docker context bug fixed. Remaining: OIDC migration (optional hardening). |
 | [10](./10-pre-deploy-validation-and-rollback.md) | Pre-deploy validation gates + revision-level rollback | DevOps | S (~3 hrs) | Medium |
 
 ## Prioritization
@@ -25,7 +25,7 @@ Scored as `Impact × Urgency − Effort − Risk` (each on 1–10):
 
 | Rank | # | Title | I | U | E | R | Score | Notes |
 |------|---|-------|---|---|---|---|-------|-------|
-| 1 | 09 | GitHub-hosted runner + OIDC | 9 | 9 | 3 | 4 | **11** | CI is dead today; every deploy is manual + risky |
+| 1 | 09 | ~~GitHub-hosted runner + OIDC~~ | 9 | 9 | 3 | 4 | **Resolved** | Runner back online + Docker context fix. OIDC migration optional. |
 | 2 | 03 | API response cache + ETag | 7 | 7 | 2 | 2 | **10** | Big perf win, snapshot-epoch model makes it ~free |
 | 2 | 01 | Anomaly-driven alias seeder | 9 | 7 | 4 | 3 | **9** | Kills ~33% of all anomalies in one pass |
 | 2 | 10 | Pre-deploy validation + rollback | 8 | 8 | 4 | 3 | **9** | Pairs with #09; today's deploy lost 30 min to issues this would catch |

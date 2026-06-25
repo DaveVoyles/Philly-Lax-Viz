@@ -1,6 +1,10 @@
 # 09 — GitHub-hosted runner + OIDC-backed Azure deploys
 
-> **Status:** proposed · **Owner:** DevOps lane · **Priority:** P0 (blocking all CI)
+> **Status:** partially resolved · **Owner:** DevOps lane · **Priority:** P2 (runner works; OIDC migration is optional hardening)
+
+> **2026-06-25 update:** The Mac Mini self-hosted runner (`[self-hosted, pll]`) is back online and all CI workflows are functioning. The `deploy.yml` Docker context bug (hardcoded `"currentContext":"orbstack"`) that was causing failures was fixed in commit `fb0947d`. Deploys now succeed consistently. The remaining open item from this RFC is migrating from service-principal credentials to OIDC federation — worthwhile for security but not blocking anything today.
+
+---
 
 ## Motivation
 

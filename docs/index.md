@@ -25,6 +25,7 @@
 | **Understand DB** | [quick-refs/db-schema.md](./quick-refs/db-schema.md) (~900 tokens) | Tables, columns, relationships only |
 | **Call the API** | [quick-refs/api-endpoints.md](./quick-refs/api-endpoints.md) (~750 tokens) | Endpoint paths, params, responses |
 | **Know data sources** | [quick-refs/data-sources.md](./quick-refs/data-sources.md) (~600 tokens) | Source URLs, what they provide, trust hierarchy |
+| **Work on PBLA box lacrosse** | [pbla-guide.md](./pbla-guide.md) (~2,000 tokens) | Full PBLA data flow, scripts, automation, pitfalls |
 | **First-time setup** | [onboarding.md](./onboarding.md) (~1,800 tokens) | Getting started, hard rules, conventions |
 | **Deep architecture** | [architecture-full.md](./architecture-full.md) (~5,400 tokens) | Full system design, data flow, decisions (⚠️ load only if needed) |
 | **Deploy or ops** | [azure-deployment.md](./azure-deployment.md) (~1,200 tokens) | Azure setup, cost model, pitfalls |

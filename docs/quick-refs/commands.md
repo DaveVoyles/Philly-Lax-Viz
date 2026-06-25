@@ -145,6 +145,15 @@ pnpm --filter @pll/ingest sync:hudl -- --all --db=data/lacrosse.db
 # Upload local DB to Azure File Share
 # ⚠️ Required after any local-only DB mutation (workbooks, dedup, corrections)
 pnpm db:upload
+
+# Restart the running container so it picks up the new DB
+# The container copies Azure File Share DB to /tmp/lacrosse.db at startup only.
+# Without a restart, the live API continues serving stale data even after upload.
+REV=$(az containerapp revision list \
+  --name "$ACA_NAME" --resource-group "$ACA_RG" \
+  --query "[?properties.active].name | [0]" -o tsv)
+az containerapp revision restart --name "$ACA_NAME" --resource-group "$ACA_RG" --revision "$REV"
+# (ACA_NAME and ACA_RG match secrets.ACA_NAME / secrets.ACA_RESOURCE_GROUP in CI)
 ```
 
 **When to run:**
@@ -207,7 +216,7 @@ kill <PID>
 lsof -ti:3001 | xargs kill
 
 # Check DB version
-sqlite3 data/lacrosse.db "PRAGMA user_version;"  # should be 23
+sqlite3 data/lacrosse.db "PRAGMA user_version;"  # should be 25
 
 # Verify Azure DB is mounted (when deployed)
 ls -lah /data/lacrosse.db

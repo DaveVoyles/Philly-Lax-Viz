@@ -53,7 +53,7 @@ External Sources
 
        │ crawl.ts / syncPiaa.ts / syncLogos.ts
        ▼
-  data/lacrosse.db (SQLite, user_version=16)
+  data/lacrosse.db (SQLite, user_version=25)
 
        │ ingest-nightly.yml (GitHub Actions, self-hosted runner)
        ▼
@@ -198,7 +198,7 @@ The web client calls the API directly — there is no static JSON export layer.
 
 **Location:** `data/lacrosse.db`  
 **Engine:** SQLite  
-**Current `user_version`:** 16 (migrations 001–016 applied)  
+**Current `user_version`:** 25 (migrations 001–025 applied)  
 **Test DB:** `data/lacrosse.test.db` — auto-seeded by vitest; **never touch the live DB in tests**
 
 ### Tables and approximate row counts (as of 2026-05-16)

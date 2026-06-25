@@ -149,13 +149,25 @@ These columns/tables exist in the DB but are not exposed through the API:
 
 ## 5. Season Transition Checklist
 
-When the 2027 season begins, update these hardcoded values:
+When the **2027 HS season** begins, update these hardcoded values:
 
-- [ ] `packages/server/src/scripts/exportStatic.ts` — `DEFAULT_SEASON` constant
 - [ ] `packages/server/src/routes/seasons.ts` — hardcoded `{seasons:[2026], default:2026}`
-- [ ] `packages/web/src/staticLoader.ts` — default season for static path resolution
 - [ ] `packages/ingest/src/scripts/syncPiaa.ts` — verify `year` param points to new season
-- [ ] `docs/architecture.md` — update row counts table
+- [ ] `docs/architecture-full.md` — update row counts table
+- [ ] ~~`packages/server/src/scripts/exportStatic.ts`~~ — removed (static export no longer exists)
+- [ ] ~~`packages/web/src/staticLoader.ts`~~ — removed (single-container architecture)
+
+When the **2027 PBLA season** begins (typically May), update these:
+
+- [ ] `packages/ingest/src/scripts/syncPbla.ts` — add `2027: <new_league_id>` to `LEAGUE_IDS`
+- [ ] `packages/ingest/src/scripts/syncPblaVideos.ts` — update `TARGET_YEAR = '2027'`
+- [ ] `packages/server/src/routes/pbla.ts` — add `2027: <new_league_id>` to `ids`
+- [ ] `packages/server/src/scheduler/pblaScheduler.ts` — add `2027: <new_league_id>` to `LEAGUE_IDS`
+- [ ] `packages/web/src/views/pblaData.ts` — add new `SEASONS` entry with empty teams/players/games arrays; set `PBLA_DEFAULT_SEASON = 2027`
+- [ ] `packages/web/src/views/pblaLoader.ts` — update `TEAM_META` with any new/changed captains or jersey images
+- [ ] Reset `PBLA_VIDEOS` in `pblaData.ts` — clear old entries, let `syncPblaVideos.ts` repopulate
+
+> **How to find the new PBLA league ID:** Log into Sportability, navigate to the 2027 league, and extract the `LgID` from the URL. Or run `pnpm pbla:check -- --generate` against the new league once the ID is known.
 
 ---
 
