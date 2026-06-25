@@ -29,3 +29,5 @@
 - 2026-06-25: Fixed stale PBLA team pages - added container restart to sync-pbla.yml, added 9 missing YouTube video IDs (May 27 - Jun 24), renamed '(Live)' label to 'Season', fixed deploy.yml Docker context issue.
 - 2026-06-25: Fixed PBLA scoring trend colors (white GF / red GA), goalie pills now update on season switch, fixed 3 stale doc version numbers, updated improvement #09 status, added PBLA season-transition runbook.
 - 2026-06-25: Refactored checkDataQuality.ts to separate critical errors from advisory warnings (exit 0 on warnings), and removed redundant api.phillylaxstats.com custom domain from Azure Container App.
+- 2026-06-25: Fully integrated the state-of-the-art D3-based Game Flow Chart (RFC #06) into the game detail view, replacing the legacy placeholder rendering.
+

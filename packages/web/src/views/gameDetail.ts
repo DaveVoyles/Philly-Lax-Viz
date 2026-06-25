@@ -11,7 +11,7 @@ type GameDetailWithTeams = GameDetail & {
 };
 import { formatDate } from '../util/format.js';
 import { renderQuarterByQuarter } from '../charts/index.js';
-import { renderGameFlow, type GameFlowData } from '../charts/gameFlow.js';
+import { renderGameFlowChart } from '../components/gameFlowChart.js';
 import { renderTeamBadge } from '../components/teamBadge.js';
 import { renderAnomalyBanner } from '../components/anomalyBanner.js';
 import { openCorrectionModal, type CorrectionTarget } from '../components/correctionModal.js';
@@ -137,7 +137,15 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
   const flowSlot = document.createElement('div');
   flowSlot.className = 'game-flow-slot';
   root.appendChild(flowSlot);
-  renderGameFlow(flowSlot, buildGameFlowData(periods, game, homeName, awayName));
+  renderGameFlowChart(flowSlot, {
+    periods,
+    homeTeamId: game.homeTeamId,
+    awayTeamId: game.awayTeamId,
+    homeTeamName: homeName,
+    awayTeamName: awayName,
+    finalHome: game.homeScore,
+    finalAway: game.awayScore,
+  });
 
   const byQuarterHeader = document.createElement('h2');
   byQuarterHeader.textContent = 'By Quarter';
@@ -237,49 +245,6 @@ async function load(root: HTMLElement, status: HTMLElement, id: string): Promise
 
     root.appendChild(buildPlayerStatsTable(stats, game, homeName, awayName));
   }
-}
-
-function buildGameFlowData(
-  periods: GamePeriod[],
-  game: { homeTeamId: number; awayTeamId: number },
-  homeName: string,
-  awayName: string,
-): GameFlowData {
-  if (periods.length === 0) {
-    return { homeTeam: homeName, awayTeam: awayName, periods: [] };
-  }
-
-  const maxPeriod = Math.max(4, ...periods.map((period) => period.periodNumber));
-  const homeGoalsByPeriod = new Map<number, number>();
-  const awayGoalsByPeriod = new Map<number, number>();
-
-  for (const period of periods) {
-    if (period.teamId === game.homeTeamId) {
-      homeGoalsByPeriod.set(
-        period.periodNumber,
-        (homeGoalsByPeriod.get(period.periodNumber) ?? 0) + period.goals,
-      );
-    }
-    if (period.teamId === game.awayTeamId) {
-      awayGoalsByPeriod.set(
-        period.periodNumber,
-        (awayGoalsByPeriod.get(period.periodNumber) ?? 0) + period.goals,
-      );
-    }
-  }
-
-  return {
-    homeTeam: homeName,
-    awayTeam: awayName,
-    periods: Array.from({ length: maxPeriod }, (_, index) => {
-      const period = index + 1;
-      return {
-        period,
-        homeGoals: homeGoalsByPeriod.get(period) ?? 0,
-        awayGoals: awayGoalsByPeriod.get(period) ?? 0,
-      };
-    }),
-  };
 }
 
 function teamScoreFor(
