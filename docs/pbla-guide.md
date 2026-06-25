@@ -6,7 +6,25 @@
 
 The PBLA section is a standalone league tracker within PhillyLaxStats that covers the Philadelphia Box Lacrosse Association adult league. It tracks standings, player stats, goalie stats, game schedules, rosters, and livestream videos.
 
-**Key distinction:** Unlike the main PhillyLaxStats data (which flows through RSS/LaxNumbers scrapers into SQLite), PBLA data is currently **hardcoded in a TypeScript data file** (`packages/web/src/views/pblaData.ts`). A database sync script exists (`syncPbla.ts`) but the web views read directly from the TS file.
+**Live API + hardcoded fallback architecture (as of 2026-06-25):**
+
+The web views load data from the **live API** first (via `pblaLoader.ts`) and fall back to the hardcoded TypeScript file (`pblaData.ts`) only if the API is unavailable. The API reads from `pbla_*` SQLite tables, which are updated by `syncPbla.ts` via the `sync-pbla.yml` CI workflow every Tue/Thu at 6 AM ET.
+
+```
+Sportability (HTML scrape)
+        │
+        ▼
+  syncPbla.ts  ──►  pbla_* SQLite tables  ──►  /api/pbla/* (live)
+                                                      │
+  pblaData.ts (hardcoded) ◄─── patchPblaData.ts      │ fetched by
+  (auto-patched by CI)                                ▼
+                                              pblaLoader.ts
+                                              (browser-side, 5-min cache)
+                                                      │
+                                              pblaTeam.ts / pbla.ts
+```
+
+**Important:** The container copies the Azure File Share DB to `/tmp/lacrosse.db` at startup. After `syncPbla.ts` uploads a fresh DB, the container **must be restarted** to pick up the new data. `sync-pbla.yml` handles this automatically via `az containerapp revision restart` after every upload.
 
 ## 2. Data Source: Sportability
 
@@ -35,13 +53,20 @@ All PBLA data originates from Sportability:
 
 | File | Role |
 |------|------|
-| `packages/web/src/views/pblaData.ts` | **Source of truth** for all PBLA data displayed in the web client |
+| `packages/web/src/views/pblaData.ts` | Hardcoded fallback data + `PBLA_VIDEOS` map; auto-patched by CI |
+| `packages/web/src/views/pblaLoader.ts` | **Primary data path:** fetches live API, merges with team metadata (`TEAM_META`), falls back to `pblaData.ts`; 5-min browser cache |
 | `packages/web/src/views/pbla.ts` | PBLA landing page (standings, leaders, upcoming games, WebGL particles) |
 | `packages/web/src/views/pblaTeam.ts` | Team detail page (roster, stats, game history, video links) |
-| `packages/ingest/src/scripts/syncPbla.ts` | Automated scraper: Sportability -> SQLite DB |
-| `packages/ingest/src/scripts/syncPblaVideos.ts` | YouTube RSS feed -> pblaData.ts video IDs |
+| `packages/server/src/routes/pbla.ts` | API routes: `/api/pbla/standings`, `/api/pbla/games`, `/api/pbla/players`, `/api/pbla/goalies`, `/api/pbla/scrape-log`, `POST /api/pbla/scrape` |
+| `packages/server/src/scheduler/pblaScheduler.ts` | In-process scheduler; runs `syncPbla.ts` Mon-Fri at 11 PM ET inside the container |
+| `packages/ingest/src/scripts/syncPbla.ts` | Scrapes Sportability, upserts into `pbla_*` SQLite tables |
+| `packages/ingest/src/scripts/syncPblaVideos.ts` | Fetches YouTube RSS, parses game dates from titles, updates `PBLA_VIDEOS` in `pblaData.ts` |
+| `packages/ingest/src/scripts/patchPblaData.ts` | Patches game scores from DB snapshot into `pblaData.ts` (run by CI when new results detected) |
+| `packages/ingest/src/scripts/patchPblaStats.ts` | Updates player/goalie stats in `pblaData.ts` from DB |
+| `packages/ingest/src/scripts/patchPblaRosters.ts` | Updates rosters in `pblaData.ts` from Sportability |
 | `packages/ingest/src/scripts/parseSportability.ts` | Manual parser: paste text -> TS array output |
 | `packages/ingest/src/sources/sportability.ts` | HTTP source module for Sportability scraping |
+| `.github/workflows/sync-pbla.yml` | Tue/Thu 6AM ET: sync DB → restart container → patch pblaData.ts → sync videos → deploy |
 
 ## 4. Data Model
 
@@ -93,14 +118,19 @@ interface PblaSeason {
 ### Video Map
 
 ```typescript
-// YouTube stream IDs keyed by game date
+// YouTube stream IDs keyed by ACTUAL GAME date (not YouTube published date,
+// which is always one day later). Auto-synced by syncPblaVideos.ts.
 export const PBLA_VIDEOS: Record<string, string> = {
   '2026-05-18': 'rE0TzPfV5SY',
   '2026-05-20': 'hMd-kLZXl7o',
+  '2026-05-27': 't09kMS7NBE0',
+  // ... continues through end of season
 };
 ```
 
-Each date has ONE stream covering both games played that night. Source: `@PBLA_Official` YouTube channel.
+Each date has ONE stream covering both games played that night. Source: `@PBLA_Official` YouTube channel (channel ID `UC8dQQ4Z-MjxCCBu380ViuEg`).
+
+**IMPORTANT:** YouTube RSS `<published>` dates are always the day AFTER the game. `syncPblaVideos.ts` parses the game date from the video title (e.g. `"PBLA: June 22, 2026 - Livestream..."`) — do not use `published` dates as keys.
 
 ### Helper Functions
 
@@ -144,7 +174,7 @@ cat goalies.txt | pnpm --filter @pll/ingest exec tsx src/scripts/parseSportabili
 
 ### `syncPbla.ts` — Automated DB Sync
 
-**When to use:** To sync Sportability data into the SQLite database (currently the DB is not consumed by web views, but this prepares for future migration).
+**When to use:** Runs automatically Tue/Thu via `sync-pbla.yml`. Run manually to force a refresh.
 
 ```bash
 pnpm --filter @pll/ingest exec tsx src/scripts/syncPbla.ts
@@ -164,9 +194,11 @@ pnpm --filter @pll/ingest exec tsx src/scripts/syncPbla.ts --league=50731
 - `pbla_games` — game schedule and scores
 - `pbla_scrape_log` — audit trail of scrape runs
 
+**After the workflow uploads the updated DB to Azure File Share, it restarts the container** so the server re-reads the file from `/tmp/lacrosse.db`. Without the restart, the container keeps serving stale data from its in-memory copy. Check `GET /api/pbla/scrape-log` on the live site to verify the latest `scraped_at` timestamp.
+
 ### `syncPblaVideos.ts` — YouTube Video Sync
 
-**When to use:** After PBLA streams new games on YouTube. Run periodically or after game nights.
+**When to use:** Runs automatically on every `sync-pbla.yml` execution (Tue/Thu 6AM ET, the morning after Mon/Wed games). Run manually if you need to backfill links.
 
 ```bash
 pnpm --filter @pll/ingest exec tsx src/scripts/syncPblaVideos.ts
@@ -175,12 +207,12 @@ pnpm --filter @pll/ingest exec tsx src/scripts/syncPblaVideos.ts --dry-run
 
 **What it does:**
 1. Fetches YouTube RSS feed for channel `UC8dQQ4Z-MjxCCBu380ViuEg` (@PBLA_Official)
-2. Parses video entries, filters to 2026 season + PBLA-related titles
-3. Reads current `PBLA_VIDEOS` map from `pblaData.ts`
-4. Adds any new date/videoId pairs not already present
-5. Writes updated `PBLA_VIDEOS` block back to `pblaData.ts`
+2. For each entry, parses the **game date from the title** (e.g. `"PBLA: June 22, 2026 - Livestream..."`) — the RSS `<published>` date is always one day late and must not be used
+3. Skips entries without a parseable date (generic "Live Stream" placeholder videos)
+4. Reads current `PBLA_VIDEOS` map from `pblaData.ts`, adds any missing date→videoId pairs
+5. Writes the updated block back to `pblaData.ts`
 
-**Important:** This script directly edits the source file `pblaData.ts`. Commit after running.
+**Important:** This script directly edits `pblaData.ts`. The `sync-pbla.yml` workflow commits the change and triggers a deploy automatically.
 
 ## 6. Mid-Season Update Workflow
 
@@ -279,12 +311,11 @@ Navigation label: "Box Lacrosse" (in main nav, lazy-loaded).
 
 ## 10. Future Improvements (TODO)
 
-1. **Migrate web views to read from API/DB** instead of hardcoded TS file (requires PBLA API routes on server)
-2. **Add PBLA nightly sync to CI** — run `syncPbla.ts` in `ingest-nightly.yml`
-3. **Schedule page scraper** — the schedule HTML is simple table, could be automated with fetch (no JS interaction needed)
-4. **Standings auto-update** — standings page is also plain HTML, easily scrapable
-5. **Full Playwright automation** for stats pages (if Sportability stats need JS interaction for all data)
-6. **Roster scraper** — Sportability rosters page could be scraped to auto-populate `rosters` object
+1. **Migrate web views to read from API/DB** — `pblaLoader.ts` already does this as the primary path (live API first, hardcoded fallback). The remaining gap is that `pblaData.ts` hardcoded data is still needed as a fallback and for initial container seeding.
+2. ~~**Add PBLA nightly sync to CI**~~ — ✅ Done. `sync-pbla.yml` runs Tue/Thu and handles the full pipeline: sync DB → restart container → patch pblaData.ts → sync video IDs → deploy.
+3. ~~**Schedule page scraper**~~ — ✅ Done. `syncPbla.ts` includes schedule scraping.
+4. **Full Playwright automation** for stats pages (if Sportability stats need JS interaction for all data)
+5. **Roster scraper** — Sportability rosters page could be scraped to auto-populate `rosters` object (partially done via `patchPblaRosters.ts`)
 
 ## 11. Common Pitfalls
 
@@ -296,6 +327,9 @@ Navigation label: "Box Lacrosse" (in main nav, lazy-loaded).
 | Video link throws off grid alignment | Game row uses `1fr auto auto 1fr` grid. Video button has its own column with `justify-self: end`. |
 | `homeTeam`/`awayTeam` confusion | Sportability format: "Away at Home". In our data: `homeTeam` = the team being visited. |
 | Playoff games show TBD | Expected — playoff matchups determined at end of regular season. |
+| Live site shows stale standings (e.g. gp=1) | The container copies the DB to `/tmp` at startup. After a DB upload, the container must be restarted. `sync-pbla.yml` does this automatically via `az containerapp revision restart`. Verify by checking `GET /api/pbla/scrape-log` — `scraped_at` should be recent. |
+| Video links don't appear for new games | `syncPblaVideos.ts` parses game dates from video **titles**, not from the YouTube RSS `<published>` date (which is always one day late). If a video has a non-standard title without a date, it will be skipped. Add manually to `PBLA_VIDEOS` in `pblaData.ts`. |
+| Season label shows "(Live)" | This was the old label set by `pblaLoader.ts` when data came from the live API. Changed to "Season" in 2026-06-25. |
 
 ## 12. Adding a New Team (Checklist)
 

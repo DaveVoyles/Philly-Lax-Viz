@@ -1,3 +1,36 @@
+# Handoff — 2026-06-25
+
+Session summary. Open a fresh session to continue.
+
+---
+
+## What Was Done
+
+### PBLA team pages: stale data, missing videos, broken deploy (2026-06-25, session 5)
+
+**Root causes diagnosed and fixed:**
+
+| Change | File(s) | Details |
+|---|---|---|
+| Container restart after DB upload | `.github/workflows/sync-pbla.yml` | Added `az containerapp revision restart` step after every DB upload. The container copies Azure File Share DB to `/tmp/lacrosse.db` at startup; without a restart after upload, it kept serving May 22 stale data indefinitely. Matches the pattern already used in `ingest-nightly.yml`. |
+| Video IDs for all 2026 games | `packages/web/src/views/pblaData.ts` | Added 9 missing YouTube video IDs (May 27 – Jun 24) by fetching the PBLA Official channel RSS feed. |
+| Auto-sync video IDs each game night | `.github/workflows/sync-pbla.yml` + `packages/ingest/src/scripts/syncPblaVideos.ts` | Wired `syncPblaVideos.ts` into the Tue/Thu workflow. Fixed a bug in the script: it was using RSS `<published>` dates (always one day after the game) as keys; now parses the actual game date from the video title instead. |
+| Season label "2026 (Live)" → "2026 Season" | `packages/web/src/views/pblaLoader.ts` | "(Live)" was confusing; renamed to "Season" for clarity. |
+| Docker context crash in deploy | `.github/workflows/deploy.yml` | `"currentContext":"orbstack"` was hardcoded in the GHCR Docker config write step, crashing deploys when OrbStack isn't running on the Mac Mini runner. Removed the key so Docker uses its default context. |
+
+**Verification:** After deploying, `GET /api/pbla/standings?league_id=50731` returned `gp=7` for Revolution (was `gp=1`) and all 21 played game scores. All 11 `PBLA_VIDEOS` entries confirmed correct via `syncPblaVideos.ts --dry-run`.
+
+**Ongoing automation:** `sync-pbla.yml` now runs this complete pipeline every Tue/Thu at 6 AM ET (the morning after Mon/Wed games) through end of August:
+1. Scrape Sportability → update DB → upload → **restart container**
+2. Patch game scores into `pblaData.ts` if new results
+3. Patch rosters + player/goalie stats
+4. Sync YouTube video IDs from RSS feed (game date parsed from title)
+5. Commit any changes + trigger deploy
+
+**Docs updated:** `docs/pbla-guide.md` — revised overview, file map, video map, syncPbla/syncPblaVideos descriptions, future TODOs, and pitfalls table.
+
+---
+
 # Handoff — 2026-06-24
 
 Session summary. Open a fresh session to continue.
