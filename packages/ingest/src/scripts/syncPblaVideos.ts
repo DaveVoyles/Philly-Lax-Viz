@@ -33,6 +33,26 @@ async function fetchFeed(): Promise<string> {
   return res.text();
 }
 
+const MONTH_MAP: Record<string, string> = {
+  january: '01', february: '02', march: '03', april: '04',
+  may: '05', june: '06', july: '07', august: '08',
+  september: '09', october: '10', november: '11', december: '12',
+};
+
+/**
+ * Parse "PBLA: June 22, 2026 - ..." style titles into YYYY-MM-DD.
+ * PBLA uploads streams the day AFTER the game, so published date is always
+ * off by one — always use the date from the title, not <published>.
+ */
+function parseTitleDate(title: string): string | null {
+  const m = title.match(/:\s+([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})/);
+  if (!m) return null;
+  const month = MONTH_MAP[(m[1] ?? '').toLowerCase()];
+  if (!month) return null;
+  const day = String(m[2]).padStart(2, '0');
+  return `${m[3]}-${month}-${day}`;
+}
+
 function parseEntries(xml: string): VideoEntry[] {
   const entries: VideoEntry[] = [];
   // Simple regex parsing - YouTube RSS is well-structured
@@ -42,19 +62,16 @@ function parseEntries(xml: string): VideoEntry[] {
   while ((match = entryRegex.exec(xml)) !== null) {
     const block = match[1] ?? '';
     const videoId = block.match(/<yt:videoId>(.*?)<\/yt:videoId>/)?.[1];
-    const published = block.match(/<published>(.*?)<\/published>/)?.[1];
     const title = block.match(/<title>(.*?)<\/title>/)?.[1];
 
-    if (!videoId || !published || !title) continue;
+    if (!videoId || !title) continue;
 
-    const date = published.slice(0, 10); // YYYY-MM-DD
-    if (!date.startsWith(TARGET_YEAR)) continue;
+    // Derive game date from title (e.g. "PBLA: June 22, 2026 - Livestream...")
+    // Published date is always the day after the game — do not use it.
+    const date = parseTitleDate(title);
+    if (!date || !date.startsWith(TARGET_YEAR)) continue;
 
-    // Only include PBLA streams (filter out non-game content)
-    const lowerTitle = title.toLowerCase();
-    if (lowerTitle.includes('pbla') || lowerTitle.includes('lacrosse') || lowerTitle.includes('live')) {
-      entries.push({ date, videoId, title });
-    }
+    entries.push({ date, videoId, title });
   }
 
   return entries;

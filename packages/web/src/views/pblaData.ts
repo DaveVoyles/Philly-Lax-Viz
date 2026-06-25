@@ -512,6 +512,9 @@ export function getPblaSeason(year: number): PblaSeason {
  * YouTube stream video IDs keyed by game date (YYYY-MM-DD).
  * Each date has ONE stream covering both games played that night.
  * Source: https://www.youtube.com/@PBLA_Official/streams
+ * Auto-synced by syncPblaVideos.ts (runs Tue/Thu via sync-pbla.yml).
+ * Published date is always day-after-game; dates here are actual game dates
+ * parsed from the video title.
  */
 export const PBLA_VIDEOS: Record<string, string> = {
   // 2026 season
