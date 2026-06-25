@@ -85,6 +85,26 @@ jobs:
             --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
             --output none
 
+      - name: Restart Container App revision
+        if: inputs.dry_run != 'true'
+        # Non-fatal: ACA restart is best-effort after DB upload; if the revision
+        # restart fails the container will still pick up the new DB on next cold start.
+        continue-on-error: true
+        run: |
+          REV=$(az containerapp revision list \
+            --name "${{ secrets.ACA_NAME }}" \
+            --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}" \
+            --query "[?properties.active].name | [0]" -o tsv)
+          if [ -n "$REV" ]; then
+            az containerapp revision restart \
+              --name "${{ secrets.ACA_NAME }}" \
+              --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}" \
+              --revision "$REV"
+            echo "Restarted revision: $REV"
+          else
+            echo "::warning::No active revision found to restart."
+          fi
+
       - name: Check PBLA schedule for new results
         if: inputs.dry_run != 'true'
         id: pbla_check

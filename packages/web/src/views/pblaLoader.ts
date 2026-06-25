@@ -181,7 +181,7 @@ async function fetchFromApi(leagueId: number): Promise<PblaSeason | null> {
     return {
       year: PBLA_DEFAULT_SEASON,
       leagueId,
-      label: `${PBLA_DEFAULT_SEASON} (Live)`,
+      label: `${PBLA_DEFAULT_SEASON} Season`,
       teams: teams.map(mapTeam),
       players: players.map(mapPlayer),
       goalies: goalies.map(mapGoalie),

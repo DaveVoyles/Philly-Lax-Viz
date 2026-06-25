@@ -517,6 +517,15 @@ export const PBLA_VIDEOS: Record<string, string> = {
   // 2026 season
   '2026-05-18': 'rE0TzPfV5SY',
   '2026-05-20': 'hMd-kLZXl7o',
+  '2026-05-27': 't09kMS7NBE0',
+  '2026-06-01': 'WEoPQhKx6XI',
+  '2026-06-03': 'RO5kM20BRTc',
+  '2026-06-08': 'WIKY9Ed0XBA',
+  '2026-06-10': 'gXxr2XrkuY8',
+  '2026-06-15': 'D-v90bDNzLY',
+  '2026-06-17': 'PN00-Xy3RiY',
+  '2026-06-22': 'MHCdYwUqOJo',
+  '2026-06-24': 'v8STpVJKpJU',
 };
 
 /** Get the YouTube video ID for a game date, if available */
