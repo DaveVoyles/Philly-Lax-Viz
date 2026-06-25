@@ -22,7 +22,7 @@ export interface RenderTeamScoreTrendOptions {
 const DEFAULTS: Required<RenderTeamScoreTrendOptions> = {
   width: 640,
   height: 220,
-  gfColor: '#16a34a',
+  gfColor: '#ffffff',
   gaColor: '#dc2626',
 };
 
@@ -190,6 +190,10 @@ function drawLegendSwatch(
 ): void {
   ctx.fillStyle = color;
   ctx.fillRect(x, y - 4, 10, 8);
+  // Thin outline so white swatches remain visible on any background
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(x, y - 4, 10, 8);
   ctx.fillStyle = '#6b7280';
   ctx.fillText(label, x + 14, y);
 }

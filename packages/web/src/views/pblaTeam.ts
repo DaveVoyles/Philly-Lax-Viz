@@ -911,9 +911,10 @@ function renderTeamContent(
     trendWrap.appendChild(trendCanvas);
     container.appendChild(trendWrap);
     try {
-      // Read team accent from CSS variable set on wrapper
-      const accentColor = getComputedStyle(container).getPropertyValue('--team-accent').trim() || '#16a34a';
-      trackPblaChart(renderTeamScoreTrend(trendCanvas, trendPoints, { gfColor: accentColor }));
+      trackPblaChart(renderTeamScoreTrend(trendCanvas, trendPoints, {
+        gfColor: '#ffffff',
+        gaColor: '#dc2626',
+      }));
     } catch (err) {
       console.warn('[pblaTeam] score trend chart failed', err);
       trendWrap.textContent = '';
