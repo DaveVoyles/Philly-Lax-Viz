@@ -3,7 +3,7 @@ import { setPageMeta } from '../util/pageMeta.js';
 
 import { SEASONS } from './pblaData.js';
 import { updateLiveBadge } from './pblaHelpers.js';
-import { buildHero, renderSeasonButtons, renderSeasonContent } from './pblaSections.js';
+import { buildHero, renderGoalieLane, renderSeasonButtons, renderSeasonContent } from './pblaSections.js';
 import { ensureStyles } from './pblaStyles.js';
 import {
   clearCleanup,
@@ -36,7 +36,7 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
   root.classList.add('pbla-view-root');
   activeRoot = root;
 
-  const { selectorBar, seasonContent, webglHost, liveBadge, liveText } = buildHero(root);
+  const { selectorBar, seasonContent, webglHost, liveBadge, liveText, goalieLane } = buildHero(root);
 
   const refreshLiveBadge = (): void => {
     void updateLiveBadge(liveBadge, liveText);
@@ -54,6 +54,7 @@ export async function render(root: HTMLElement, _params: Record<string, string>)
     if (!season) return;
     renderSeasonButtons(selectorBar, seasons, selectedYear, updateSeason);
     renderSeasonContent(seasonContent, season, animate, webglHost, token);
+    renderGoalieLane(goalieLane, season);
   };
 
   updateSeason(selectedYear);

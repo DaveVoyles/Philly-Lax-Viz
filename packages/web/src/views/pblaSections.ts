@@ -25,12 +25,39 @@ import { clearScopedCleanup, registerCleanup } from './pblaWebGL.js';
 
 const cleanupFns = { push: registerCleanup } as unknown as Array<() => void>;
 
+/** Populate (or re-populate) the goalie pill lane for a given season. */
+export function renderGoalieLane(lane: HTMLElement, season: PblaSeason | null): void {
+  const qualifiedGoalies = season
+    ? season.goalies
+        .filter((g) => g.min >= 30)
+        .sort((a, b) => a.gaa - b.gaa)
+        .slice(0, 4)
+    : [];
+  if (qualifiedGoalies.length > 0) {
+    lane.innerHTML = qualifiedGoalies
+      .map(
+        (g) => `
+      <div class="pbla-goalie-pill" style="--team-color:${teamColor(g.team)}">
+        <span class="pbla-goalie-pill__value">${g.gaa.toFixed(2)}</span>
+        <span class="pbla-goalie-pill__label">${g.name.split(' ').pop()}</span>
+        <span class="pbla-goalie-pill__team"><span class="pbla-goalie-pill__dot"></span>${teamAbbrev(g.team)}</span>
+      </div>`,
+      )
+      .join('');
+  } else {
+    lane.innerHTML = `
+      <div class="pbla-goalie-pill"><span class="pbla-goalie-pill__value">--</span><span class="pbla-goalie-pill__label">No data yet</span></div>
+    `;
+  }
+}
+
 export function buildHero(root: HTMLElement): {
   selectorBar: HTMLElement;
   seasonContent: HTMLElement;
   webglHost: HTMLElement;
   liveBadge: HTMLAnchorElement;
   liveText: HTMLSpanElement;
+  goalieLane: HTMLElement;
 } {
   const webglHost = document.createElement('div');
   webglHost.className = 'pbla-webgl';
@@ -108,30 +135,7 @@ export function buildHero(root: HTMLElement): {
   `;
   const goalieLane = document.createElement('div');
   goalieLane.className = 'pbla-goalie-lane';
-  // Show top 4 goalies by GAA (lowest first), min 30 min played
-  const currentSeason = SEASONS[0];
-  const qualifiedGoalies = currentSeason
-    ? currentSeason.goalies
-        .filter((g) => g.min >= 30)
-        .sort((a, b) => a.gaa - b.gaa)
-        .slice(0, 4)
-    : [];
-  if (qualifiedGoalies.length > 0) {
-    goalieLane.innerHTML = qualifiedGoalies
-      .map(
-        (g) => `
-      <div class="pbla-goalie-pill" style="--team-color:${teamColor(g.team)}">
-        <span class="pbla-goalie-pill__value">${g.gaa.toFixed(2)}</span>
-        <span class="pbla-goalie-pill__label">${g.name.split(' ').pop()}</span>
-        <span class="pbla-goalie-pill__team"><span class="pbla-goalie-pill__dot"></span>${teamAbbrev(g.team)}</span>
-      </div>`,
-      )
-      .join('');
-  } else {
-    goalieLane.innerHTML = `
-      <div class="pbla-goalie-pill"><span class="pbla-goalie-pill__value">--</span><span class="pbla-goalie-pill__label">No data yet</span></div>
-    `;
-  }
+  renderGoalieLane(goalieLane, SEASONS[0] ?? null);
   goalieCard.appendChild(goalieLane);
 
   side.append(selectorCard, goalieCard);
@@ -155,7 +159,7 @@ export function buildHero(root: HTMLElement): {
   shell.appendChild(cta);
 
   root.appendChild(shell);
-  return { selectorBar, seasonContent, webglHost, liveBadge, liveText };
+  return { selectorBar, seasonContent, webglHost, liveBadge, liveText, goalieLane };
 }
 
 function renderStandingsSection(
