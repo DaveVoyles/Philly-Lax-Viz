@@ -7,7 +7,7 @@
 
 ## The Problem
 
-The live site (Azure SWA + ACA) uses the DB from Azure File Share, not your local copy.
+The live site (Azure Container App) uses the DB from Azure File Share, not your local copy.
 If you only run a local script, the data stays local and never reaches the live site.
 
 ---
@@ -51,7 +51,7 @@ After running any import:
 
 - [ ] Query the local DB to confirm data looks correct
 - [ ] Run `pnpm db:upload` (uploads to Azure File Share)
-- [ ] Spot-check the live site: `curl -s "https://api.phillylaxstats.com/api/teams" | python3 -m json.tool | head -30`
+- [ ] Spot-check the live site: `curl -s "https://phillylaxstats.com/api/teams" | python3 -m json.tool | head -30`
 
 ---
 

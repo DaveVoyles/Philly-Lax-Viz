@@ -7,13 +7,10 @@
 <details>
 <summary>Developer / admin deployment (not user-facing)</summary>
 
-An Azure Container App hosts a live Fastify API server with the SQLite DB mounted via Azure Files.
-This powers admin-only features: coach dashboard analytics (`#/coach/dashboard`), player dedup (`#/admin/dedup`),
+An Azure Container App hosts both the live Fastify API server and serves the compiled Vite SPA static files at `https://phillylaxstats.com` (with the SQLite DB mounted via Azure Files).
+This powers the public SPA and the API, including admin-only features: coach dashboard analytics (`#/coach/dashboard`), player dedup (`#/admin/dedup`),
 coach spreadsheet upload (`#/coach/upload`), community corrections review (`#/admin/corrections`),
 Hudl team management (`#/admin/hudl`), and live data-quality diagnostics.
-
-The primary user-facing deployment is **Azure Static Web Apps** at `https://www.phillylaxstats.com/`.
-It serves the Vite-built SPA with API calls to the Azure Container App backend, plus `robots.txt` and `sitemap.xml`.
 
 </details>
 
@@ -144,16 +141,15 @@ pnpm --filter @pll/ingest exec tsx src/scripts/generateUploadTemplate.ts  # crea
                            ▼                 ▼
     ┌──────────────────────────────┐  ┌──────────────────────────────┐
     │  @pll/server (Fastify :3001) │  │  Azure Container Apps        │
-    │  /api/* (20+ endpoints)      │  │  api.phillylaxstats.com      │
-    │  Admin + live queries        │  │  live API + logo assets      │
-    └──────────────┬───────────────┘  └──────────────┬───────────────┘
-                   │ JSON                             │ HTTP
-                   ▼                                  ▼
-    ┌──────────────────────────────┐  ┌──────────────────────────────┐
-    │  @pll/web (dev, Vite :5173)  │  │  Azure Static Web Apps       │
-    │  hash router + D3 charts     │  │  SPA rewrite via SWA config  │
-    └──────────────────────────────┘  │  phillylaxstats.com          │
-                                      └──────────────────────────────┘
+    │  /api/* (20+ endpoints)      │  │  phillylaxstats.com          │
+    │  Admin + live queries        │  │  live web client + live API  │
+    └──────────────┬───────────────┘  └──────────────────────────────┘
+                   │ JSON                             
+                   ▼                                  
+    ┌──────────────────────────────┐  
+    │  @pll/web (dev, Vite :5173)  │  
+    │  hash router + D3 charts     │  
+    └──────────────────────────────┘  
 ```
 
 ## Package map

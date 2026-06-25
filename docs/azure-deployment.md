@@ -277,7 +277,7 @@ az containerapp update --name pll-server --resource-group pll-rg --min-replicas 
 ```
 
 ### ✅ Step 2: Custom domain already bound on ACA
-`phillylaxstats.com`, `www.phillylaxstats.com`, and `api.phillylaxstats.com` were already bound to ACA with managed TLS certs. No new binding required.
+`phillylaxstats.com` and `www.phillylaxstats.com` were already bound to ACA with managed TLS certs. No new binding required.
 
 ### ✅ Step 3: DNS updated via Namecheap API
 - `phillylaxstats.com` A record → `4.156.244.210` (ACA IP)

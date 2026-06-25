@@ -115,7 +115,7 @@ too many corrections today. Please try again tomorrow."
 https://phillylaxstats.com/api/corrections
 ```
 
-**Corrections always hit the live Azure API** at `api.phillylaxstats.com`.
+**Corrections always hit the live Azure API** at `phillylaxstats.com`.
 
 The payload fields sent:
 
@@ -286,7 +286,7 @@ These read routes use `request()` in `api.ts` which calls the live API.
 
 | Action                       | Behavior |
 |------------------------------|----------|
-| Submit correction            | Hits live API at `api.phillylaxstats.com` |
+| Submit correction            | Hits live API at `phillylaxstats.com` |
 | View flagged/recent (admin)  | Reads from live API |
 | Nightly apply runs           | CI-only (ingest-nightly.yml) |
 

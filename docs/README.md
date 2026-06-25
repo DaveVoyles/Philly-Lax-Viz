@@ -86,16 +86,14 @@ External Sources
 
          | deploy.yml (push to main)
          v
-  Azure Static Web App      phillylaxstats.com (Vite SPA)
-  Azure Container App  <->  Fastify API (api.phillylaxstats.com)
+  Azure Container App       phillylaxstats.com (Fastify serves SPA + API)
 ```
 
-Single deployment target — Azure SWA serves the web client, ACA serves the API:
+Single deployment target — Azure Container App hosts both web client and API:
 
 | Component | URL | Data source |
 |-----------|-----|-------------|
-| Web (SPA) | `https://www.phillylaxstats.com` | Live API calls |
-| API | `https://api.phillylaxstats.com` | SQLite on Azure File Share |
+| Web + API | `https://phillylaxstats.com` | SQLite on Azure File Share |
 
 **After local-only data changes** (workbook imports, manual corrections, dedup): run `pnpm db:upload` to sync the local DB to Azure File Share. The nightly CI handles this automatically for RSS-sourced data, but ad-hoc local scripts require this manual sync step.
 

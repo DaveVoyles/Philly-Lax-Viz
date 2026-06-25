@@ -27,12 +27,12 @@ jobs:
         run: |
           START=$(date +%s%3N)
           HTTP_CODE=$(curl -s --max-time 60 --retry 2 --retry-delay 10 --retry-max-time 120 \
-            -o /dev/null -w "%{http_code}" https://api.phillylaxstats.com/api/teams)
+            -o /dev/null -w "%{http_code}" https://phillylaxstats.com/api/teams)
           END=$(date +%s%3N)
           ELAPSED=$((END - START))
           echo "HTTP status: ${HTTP_CODE}  elapsed: ${ELAPSED}ms"
           if [ "$HTTP_CODE" != "200" ]; then
-            echo "::error::API health check failed - HTTP ${HTTP_CODE} from https://api.phillylaxstats.com/api/teams"
+            echo "::error::API health check failed - HTTP ${HTTP_CODE} from https://phillylaxstats.com/api/teams"
             exit 1
           fi
           echo "API is healthy (${HTTP_CODE} in ${ELAPSED}ms)"

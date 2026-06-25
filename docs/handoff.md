@@ -144,12 +144,10 @@ Session summary. Open a fresh session to continue.
 | SWA | ✅ Deleted |
 | DNS | ✅ Propagated — both apex and www → ACA |
 | Nightly ingest | ✅ Uploads DB to Azure Files after each run |
-| `api.phillylaxstats.com` subdomain | Still bound on ACA (redundant but harmless) |
+| `api.phillylaxstats.com` subdomain | ✅ Deleted from Azure Container App custom domains |
 
 ---
 
 ## Next Steps
 
 - Season ends — consider whether a 2027 season pipeline change is needed
-- `checkDataQuality.ts` always exits 1 for advisory issues — consider separating warnings (exit 0) from errors (exit 1)
-- `api.phillylaxstats.com` subdomain can be removed from ACA custom domains if desired (it's redundant — the canonical API URL is now `https://phillylaxstats.com/api/*`)
