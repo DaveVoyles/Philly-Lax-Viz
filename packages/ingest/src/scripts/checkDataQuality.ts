@@ -31,12 +31,17 @@ function warn(msg: string) {
   console.log(`::warning::${msg}`);
 }
 
+function error(msg: string) {
+  console.log(`::error::${msg}`);
+}
+
 async function main() {
   const { dbPath, year } = parseArgs();
   console.log(`[checkDataQuality] year=${year} db=${dbPath}`);
 
   const db = openDb(dbPath);
-  let issues = 0;
+  let warnings = 0;
+  let errors = 0;
 
   // 1. Suspicious scores (> 30)
   const highScores = db.prepare(`
@@ -52,7 +57,7 @@ async function main() {
 
   for (const g of highScores) {
     warn(`Suspicious score: ${g.home} ${g.home_score} vs ${g.away} ${g.away_score} on ${g.date} (game ${g.id})`);
-    issues++;
+    warnings++;
   }
   console.log(`[check] suspicious scores: ${highScores.length}`);
 
@@ -69,7 +74,7 @@ async function main() {
 
   for (const d of dupes) {
     warn(`Duplicate game: ${d.home} vs ${d.away} on ${d.date} appears ${d.cnt} times`);
-    issues++;
+    warnings++;
   }
   console.log(`[check] duplicate games: ${dupes.length}`);
 
@@ -87,7 +92,7 @@ async function main() {
 
   if (noGames.length > 0) {
     warn(`Teams with 0 games in ${year}: ${noGames.map((t) => t.name).join(', ')}`);
-    issues++;
+    warnings++;
   }
   console.log(`[check] teams with 0 games: ${noGames.length}`);
 
@@ -101,12 +106,12 @@ async function main() {
     const lastGame = row?.last_game;
     if (!lastGame) {
       warn(`Stale season: no games found for ${year} — site data may be outdated`);
-      issues++;
+      warnings++;
     } else {
       const daysSince = Math.floor((Date.now() - new Date(lastGame).getTime()) / 86_400_000);
       if (daysSince > 7) {
         warn(`Stale season: last ${year} game was ${daysSince} days ago (${lastGame}) — site data may be stale`);
-        issues++;
+        warnings++;
       }
     }
     console.log(`[check] last game: ${lastGame ?? 'none'}`);
@@ -125,8 +130,8 @@ async function main() {
   `).all(year) as Array<{ id: number; date: string; home: string; home_score: number; away: string; away_score: number }>;
 
   for (const g of negScores) {
-    warn(`Negative score: ${g.home} ${g.home_score} vs ${g.away} ${g.away_score} on ${g.date} (game ${g.id})`);
-    issues++;
+    error(`Negative score: ${g.home} ${g.home_score} vs ${g.away} ${g.away_score} on ${g.date} (game ${g.id})`);
+    errors++;
   }
   console.log(`[check] negative scores: ${negScores.length}`);
 
@@ -137,8 +142,8 @@ async function main() {
   `).all() as Array<{ id: number }>;
 
   for (const g of nullFields) {
-    warn(`Game ${g.id} has NULL in a required field (date/home_team_id/away_team_id)`);
-    issues++;
+    error(`Game ${g.id} has NULL in a required field (date/home_team_id/away_team_id)`);
+    errors++;
   }
   console.log(`[check] games with null required fields: ${nullFields.length}`);
 
@@ -152,7 +157,7 @@ async function main() {
 
   for (const p of dupePlayers) {
     warn(`Duplicate player: "${p.name}" appears ${p.cnt} times for team_id ${p.team_id}`);
-    issues++;
+    warnings++;
   }
   console.log(`[check] duplicate players: ${dupePlayers.length}`);
 
@@ -166,7 +171,7 @@ async function main() {
 
   for (const a of dupeAliases) {
     warn(`Duplicate team alias: "${a.alias}" maps to ${a.teams} different teams`);
-    issues++;
+    warnings++;
   }
   console.log(`[check] duplicate team aliases: ${dupeAliases.length}`);
 
@@ -178,8 +183,8 @@ async function main() {
   `).get() as { cnt: number };
 
   if (orphanStats.cnt > 0) {
-    warn(`Orphaned player_stats: ${orphanStats.cnt} stat row(s) reference game_ids not in the games table`);
-    issues++;
+    error(`Orphaned player_stats: ${orphanStats.cnt} stat row(s) reference game_ids not in the games table`);
+    errors++;
   }
   console.log(`[check] orphaned player stats: ${orphanStats.cnt}`);
 
@@ -194,8 +199,8 @@ async function main() {
   `).all() as Array<{ player_id: number; player_name: string; game_id: number; cnt: number }>;
 
   for (const d of dupeStats) {
-    warn(`Duplicate player stat: player "${d.player_name}" (id ${d.player_id}) has ${d.cnt} stat rows for game ${d.game_id}`);
-    issues++;
+    error(`Duplicate player stat: player "${d.player_name}" (id ${d.player_id}) has ${d.cnt} stat rows for game ${d.game_id}`);
+    errors++;
   }
   console.log(`[check] duplicate player-game stat rows: ${dupeStats.length}`);
 
@@ -209,13 +214,13 @@ async function main() {
 
   for (const p of badJerseys) {
     warn(`Invalid jersey number: player "${p.name}" (id ${p.id}) has jersey_number=${p.jersey_number}`);
-    issues++;
+    warnings++;
   }
   console.log(`[check] players with invalid jersey numbers: ${badJerseys.length}`);
 
   db.close();
-  console.log(`[checkDataQuality] done — ${issues} issue(s) found`);
-  process.exit(issues > 0 ? 1 : 0);
+  console.log(`[checkDataQuality] done — ${errors} error(s) and ${warnings} warning(s) found`);
+  process.exit(errors > 0 ? 1 : 0);
 }
 
 main().catch((err) => {
