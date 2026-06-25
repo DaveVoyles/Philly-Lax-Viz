@@ -130,11 +130,12 @@ jobs:
         # Write credentials directly as base64 into the Docker config auths
         # section. This bypasses macOS keychain and is readable by buildkit
         # which runs in a separate process and ignores credential helpers.
+        # Use "default" context so the config is valid even when OrbStack is not running.
         run: |
           CONFIG_DIR="${DOCKER_CONFIG:-$HOME/.docker}"
           mkdir -p "$CONFIG_DIR"
           AUTH=$(echo -n "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" | base64 | tr -d '\n')
-          printf '{"auths":{"ghcr.io":{"auth":"%s"}},"currentContext":"orbstack"}\n' "$AUTH" \
+          printf '{"auths":{"ghcr.io":{"auth":"%s"}}}\n' "$AUTH" \
             > "$CONFIG_DIR/config.json"
           echo "Docker config written for ghcr.io"
 
