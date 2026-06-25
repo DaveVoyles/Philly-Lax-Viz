@@ -6,6 +6,24 @@ Session summary. Open a fresh session to continue.
 
 ## What Was Done
 
+### PBLA bug fixes + doc hardening (2026-06-25, session 6)
+
+Five separate issues found and fixed across PBLA views and docs.
+
+| Change | File(s) | Details |
+|---|---|---|
+| Scoring trend: white GF / red GA on all team pages | `packages/web/src/charts/teamScoreTrend.ts`, `packages/web/src/views/pblaTeam.ts` | Edge team had two indistinguishable red lines because the call site passed the team's accent color (`#ef4444`) as `gfColor`. Removed the dynamic accent override; both the call site and the chart module `DEFAULTS` now use `gfColor: '#ffffff'` / `gaColor: '#dc2626'`. Added a faint outline to legend swatches so white remains visible on any background. |
+| Goalie pills update on season switch | `packages/web/src/views/pblaSections.ts`, `packages/web/src/views/pbla.ts` | Selecting "2025 (Complete)" on the PBLA landing page updated standings + scores but left the Top Goalies sidebar frozen on 2026 data. `buildHero()` built the pills once hardcoded to `SEASONS[0]`. Fix: extracted `renderGoalieLane(lane, season)` as an exported function, added `goalieLane` to `buildHero()`'s return, called `renderGoalieLane` inside `updateSeason()`. The 2025 goalie data was already in `pblaData.ts` — purely a rendering bug. |
+| Doc: stale DB version numbers | `docs/quick-refs/db-schema.md`, `docs/architecture-full.md`, `docs/quick-refs/commands.md` | `user_version` was documented as 23 (schema) and 16 (architecture). Code says 25. All three corrected. |
+| Doc: improvement #09 status | `docs/improvements/09-github-hosted-runner-oidc-deploy.md`, `docs/improvements/00-INDEX.md` | RFC said "runner is gone — P0 blocking all CI" which is completely wrong. Runner is online, deploys work. Updated status to "partially resolved"; OIDC migration is optional hardening, not blocking. |
+| Doc: PBLA season-transition runbook | `docs/runbooks/pbla-season-transition.md` | New step-by-step guide: how to find next year's Sportability league ID, all 7 files that need updating, how to reset `PBLA_VIDEOS`, trigger the first sync, and verify. Also fixed season-transition checklist in `pipeline-gaps.md` (removed deleted files, added full PBLA checklist). |
+| Doc: `pbla-guide.md` in index decision tree | `docs/index.md` | Added "Work on PBLA box lacrosse → pbla-guide.md" row so agents loading cold find it. |
+| Doc: container restart in commands.md | `docs/quick-refs/commands.md` | Added `az containerapp revision restart` with the exact command — new operational pattern established earlier in the session. |
+
+**All changes deployed** — `deploy.yml` triggered automatically on each push to main and succeeded.
+
+---
+
 ### PBLA team pages: stale data, missing videos, broken deploy (2026-06-25, session 5)
 
 **Root causes diagnosed and fixed:**
