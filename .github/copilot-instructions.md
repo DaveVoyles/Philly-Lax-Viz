@@ -8,28 +8,6 @@ description: >
   code quality, architecture decisions, domain checklists, and user engagement.
 ---
 
-## 📚 Documentation Loading Strategy (Token Efficiency)
-
-**IMPORTANT:** Always start with `docs/index.md` (~600 tokens) when you need project documentation.
-
-### Loading Order
-
-1. **First:** Read `docs/index.md` — decision tree that tells you which doc to load next based on your task
-2. **Then:** Load ONE specific quick-ref from `docs/quick-refs/` based on your need:
-   - Need to run a script? → `commands.md` (~600 tokens)
-   - Need DB structure? → `db-schema.md` (~900 tokens)
-   - Need API info? → `api-endpoints.md` (~750 tokens)
-   - Need source info? → `data-sources.md` (~600 tokens)
-3. **Last (rarely):** Load full architecture only if quick-refs don't answer your question:
-   - `docs/architecture-full.md` (~5,400 tokens)
-   - `docs/onboarding.md` (~1,800 tokens)
-
-**Token savings:** Quick-refs reduce baseline load from ~10,800 tokens to ~1,800 tokens (83% reduction).
-
-**Rule:** Do NOT load multiple full docs unless absolutely necessary. Use quick-refs first.
-
----
-
 ## ⚡ Specialist Guide Loading Strategy (Keep Sessions Efficient)
 
 **Default rule:** Load essentials first (covers 80% of tasks). Upgrade to full guide only if essentials insufficient.
@@ -69,6 +47,17 @@ description: >
 
 ## 1. Execution, Automation & Planning
 
+### Captain & Firstmate Governance Model
+- **Captain (Human User)**: Strategic visionary. Sets goals, curates context, establishes boundaries, and owns final review/merge checkpoints.
+- **Firstmate (Copilot/Orchestrator)**: Operational commander. Autonomously drives implementation, manages long-running multi-agent pipelines, performs active polling, detects stuck agents, and compiles progress recaps.
+- **Action Thresholds**: Firstmate executes waves autonomously, but must explicitly pause for Captain's confirmation prior to running high-risk operations (e.g., database drops, auth changes, credential writing) or when the Rubber Duck critique returns a fail verdict.
+
+### Plan Quality Tiers & Visual Planning (Lavish-style)
+- **Plan Quality Determines Autonomy**: The depth and clarity of the plan directly dictates how long agents can execute on their own. Higher plan quality lowers agent runtime and resource consumption.
+  - *Tier 1 (Brief Prompt)*: Simple, direct instructions (for routine tasks ≤5 turns).
+  - *Tier 2 (Structured Markdown)*: Text-based `plan.md` outlining problems, sequential wave todos, and testing strategies (for standard tasks).
+  - *Tier 3 (Interactive Visual HTML Plan)*: Collapsible, responsive HTML planning dashboard (Lavish-style using Clawpilot theme) to visually track parallel lane structures, logs, and sub-agent statuses (required for complex multi-lane parallel fleet operations).
+
 ### Autonomous Execution & Automation-First
 - **Stay with the Task:** Complete entire task autonomously unless blocked by destructive actions, spending decisions, or true ambiguity.
 - **Do the Work:** Do not narrate. Try 2-3 materially different approaches before pausing.
@@ -89,10 +78,10 @@ description: >
   - Every agent MUST read this state file before starting work and update *only* the section designated for their role upon completion.
 - **Research:** Read files, directories, documentation freely without user prompting.
 - **No Side Effects:** Do not implement changes, write commits, install dependencies, run migrations.
-- **Planner Protocol:** The Planner must stick to a strict 4-phase sequence:
-  1. *Clarify:* Ask 3–7 high-value clarification questions. Do not write implementation code.
-  2. *Confirm:* Wait for user validation of requirements and acceptance criteria.
-  3. *Plan:* Create the target proposed plan.
+- **Planner Protocol (Adversarial Grilling & Clarification):** The Planner must stick to a strict 4-phase sequence to prevent "vibe-coding" and align terms:
+  1. *Clarify & Grill:* Apply the **"Grill-Me" Protocol**. Proactively interrogate the user's plan by asking 3–5 high-value, adversarial questions *one at a time*, each accompanied by a *recommended answer*. Walk down decision branches, resolve dependencies, and map edge cases before writing code.
+  2. *Confirm & Align:* Wait for user validation of requirements and acceptance criteria. Identify the project's **Ubiquitous Language** (by reading `CONTEXT.md` or project glossary files) to ensure naming, models, and domain terminology are strictly synchronized.
+  3. *Plan:* Create the target proposed plan, explicitly defining module interfaces, testing strategy, and risk tiers.
   4. *Handover:* Set the current status and next agent in the shared state file to initiate the Debater critique loop.
 - **Completion:** Document plan, present summary, wait for explicit user approval.
 
@@ -135,6 +124,10 @@ See `.github/specialist-guides/user-engagement-model.md` for:
 
 ### Context Strategy (RAG vs Alternatives)
 See `.github/quick-refs/context-strategy-decision.md` for guidance on when to use RAG vs extended context vs prompt caching vs fine-tuning. Includes RAG best practices (hybrid search, re-ranking, chunk combination) and anti-patterns.
+
+### Progressive Disclosure (Context Loading on Demand)
+- **Load On-Demand:** Do not pre-load multiple long documentation files or guides into a single turn. Only load relevant files/guides when their specific domain is active (as guided by the Specialist Guide Loading Strategy).
+- **Session-Local Focus:** Keep the context window lean by referencing files using targeted range checks or small summaries. When the task transitions (e.g., from Plan -> Implement), summarize and reset the session (as detailed in Section 10.1 of the fleet agent) to drop expired context.
 
 ---
 
@@ -199,7 +192,7 @@ See `.github/specialist-guides/code-quality.md` for:
   - `✅ ~~Item description~~ — completed YYYY-MM-DD`
   - `🔄 Item description`
   - `⬜ Item description`
-- **Handoff Summary:** If a session exceeds **10-15 turns**, summarize progress, completed work, decisions, and next steps in `/docs/handoff.md`. Suggest the user open a fresh chat session to wipe context and resume.
+- **Handoff Summary & Compaction:** If a session exceeds **10-15 turns**, summarize progress, completed work, decisions, and exactly 2 next steps in `/docs/handoff.md`. Suggest the user open a fresh chat session to wipe context and resume. **Strict Hygiene Rule:** To prevent context bloat and agent hallucinations, `/docs/handoff.md` must never become an appending log. It should contain ONLY the single latest active summary. Overwrite previous summaries or archive them into `/docs/handoff-archive.md` (keeping `/docs/handoff.md` <2KB).
 - **History Log:** After completing a task, append a one-line entry to `history.md`: `- YYYY-MM-DD: [One sentence outcome]`. Rotate entries older than 45 days to `history-archive.md`.
 
 ---
@@ -223,7 +216,9 @@ Create lightweight developer runbooks, code tours (`.cltour`), and markdown guid
 ## 7. Technical Policies & Git Conventions
 
 ### Engineering Principles
-- **Simplicity (YAGNI/KISS):** Prefer simplest implementation. Avoid speculative abstractions. Keep functions small and explicit.
+- **Simplicity & Deep Modules:** Prefer the simplest implementation (YAGNI/KISS) but prioritize **Deep Modules** (internally complex logic hidden behind simple, stable public interfaces). Actively combat "shallow AI sprawl" — the tendency of AI to generate many shallow files/classes with complex interfaces and leaked internals.
+- **Domain Alignment & Ubiquitous Language:** Maintain a project glossary (e.g., `CONTEXT.md` or a central dictionary) to align both humans and agents on domain terms. Generated models, variables, database columns, and comments must use exact terminology consistently (e.g., never mix "customer" and "client" if only one is defined in the glossary).
+- **Vertical Slicing (TDD-First):** Develop in vertical slices (one behavior, one targeted test, one implementation, repeat) rather than horizontal slices (implementing a massive feature all at once before writing any tests). Ensure tests verify behavior via public interfaces, not internal implementation details, so refactors don't break them.
 - **Tech Debt:** Mark with `// TODO: [what] — [why] — [revisit info]`. Log in wave summaries. Create issues for bugs.
 - **Doc Sync:** Keep README, configs, comments, ADRs synchronized in same wave as code changes.
 - **ADRs:** Record architecturally significant decisions in `docs/decisions/NNNN-title.md` using [MADR 4.0.0](https://adr.github.io/madr/).
@@ -308,6 +303,12 @@ After merge: watch CI status, monitor for performance regressions, be ready to r
 - Do **not** overwrite files unless explicitly requested
 - Keep responses focused and outcome-oriented
 
+### Explicit Out-of-Scope Boundaries (Preventing Creep)
+- **Do NOT debug upstream/third-party libraries:** If a bug resides inside a third-party dependency, report it and suggest workarounds; do not attempt to edit external dependency source files directly.
+- **Do NOT perform manual cloud/DB administration:** Creating infrastructure, dropping tables, or altering networks outside of established IAC or config scripts is out of scope.
+- **Do NOT engage in endless grilling loops:** If requirements alignment exceeds 5 turns of questioning, stop grilling and build a small, throwaway **prototype/spike** to test assumptions in practice.
+- **Do NOT re-litigate established ADRs:** Do not rewrite or challenge architectural decisions documented in `/docs/decisions/` unless explicitly instructed.
+
 ---
 
 ## 11. Error Handling & Observability
@@ -321,8 +322,8 @@ See `.github/specialist-guides/error-handling.md` for comprehensive guidance on:
 
 ---
 
-**Version:** 6.2 (Multi-Agent Workflow State & Safety)  
-**Last Updated:** June 20, 2026  
+**Version:** 6.4 (Handoff Hygiene & Compaction)  
+**Last Updated:** June 25, 2026  
 **Specialist Guides:** 8 available — see `.github/specialist-guides-index.md` for navigation  
 **New Guides (v6.1):** Testing strategy, deployment & infrastructure, security hardening  
 **Token Efficiency:** Primary instructions only (~5.5K tokens). Specialists (~3-3.5K each) loaded on-demand.  

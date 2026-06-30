@@ -6,10 +6,10 @@ description: >
   Base execution rules (always-on) live in .github/copilot-instructions.md.
 ---
 
-## 1. Fleet Core Directives & Sizing
+## 1. Firstmate Fleet Directives & Sizing
 
-The Autonomous Fleet Agent coordinates **multiple sub-agents working in parallel** to execute complex, multi-part tasks.
-This file **extends** the base guidelines in `.github/copilot-instructions.md`. All base rules (e.g. security, ADRs, tests, commits, and verification) are fully inherited.
+The Autonomous Fleet Agent operates as the **Firstmate**, coordinating a fleet of specialized sub-agents working in parallel to execute complex tasks on behalf of the **Captain** (human user).
+This file **extends** the base guidelines in `.github/copilot-instructions.md`. All base rules (e.g., security, ADRs, tests, commits, and verification) are fully inherited.
 
 ### When to Use Fleet vs. Solo
 
@@ -92,8 +92,8 @@ The multi-agent workflow operates as a secure, sequential pipeline using the cen
 
 | Pipeline Role | Best Model ID | Temperature | Allowed Actions & Paths | Core Responsibility & Video Rules |
 | :--- | :--- | :--- | :--- | :--- |
-| **Planner** | `gpt-5.4` / `claude-sonnet-4.6` | `0.1`–`0.2` (Low) | Read all. Edit: `workflow-state.md` ONLY. Run bash/web_fetch. | **Clarify first.** Must ask 3–7 high-value clarification questions. Generate plan after user validation. |
-| **Debater** | `claude-sonnet-4.6` / `claude-opus-4.8` | `0.5`–`0.7` (High) | Read all. Edit: `workflow-state.md` ONLY (Debate Note). | **Deep critique.** Challenge assumptions, check edge cases, backward compatibility, performance/security. |
+| **Planner** | `gpt-5.4` / `claude-sonnet-4.6` | `0.1`–`0.2` (Low) | Read all. Edit: `workflow-state.md` ONLY. Run bash/web_fetch. | **Clarify & Grill first.** Run the "Grill-Me" protocol: ask probing questions *one at a time* with recommended answers. Ensure **Ubiquitous Language** matches `CONTEXT.md` before coding. |
+| **Debater** | `claude-sonnet-4.6` / `claude-opus-4.8` | `0.5`–`0.7` (High) | Read all. Edit: `workflow-state.md` ONLY (Debate Note). | **Deep critique.** Challenge assumptions, check edge cases, backward compatibility. Audit for **shallow module creep** and glossary violations. |
 | **Implementer** | `gpt-5.3-codex` / `claude-sonnet-4.6` | `0.2` (Low) | Read/Edit: **All files** (full codebase access). | **Smallest change.** Implement approved plan. No unrelated refactors. Record files changed & write summary. |
 | **Reviewer** | `gpt-5.3-codex` / `claude-sonnet-4.6` | `0.2` (Low) | Read all. Edit: `workflow-state.md` ONLY. | **Code Auditor.** Review staged changes. Provide precise fix guidance back to Implementer if fails. |
 | **Tester** | `gpt-5-mini` / `claude-haiku-4.5` | `0.1` (Low) | Read all. Edit: `workflow-state.md` ONLY. Run test commands. | **Test Runner.** Execute targeted tests. Record commands, pass/fail status & error stack trace. |
@@ -107,12 +107,14 @@ The multi-agent workflow operates as a secure, sequential pipeline using the cen
 ### Debater Deep Critique Checklist
 When the pipeline activates the **Debater** role (temperature `0.5`–`0.7` to maximize critical alternative generation), the agent must audit the Planner's proposal using this strict checklist:
 1. **Unnecessary Complexity:** Are there simpler, more direct implementation pathways? Is it over-engineered?
-2. **Missing Steps:** Did the planner skip any essential integration, config updates, or imports?
-3. **Incorrect Assumptions:** Are there any incorrect assumptions about the library behaviors, API interfaces, or existing codebase design?
-4. **Hidden Edge Cases:** What are the failure modes, boundary limits, or empty input handling scenarios?
-5. **Backward Compatibility:** Does this change break any existing APIs, schemas, configurations, or downstream systems?
-6. **Missing Validation:** Are there sufficient unit tests, integration tests, or manual check commands specified?
-7. **Cross-Cutting Risks:** Are there security vulnerabilities, performance bottlenecks, or logging gaps?
+2. **Shallow Module Creep:** Does the plan introduce numerous shallow helper modules or files that leak internal mechanisms, rather than cohesive **Deep Modules** with simple public interfaces?
+3. **Domain Language (Ubiquitous Language):** Does the terminology in the plan align perfectly with `CONTEXT.md` (or the project glossary)? Does it introduce conflicting aliases or inconsistent jargon?
+4. **Missing Steps:** Did the planner skip any essential integration, config updates, or imports?
+5. **Incorrect Assumptions:** Are there any incorrect assumptions about the library behaviors, API interfaces, or existing codebase design?
+6. **Hidden Edge Cases:** What are the failure modes, boundary limits, or empty input handling scenarios?
+7. **Backward Compatibility:** Does this change break any existing APIs, schemas, configurations, or downstream systems?
+8. **Missing Validation:** Are there sufficient unit tests, integration tests, or manual check commands specified? (Check: are tests designed around public interfaces instead of internals?)
+9. **Cross-Cutting Risks:** Are there security vulnerabilities, performance bottlenecks, or logging gaps?
 
 *Output Requirement:* If suggestions/fixes are found, the Debater must rewrite or improve the proposed plan in the Debate Note section. If the plan is already optimal, explain precisely why it is acceptable.
 
@@ -183,24 +185,35 @@ If an active sub-agent stalls, hangs, becomes silent past its escalation thresho
 
 ---
 
-## 7. Quality Gates & Rubber Duck Review Loop
+## 7. Quality Gates & "No Mistakes" Adversarial QA Loop
 
 ### Quality Gates
 Before any wave is considered complete, it must pass these strict Quality Gates:
 - **Gate 1 (Self-Review):** Review the staged diff (`git diff --cached`) for debug logs, test mocks, or credential leaks.
 - **Gate 2 (Diff Size Ceilings):** If changes exceed **500 lines**, split them into smaller logical commits.
 - **Gate 3 (Automated Suites):** Targeted tests must return 100% pass status, and linter warnings must be resolved.
-- **Gate 4 (Code Review):** Run the `code-review` agent on staged changes.
+- **Gate 4 (Adversarial "No Mistakes" Audit):** Review the changes against standard AI error patterns before merging:
+  - *Shallow Module Creep*: Did we create multiple thin files/classes with complex interfaces instead of deep modules?
+  - *Mock Bypasses*: Are unit tests genuinely checking behavior, or are they mocking out the core logic we intended to test?
+  - *Adjacent Regressions*: Did we break imports or types in adjacent, untouched files?
+  - *Hardcoded Limits*: Are sizes, boundaries, timeouts, or credentials hardcoded instead of configured?
+- **Gate 5 (Code Review):** Run the `code-review` agent on staged changes. Audit for **Deep Modules** (ensuring complexity is hidden behind simple interfaces) and **Ubiquitous Language** (ensuring glossary compliance).
 
 ### Rubber Duck Review Loop
 The **Rubber Duck Reviewer** is a specialized non-editing `general-purpose` agent role launched with an explicit critique prompt:
-- **Plan Critique:** Duck must review and comment on the wave plan before Wave 1 begins.
-- **Mid-wave Check:** Duck reviews complex implementation files before validation starts.
+- **Plan Critique:** Duck must review and comment on the wave plan before Wave 1 begins, checking for terminology mismatches and horizontal slicing anti-patterns.
+- **Mid-wave Check:** Duck reviews complex implementation files before validation starts to ensure code does not suffer from shallow AI sprawl or fragile test coupling.
 - **Verdict-Gated Progress:** If the Duck returns a `fail` verdict, the orchestrator **MUST** pause and address the feedback before proceeding.
 
 ---
 
-## 8. Sub-Agent Prompts & Communication
+## 8. Sub-Agent Prompts, Communication & AXI Lane Contracts
+
+### AXI Standard Lane Contracts
+To scale parallel execution to 20–30 agents (as in Kun Chen's *Treehouse* framework) and completely eliminate directory collisions, each lane operates under a strict **AXI Contract**:
+1. **Isolated Workspace Directories**: Parallel lanes must not modify the same files. Han 😉🚀, Yoda 👽✨, and other active lanes are assigned mutually exclusive directories or files.
+2. **Clear Interface Boundaries**: If Lane B depends on Lane A's deliverables, Lane A must write its output to a deterministic location (e.g., a specific json artifact or designated api-stub file). Lane B operates in "blocked" or "dry-run" state until the contract artifact is generated.
+3. **Deterministic Inputs**: The Firstmate supplies clear schemas and data examples to parallel lanes. Agents must never "guess" upstream library interfaces or parameter schemas.
 
 ### Stable Prompt Caching Structure
 To maximize prompt caching hit rates, segregate static and dynamic parameters:
@@ -480,7 +493,7 @@ Cost: 3 turns = ~50K tokens
 
 ### 10.6 Session Summary & Handoff Template
 
-When a session approaches 15+ turns **and more work remains**, end it with a complete summary for the next session.
+When a session approaches 15+ turns **and more work remains**, end it with a complete summary for the next session. **Hygiene & Compaction Rule:** To prevent context bloat, token wastage, and model hallucinations, `/docs/handoff.md` must never be used as an infinite appending log. It must be **overwritten or compacted** so it contains ONLY the single latest active session summary. Keep the file size under 2KB, or archive older logs to `/docs/handoff-archive.md`.
 
 #### Template
 ```markdown
@@ -538,6 +551,6 @@ Before ending any session, verify:
 
 ---
 
-**Version:** 5.37
-**Last Updated:** June 20, 2026
+**Version:** 5.38
+**Last Updated:** June 25, 2026
 **Status:** Refined — Fleet is opt-in for complex work; specialized agent pipeline with strict path-based write permissions integrated
