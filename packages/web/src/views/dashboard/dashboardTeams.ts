@@ -137,12 +137,12 @@ function sortTeams(teams: TeamSeasonRecord[], sort: TeamSort): TeamSeasonRecord[
     out.sort((a, b) => {
       const aw = a.wins ?? 0;
       const bw = b.wins ?? 0;
-      if (aw !== bw) return factor * (bw - aw);
+      if (aw !== bw) return factor * (aw - bw);
       const ag = (a.wins ?? 0) + (a.losses ?? 0);
       const bg = (b.wins ?? 0) + (b.losses ?? 0);
       const apct = ag > 0 ? aw / ag : 0;
       const bpct = bg > 0 ? bw / bg : 0;
-      if (apct !== bpct) return factor * (bpct - apct);
+      if (apct !== bpct) return factor * (apct - bpct);
       return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
     });
     return out;
