@@ -6,7 +6,7 @@ import { buildStreakChip } from '../../util/streakChip.js';
 
 type SortKey = 'name' | 'gap' | 'wins';
 type SortDir = 'asc' | 'desc';
-interface TeamSort { key: SortKey; dir: SortDir; }
+export interface TeamSort { key: SortKey; dir: SortDir; }
 interface TeamFilter { hideLowGames: boolean; minGames: number; }
 
 export const PIAA_LEGEND_ROWS: ReadonlyArray<{
@@ -126,7 +126,7 @@ export function renderTeamsGrid(target: HTMLElement, teams: TeamSeasonRecord[]):
   rerender();
 }
 
-function sortTeams(teams: TeamSeasonRecord[], sort: TeamSort): TeamSeasonRecord[] {
+export function sortTeams(teams: TeamSeasonRecord[], sort: TeamSort): TeamSeasonRecord[] {
   const out = [...teams];
   const factor = sort.dir === 'asc' ? 1 : -1;
   if (sort.key === 'name') {
