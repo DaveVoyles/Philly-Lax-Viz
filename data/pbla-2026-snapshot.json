@@ -1,7 +1,7 @@
 {
   "leagueId": 50731,
   "year": 2026,
-  "snapshotDate": "2026-07-02",
+  "snapshotDate": "2026-07-09",
   "note": "Local reference snapshot of the 2026 PBLA season schedule. Update alongside pblaData.ts after each game night. Run 'pnpm pbla:check' to diff against the live Sportability schedule.",
   "games": [
     {
@@ -318,8 +318,8 @@
       "time": "7:00p",
       "homeTeam": "Thunder",
       "awayTeam": "Edge",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 14,
+      "awayScore": 4,
       "location": "Rizzo Rink",
       "isPlayoff": false
     },
@@ -329,8 +329,8 @@
       "time": "8:00p",
       "homeTeam": "Outlaws",
       "awayTeam": "More Dudes LC",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 7,
+      "awayScore": 12,
       "location": "Rizzo Rink",
       "isPlayoff": false
     },
@@ -461,6 +461,28 @@
       "time": "8:00p",
       "homeTeam": "Thunder",
       "awayTeam": "More Dudes LC",
+      "homeScore": 0,
+      "awayScore": 0,
+      "location": "Rizzo Rink",
+      "isPlayoff": false
+    },
+    {
+      "gameNum": 27,
+      "date": "2026-08-03",
+      "time": "7:00p",
+      "homeTeam": "More Dudes LC",
+      "awayTeam": "Revolution",
+      "homeScore": 0,
+      "awayScore": 0,
+      "location": "Rizzo Rink",
+      "isPlayoff": false
+    },
+    {
+      "gameNum": 28,
+      "date": "2026-08-03",
+      "time": "8:00p",
+      "homeTeam": "Outlaws",
+      "awayTeam": "Beer Wolves",
       "homeScore": 0,
       "awayScore": 0,
       "location": "Rizzo Rink",
