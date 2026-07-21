@@ -1,7 +1,7 @@
 {
   "leagueId": 50731,
   "year": 2026,
-  "snapshotDate": "2026-07-16",
+  "snapshotDate": "2026-07-21",
   "note": "Local reference snapshot of the 2026 PBLA season schedule. Update alongside pblaData.ts after each game night. Run 'pnpm pbla:check' to diff against the live Sportability schedule.",
   "games": [
     {
@@ -384,8 +384,8 @@
       "time": "7:00p",
       "homeTeam": "Thunder",
       "awayTeam": "Outlaws",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 10,
+      "awayScore": 7,
       "location": "Rizzo Rink",
       "isPlayoff": false
     },
@@ -395,8 +395,8 @@
       "time": "8:00p",
       "homeTeam": "Revolution",
       "awayTeam": "Edge",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 10,
+      "awayScore": 3,
       "location": "Rizzo Rink",
       "isPlayoff": false
     },
