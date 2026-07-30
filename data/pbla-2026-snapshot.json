@@ -1,7 +1,7 @@
 {
   "leagueId": 50731,
   "year": 2026,
-  "snapshotDate": "2026-07-28",
+  "snapshotDate": "2026-07-30",
   "note": "Local reference snapshot of the 2026 PBLA season schedule. Update alongside pblaData.ts after each game night. Run 'pnpm pbla:check' to diff against the live Sportability schedule.",
   "games": [
     {
@@ -450,8 +450,8 @@
       "time": "7:00p",
       "homeTeam": "Beer Wolves",
       "awayTeam": "Pups LC",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 12,
+      "awayScore": 8,
       "location": "Rizzo Rink",
       "isPlayoff": false
     },
@@ -459,8 +459,8 @@
       "gameNum": 42,
       "date": "2026-07-29",
       "time": "8:00p",
-      "homeTeam": "Thunder",
-      "awayTeam": "More Dudes LC",
+      "homeTeam": "Thunder 10(Overtime)",
+      "awayTeam": "More Dudes LC 9",
       "homeScore": 0,
       "awayScore": 0,
       "location": "Rizzo Rink",

@@ -87,12 +87,12 @@ export const SEASONS: PblaSeason[] = [
     label: '2026 (Current)',
     teams: [
       { id: 343516, name: 'Thunder', gp: 11, wins: 11, losses: 0, ties: 0, otw: 0, otl: 0, pts: 33, pf: 132, pa: 73, diff: 59, streak: 'W11', color: '#facc15', captain: 'Jim Glielmi', jerseyImg: '/logos/pbla-thunder.png' },
-      { id: 343514, name: 'Pups LC', gp: 10, wins: 6, losses: 4, ties: 0, otw: 0, otl: 0, pts: 18, pf: 96, pa: 80, diff: 16, streak: 'L3', color: '#ff6600', captain: 'Andrew Sloan', jerseyImg: 'https://img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Pups.png/:/rs=w:600,cg:true,m' },
+      { id: 343514, name: 'Pups LC', gp: 11, wins: 6, losses: 5, ties: 0, otw: 0, otl: 0, pts: 18, pf: 104, pa: 92, diff: 12, streak: 'L4', color: '#ff6600', captain: 'Andrew Sloan', jerseyImg: 'https://img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/Pups.png/:/rs=w:600,cg:true,m' },
       { id: 343517, name: 'More Dudes LC', gp: 10, wins: 8, losses: 2, ties: 0, otw: 0, otl: 0, pts: 24, pf: 124, pa: 62, diff: 62, streak: 'W5', color: '#800000', captain: 'Murf Butler', jerseyImg: '/logos/pbla-moredudes.png' },
       { id: 343511, name: 'Outlaws', gp: 10, wins: 5, losses: 5, ties: 0, otw: 0, otl: 0, pts: 15, pf: 97, pa: 90, diff: 7, streak: 'W1', color: '#003087', captain: 'Joe Stainer', jerseyImg: '/logos/pbla-outlaws.png' },
       { id: 343512, name: 'Edge', gp: 12, wins: 2, losses: 10, ties: 0, otw: 0, otl: 0, pts: 6, pf: 75, pa: 143, diff: -68, streak: 'L5', color: '#ef4444', captain: 'Matt O\'Brian', jerseyImg: '/logos/pbla-edge.png' },
       { id: 343515, name: 'Revolution', gp: 11, wins: 3, losses: 8, ties: 0, otw: 0, otl: 0, pts: 9, pf: 72, pa: 104, diff: -32, streak: 'W2', color: '#3b82f6', captain: 'Bill Kennedy', jerseyImg: '/logos/pbla-revolution.png' },
-      { id: 343513, name: 'Beer Wolves', gp: 10, wins: 2, losses: 8, ties: 0, otw: 0, otl: 0, pts: 6, pf: 70, pa: 114, diff: -44, streak: 'L2', color: '#22c55e', captain: 'Ryan Mackey', jerseyImg: 'https://img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/BeerWolves.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:600,cg:true' },
+      { id: 343513, name: 'Beer Wolves', gp: 11, wins: 3, losses: 8, ties: 0, otw: 0, otl: 0, pts: 9, pf: 82, pa: 122, diff: -40, streak: 'W1', color: '#22c55e', captain: 'Ryan Mackey', jerseyImg: 'https://img1.wsimg.com/isteam/ip/9e5f3063-7bf9-40d1-b593-5c59c6903080/BeerWolves.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:600,cg:true' },
     ],
     players: [
       { jersey: 7, name: 'Nick Fox', team: 'Pups LC', gp: 9, goals: 24, assists: 8, points: 32, penalties: 11, pim: 22 },
@@ -407,7 +407,7 @@ export const SEASONS: PblaSeason[] = [
       { gameNum: 38, date: '2026-07-22', time: '8:00p', homeTeam: 'Outlaws', awayTeam: 'Edge', homeScore: 12, awayScore: 6, location: 'Rizzo Rink', isPlayoff: false, note: '' },
       { gameNum: 39, date: '2026-07-27', time: '7:00p', homeTeam: 'Thunder', awayTeam: 'Beer Wolves', homeScore: 14, awayScore: 6, location: 'Rizzo Rink', isPlayoff: false, note: '' },
       { gameNum: 40, date: '2026-07-27', time: '8:00p', homeTeam: 'Revolution', awayTeam: 'Edge', homeScore: 13, awayScore: 4, location: 'Rizzo Rink', isPlayoff: false, note: '' },
-      { gameNum: 41, date: '2026-07-29', time: '7:00p', homeTeam: 'Beer Wolves', awayTeam: 'Pups LC', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
+      { gameNum: 41, date: '2026-07-29', time: '7:00p', homeTeam: 'Beer Wolves', awayTeam: 'Pups LC', homeScore: 12, awayScore: 8, location: 'Rizzo Rink', isPlayoff: false, note: '' },
       { gameNum: 42, date: '2026-07-29', time: '8:00p', homeTeam: 'Thunder', awayTeam: 'More Dudes LC', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: false, note: '' },
       { gameNum: 43, date: '2026-08-05', time: '7:00p', homeTeam: 'TBD', awayTeam: 'TBD', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: true, note: '' },
       { gameNum: 44, date: '2026-08-05', time: '8:00p', homeTeam: 'TBD', awayTeam: 'TBD', homeScore: 0, awayScore: 0, location: 'Rizzo Rink', isPlayoff: true, note: '' },
