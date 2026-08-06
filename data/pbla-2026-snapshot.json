@@ -1,7 +1,7 @@
 {
   "leagueId": 50731,
   "year": 2026,
-  "snapshotDate": "2026-08-04",
+  "snapshotDate": "2026-08-06",
   "note": "Local reference snapshot of the 2026 PBLA season schedule. Update alongside pblaData.ts after each game night. Run 'pnpm pbla:check' to diff against the live Sportability schedule.",
   "games": [
     {
@@ -294,7 +294,7 @@
       "gameNum": 27,
       "date": "2026-07-06",
       "time": "7:00p",
-      "homeTeam": "More Dudes LC(Canceled)",
+      "homeTeam": "More Dudes LC(Pending)",
       "awayTeam": "Revolution",
       "homeScore": 0,
       "awayScore": 0,
@@ -305,7 +305,7 @@
       "gameNum": 28,
       "date": "2026-07-06",
       "time": "8:00p",
-      "homeTeam": "Outlaws",
+      "homeTeam": "Outlaws(Pending)",
       "awayTeam": "Beer Wolves",
       "homeScore": 0,
       "awayScore": 0,
@@ -470,7 +470,7 @@
       "gameNum": 27,
       "date": "2026-08-03",
       "time": "7:00p",
-      "homeTeam": "More Dudes LC(Canceled)",
+      "homeTeam": "More Dudes LC(Pending)",
       "awayTeam": "Revolution",
       "homeScore": 0,
       "awayScore": 0,
@@ -481,7 +481,7 @@
       "gameNum": 28,
       "date": "2026-08-03",
       "time": "8:00p",
-      "homeTeam": "Outlaws",
+      "homeTeam": "Outlaws(Pending)",
       "awayTeam": "Beer Wolves",
       "homeScore": 0,
       "awayScore": 0,
@@ -502,6 +502,28 @@
     {
       "gameNum": 44,
       "date": "2026-08-05",
+      "time": "8:00p",
+      "homeTeam": "More Dudes LC",
+      "awayTeam": "(Pla) Pups LC",
+      "homeScore": 0,
+      "awayScore": 0,
+      "location": "Rizzo Rink",
+      "isPlayoff": false
+    },
+    {
+      "gameNum": 43,
+      "date": "2026-08-10",
+      "time": "7:00p",
+      "homeTeam": "Thunder",
+      "awayTeam": "(Pla) Outlaws",
+      "homeScore": 0,
+      "awayScore": 0,
+      "location": "Rizzo Rink",
+      "isPlayoff": false
+    },
+    {
+      "gameNum": 44,
+      "date": "2026-08-10",
       "time": "8:00p",
       "homeTeam": "More Dudes LC",
       "awayTeam": "(Pla) Pups LC",
