@@ -45,6 +45,8 @@ updated nightly.
 
 ## For developers
 
+See [`docs/DESIGN.md`](docs/DESIGN.md) for the current design-system inventory (colors, typography, components, motion) covering both the main site and the Box Lacrosse (PBLA) sub-site.
+
 Philadelphia boys high school lacrosse stats visualizer. Scrapes
 [phillylacrosse.com](https://phillylacrosse.com) archives, parses scoreboard /
 summaries / rankings posts into SQLite, serves a small Fastify API, and
