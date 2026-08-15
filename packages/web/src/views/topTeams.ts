@@ -258,7 +258,7 @@ function ensureStyles(doc: Document = document): void {
       border-color: rgba(239, 68, 68, 0.4);
       color: #fecaca;
     }
-    @media (max-width: 860px) {
+    @media (max-width: 1024px) {
       .top-teams-grid {
         grid-template-columns: 1fr;
       }
@@ -272,7 +272,7 @@ function ensureStyles(doc: Document = document): void {
         min-height: unset;
       }
     }
-    @media (max-width: 560px) {
+    @media (max-width: 640px) {
       .top-team-card {
         padding: 1rem 1.1rem;
       }

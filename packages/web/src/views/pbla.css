@@ -1,6 +1,7 @@
 /* PBLA pitch identity — dark-only, scoped so main-site light --ds-* does not leak. */
 .pbla-view-root,
 .pbla-team-root {
+  /* ds-alias-allow-begin */
   --ds-bg: #05070d;
   --ds-text: #f8fafc;
   --ds-text-muted: #94a3b8;
@@ -9,8 +10,6 @@
   --ds-surface: rgba(9, 13, 24, 0.84);
   --ds-bg-elevated: rgba(9, 13, 24, 0.94);
   --ds-border: rgba(255, 209, 102, 0.14);
-
-  /* ds-alias-allow-begin */
   --pbla-accent: var(--ds-accent);
   --pbla-white: var(--ds-text);
   --pbla-muted: var(--ds-text-muted);
@@ -19,6 +18,15 @@
   --pbla-panel-strong: var(--ds-bg-elevated);
   --pbla-border: var(--ds-border);
   --pbla-orange: #f68c1f;
+  --pbla-live: #ff4444;
+  --pbla-live-dot: #ff0000;
+  --pbla-live-idle: #666;
+  --pbla-mask: #fff;
+  --pbla-streak-win: var(--ds-success);
+  --pbla-streak-loss: var(--ds-error);
+  --pbla-video: #ff6b6b;
+  --pbla-roster-fg: #e8e8e8;
+  --pbla-team-fallback: #888;
   --bg: var(--ds-bg);
   --text: var(--ds-text);
   --border: var(--ds-border);
@@ -179,7 +187,7 @@
   justify-content: center;
   width: 1rem;
   height: 1rem;
-  color: #ff4444;
+  color: var(--pbla-live);
   flex: 0 0 auto;
 }
 .pbla-live-icon svg {
@@ -191,11 +199,11 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #666;
+  background: var(--pbla-live-idle);
   flex: 0 0 auto;
 }
 .pbla-live-badge--active .pbla-live-dot {
-  background: #ff0000;
+  background: var(--pbla-live-dot);
   animation: pbla-live-pulse 1.5s ease-in-out infinite;
   box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
 }
@@ -207,7 +215,7 @@
   line-height: 1.1;
 }
 .pbla-live-badge--active .pbla-live-text {
-  color: #ff4444;
+  color: var(--pbla-live);
 }
 .pbla-hero__side {
   display: grid;
@@ -282,7 +290,7 @@
 .pbla-goalie-pill__dot {
   width: 7px; height: 7px;
   border-radius: 50%;
-  background: var(--team-color, #888);
+  background: var(--team-color, var(--pbla-team-fallback));
   flex-shrink: 0;
 }
 .pbla-season-bar {
@@ -344,8 +352,8 @@
   background: linear-gradient(135deg, rgba(246, 140, 31, 0.5), rgba(255, 209, 102, 0.2), rgba(246, 140, 31, 0.5));
   background-size: 200% 200%;
   animation: shimmerBorder 4s linear infinite;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(var(--pbla-mask) 0 0) content-box, linear-gradient(var(--pbla-mask) 0 0);
+  mask: linear-gradient(var(--pbla-mask) 0 0) content-box, linear-gradient(var(--pbla-mask) 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
@@ -618,12 +626,12 @@
   z-index: 1;
 }
 .pbla-streak--win {
-  color: #86efac;
+  color: var(--pbla-streak-win);
   border: 1px solid rgba(134, 239, 172, 0.18);
   background: rgba(34, 197, 94, 0.11);
 }
 .pbla-streak--loss {
-  color: #fca5a5;
+  color: var(--pbla-streak-loss);
   border: 1px solid rgba(252, 165, 165, 0.18);
   background: rgba(239, 68, 68, 0.11);
 }
@@ -1074,7 +1082,7 @@
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.3); opacity: 0.7; }
 }
-@media (max-width: 1040px) {
+@media (max-width: 1024px) {
   .pbla-hero,
   .pbla-standings-grid,
   .pbla-games-grid {
@@ -1084,7 +1092,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .pbla-hero,
   .pbla-section,
   .pbla-cta {
@@ -1125,7 +1133,7 @@
     min-width: 0;
   }
 }
-@media (max-width: 520px) {
+@media (max-width: 640px) {
   .pbla-season-bar {
     width: 100%;
     justify-content: center;
