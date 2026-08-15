@@ -24,6 +24,32 @@
 
   /* site extension */
   --ds-info: #0e7490;
+  --ds-code-bg: #f3f4f6;
+  --ds-on-solid: #ffffff;
+  --ds-badge-success: #2d6a2d;
+  --ds-badge-warn: #6a4a00;
+  --ds-badge-danger: #6a2d2d;
+  --ds-badge-success-wash: rgba(45, 106, 45, 0.12);
+  --ds-error-wash: rgba(185, 28, 28, 0.08);
+  --ds-shadow: rgba(0, 0, 0, 0.15);
+  --ds-shadow-strong: rgba(0, 0, 0, 0.25);
+  --ds-accent-glow: rgba(78, 161, 255, 0.25);
+  --ds-accent-wash: rgba(78, 161, 255, 0.06);
+  --ds-accent-flash: rgba(96, 165, 250, 0.2);
+  --ds-info-wash: rgba(14, 116, 144, 0.06);
+  --ds-piaa-match-bg: #dcfce7;
+  --ds-piaa-match-fg: #166534;
+  --ds-piaa-match-border: #bbf7d0;
+  --ds-piaa-close-bg: #fef9c3;
+  --ds-piaa-close-fg: #854d0e;
+  --ds-piaa-close-border: #fde68a;
+  --ds-anomaly-warn-bg: #fff3cd;
+  --ds-anomaly-warn-fg: #533f03;
+  --ds-anomaly-warn-accent: #f0ad4e;
+  --ds-anomaly-ok-bg: #d4edda;
+  --ds-anomaly-ok-fg: #155724;
+  --ds-anomaly-ok-accent: #28a745;
+  --ds-anomaly-inline: #856404;
 
   /* type scale (shared -- do not change values) */
   --ds-fs-1: 0.75rem;   /* 12 -- fine print, badges */
@@ -74,6 +100,7 @@
     --ds-error: #f87171;
     --ds-link: #60a5fa;
     --ds-info: #22d3ee;
+    --ds-code-bg: #11151a;
   }
 }
 
@@ -92,6 +119,7 @@ html[data-theme="dark"] {
   --ds-error: #f87171;
   --ds-link: #60a5fa;
   --ds-info: #22d3ee;
+  --ds-code-bg: #11151a;
 }
 
 /* Explicit light choice wins over OS preference. */
@@ -109,6 +137,7 @@ html[data-theme="light"] {
   --ds-error: #b91c1c;
   --ds-link: #1d4ed8;
   --ds-info: #0e7490;
+  --ds-code-bg: #f3f4f6;
 }
 
 /* ds-alias-allow-begin */
@@ -121,7 +150,7 @@ html[data-theme="light"] {
   --border: var(--ds-border);
   --table-stripe: var(--ds-surface);
   --error: var(--ds-error);
-  --code-bg: var(--ds-bg-elevated);
+  --code-bg: var(--ds-code-bg);
 }
 /* ds-alias-allow-end */
 

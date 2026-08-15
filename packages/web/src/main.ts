@@ -85,6 +85,7 @@ function mountShell(app: HTMLElement): {
   setActive: (name: RouteName) => void;
 } {
   app.innerHTML = `
+    <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       <div class="brand">🥍 PhillyLaxStats</div>
       <button class="nav-hamburger" aria-label="Open navigation" aria-expanded="false" aria-controls="main-nav">&#9776;</button>
