@@ -2,7 +2,7 @@
 //
 // All ingest scripts, CLI entrypoints, and the server import `createLogger`
 // from `@pll/shared` so log output goes through one configurable pipeline.
-// See docs/improvements/07-centralized-logger-rollout.md.
+// Shared Pino logger for ingest + server.
 //
 // Behavior:
 // - Level defaults to env LOG_LEVEL (lowercased), then 'info'.

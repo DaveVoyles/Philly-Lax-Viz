@@ -30,7 +30,6 @@
 | **Deep architecture** | [architecture-full.md](./architecture-full.md) (~5,400 tokens) | Full system design, data flow, decisions (⚠️ load only if needed) |
 | **Deploy or ops** | [azure-deployment.md](./azure-deployment.md) (~1,200 tokens) | Azure setup, cost model, pitfalls |
 | **Runbook task** | [runbooks/](./runbooks/) (~varies) | Step-by-step: deploy, import, corrections, Hudl |
-| **Plan next work** | [improvements/00-INDEX.md](./improvements/00-INDEX.md) (~800 tokens) | RFC backlog, prioritized by impact |
 
 ---
 
@@ -76,7 +75,6 @@ pnpm build
 ### 🏗️ Deep Dive (rare)
 6. [architecture-full.md](./architecture-full.md) — full system design (~5,400 tokens)
 7. [pipeline-gaps.md](./pipeline-gaps.md) — known missing pieces
-8. [improvements/00-INDEX.md](./improvements/00-INDEX.md) — future work
 
 ---
 
