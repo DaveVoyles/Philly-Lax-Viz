@@ -38,6 +38,10 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # SCOPE: token file only this slice. Expands to packages/web/src in later slices of issue #3.
+      - name: Check design tokens
+        run: bash scripts/check-ds-tokens.sh --token-file packages/web/src/styles/tokens.css packages/web/src/styles/tokens.css
+
       - name: Typecheck
         run: pnpm -r typecheck
 
