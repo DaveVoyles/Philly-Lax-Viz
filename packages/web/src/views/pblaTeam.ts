@@ -38,6 +38,7 @@ interface Particle {
 let renderToken = 0;
 let activeApp: Application | null = null;
 let activeHost: HTMLElement | null = null;
+let activeTeamRoot: HTMLElement | null = null;
 let pendingTimers: number[] = [];
 let pblaChartHandles: Array<{ destroy(): void }> = [];
 
@@ -674,6 +675,8 @@ export async function render(root: HTMLElement, params: Record<string, string>):
   const result = liveTeam ? { team: liveTeam, season: liveSeason } : findTeamBySlug(slug);
 
   if (!result) {
+    activeTeamRoot = root;
+    root.classList.add('pbla-team-root');
     root.innerHTML = `<div class="pbla-team-empty">
       <p>Team not found.</p>
       <a href="#/pbla" class="pbla-team-back">&#8592; Back to PBLA</a>
@@ -688,6 +691,8 @@ export async function render(root: HTMLElement, params: Record<string, string>):
   });
 
   root.innerHTML = '';
+  activeTeamRoot = root;
+  root.classList.add('pbla-team-root');
   const wrapper = document.createElement('div');
   wrapper.className = 'pbla-team-root';
   const palette = teamPalette(team.name);
@@ -785,4 +790,6 @@ export function destroy(): void {
   clearTimers();
   destroyWebGL();
   destroyPblaCharts();
+  activeTeamRoot?.classList.remove('pbla-team-root');
+  activeTeamRoot = null;
 }

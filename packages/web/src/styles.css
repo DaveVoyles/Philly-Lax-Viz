@@ -27,12 +27,15 @@ html, body {
   overflow: hidden;
   white-space: nowrap;
 }
-.skip-link:focus {
+.skip-link:focus,
+.skip-link:focus-visible {
   clip: auto;
   clip-path: none;
   height: auto;
   width: auto;
   overflow: visible;
+  outline: 2px solid var(--ds-accent-fg);
+  outline-offset: 2px;
 }
 
 a { color: var(--accent); text-decoration: none; }

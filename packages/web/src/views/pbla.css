@@ -1161,5 +1161,13 @@
 
 
 @media (prefers-reduced-motion: reduce) {
-  .pbla-view-root *, .pbla-team-root * { animation: none !important; }
+  .pbla-view-root *,
+  .pbla-view-root *::before,
+  .pbla-view-root *::after,
+  .pbla-team-root *,
+  .pbla-team-root *::before,
+  .pbla-team-root *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
