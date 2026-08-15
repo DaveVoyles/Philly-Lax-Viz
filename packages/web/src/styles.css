@@ -290,7 +290,7 @@ tbody tr:nth-child(even) { background: var(--table-stripe); }
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
 }
-@media (max-width: 700px) {
+@media (max-width: 640px) {
   table { font-size: 0.85rem; }
   th, td { padding: 0.35rem 0.4rem; }
   .col-secondary,
@@ -478,7 +478,7 @@ table.stat tbody tr.row-link:focus { outline: 2px solid var(--accent); outline-o
   max-width: 220px;
   text-align: center;
 }
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .team-detail-hero {
     flex-direction: column;
     align-items: stretch;
@@ -615,7 +615,7 @@ table.stat th.sortable:focus { outline: 2px solid var(--accent); outline-offset:
   width: 100%;
   max-width: 700px;
 }
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .team-detail-arc-host {
     max-width: 100%;
   }
@@ -632,7 +632,7 @@ table.stat th.sortable:focus { outline: 2px solid var(--accent); outline-offset:
   min-width: 0;
   max-width: none;
 }
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .chart-slot {
     max-width: 100%;
   }
@@ -800,7 +800,7 @@ a.piaa-badge-link:hover { text-decoration: none; }
 .source-meta dd { margin: 0; }
 
 /* === Wave H4 Lane 4 (Chewy) — mobile responsive grid + table scroll === */
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .container {
     padding: 1rem 0.75rem 2rem;
   }
@@ -962,7 +962,7 @@ a.piaa-badge-link:hover { text-decoration: none; }
   gap: 1.25rem;
   margin-top: 1rem;
 }
-@media (min-width: 980px) {
+@media (min-width: 1024px) {
   .coach-upload {
     grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
     align-items: start;
@@ -1101,7 +1101,7 @@ a.piaa-badge-link:hover { text-decoration: none; }
   font-size: 0.8rem;
   line-height: 1.4;
 }
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .coach-upload__actions {
     align-items: stretch;
     flex-direction: column;
@@ -1188,13 +1188,13 @@ canvas.team-score-trend {
   border-collapse: collapse;
   font-size: 0.85rem;
 }
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .strength-row {
     flex-direction: column;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   html,
   body {
     font-size: 17px;
@@ -1273,7 +1273,7 @@ canvas.team-score-trend {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   html,
   body {
     font-size: 16px;
