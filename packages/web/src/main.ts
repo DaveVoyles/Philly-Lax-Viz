@@ -9,7 +9,7 @@ import './styles/responsive.css';
 // W18 Lane A (Han) — proposal 04: every view module is now lazy-loaded so the
 // entry chunk only carries the router, shell, and search box. Each route's
 // chunk is fetched on first navigation; subsequent visits resolve from the
-// browser's module cache. See docs/improvements/04-web-bundle-code-splitting.md.
+// browser's module cache.
 
 type ViewModule = {
   render: (root: HTMLElement, params: Record<string, string>) => void | Promise<void>;

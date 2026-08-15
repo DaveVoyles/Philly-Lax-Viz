@@ -37,7 +37,6 @@
 | `onboarding.md` | Quick-start: conventions, hard rules, key file map | First-time setup, learning conventions |
 | `architecture-full.md` | Deep architecture: data flow, all sources, full DB schema, ADRs | Understanding internals, major changes |
 | `pipeline-gaps.md` | Actionable backlog of missing CI steps | Planning ingest improvements |
-| `improvements/` | RFC proposals for future work | Choosing next project |
 | `runbooks/` | Step-by-step guides for specific operations | Deploying, importing data, Hudl onboarding |
 | `archive/` | Historical wave plans and session artifacts | Archaeology only |
 
@@ -63,7 +62,6 @@
 ### 🏗️ Deep Dive (rare — only when quick-refs insufficient)
 6. [architecture-full.md](./architecture-full.md) — full system design (~5,400 tokens)
 7. [pipeline-gaps.md](./pipeline-gaps.md) — known missing pieces (~800 tokens)
-8. [improvements/00-INDEX.md](./improvements/00-INDEX.md) — future work (~800 tokens)
 
 ---
 
@@ -181,14 +179,6 @@ Runbook for importing external data (spreadsheets, manual corrections, dedup ope
 and syncing to the live site. Covers the standard backup-import-verify-deploy workflow and common mistakes.
 
 **When to use:** Whenever running a script that writes to `data/lacrosse.db` from an external source.
-
----
-
-### [improvements/00-INDEX.md](./improvements/00-INDEX.md)
-Prioritized RFC backlog (10 proposals). Covers data quality, performance, visualizations, tech debt,
-and DevOps improvements — each with effort/risk rating and a recommended wave sequence.
-
-**When to use:** Choosing the next piece of work. Ranked by `Impact x Urgency - Effort - Risk`.
 
 ---
 

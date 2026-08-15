@@ -93,8 +93,6 @@ pnpm --filter @pll/ingest exec tsx src/scripts/generateUploadTemplate.ts  # crea
 | [docs/pipeline-gaps.md](./docs/pipeline-gaps.md) | Known ingest gaps, anomaly types, and improvement backlog |
 | [docs/runbooks/source-priority.md](./docs/runbooks/source-priority.md) | Data source authority and score reconciliation rules (MaxPreps vs. PhillyLacrosse vs. PIAA) |
 | [docs/runbooks/hudl-invitation-flow.md](./docs/runbooks/hudl-invitation-flow.md) | How to get a team invited into the Hudl service account and register it in admin UI |
-| [docs/improvements/00-INDEX.md](./docs/improvements/00-INDEX.md) | Index of 10 improvement RFCs (data quality, performance, visualizations, devops) |
-
 ---
 
 ## Architecture (overview)
@@ -186,5 +184,5 @@ Full API endpoint inventory, metrics glossary, and DB schema → **[docs/archite
 
 Server and ingest packages use a shared Pino-based logger (`packages/shared/src/logger.ts`).
 Control verbosity with `LOG_LEVEL` (`fatal | error | warn | info | debug | trace | silent`).
-Full RFC and regression guard → **[docs/improvements/07-centralized-logger-rollout.md](./docs/improvements/07-centralized-logger-rollout.md)**.
+Implementation: `packages/shared/src/logger.ts`.
 

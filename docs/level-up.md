@@ -3,7 +3,7 @@
 > **Purpose:** Agent-readable roadmap for turning this site into a production-ready, multi-league lacrosse stats hub.  
 > **Audience:** Fleet agents executing waves. Each wave should be completable in a single session.  
 > **Principles:** Small t-shirt sizes (XS–S preferred). Independent lanes per wave. Ship incrementally.  
-> **Related docs:** `docs/improvements/00-INDEX.md` (technical RFCs), `docs/architecture.md` (system design), `AGENTS.md` (commands/conventions).
+> **Related docs:** `docs/architecture.md` (system design), `AGENTS.md` (commands/conventions).
 
 ---
 
@@ -186,14 +186,14 @@ Agent should generate a downloadable template `.xlsx` that coaches can fill out.
 
 **Automation level:** 100% automatable. All changes are code-only.
 
-These items come from `docs/improvements/00-INDEX.md` (existing RFCs). Each is already spec'd — agents should read the RFC before implementing.
+These items were the April 2026 RFC wave. The RFC files are gone; the work itself shipped.
 
-| Lane | Task | Size | RFC | Status |
-|------|------|------|-----|--------|
-| 1 | Anomaly-driven team alias auto-seeder | S | [#01](./improvements/01-anomaly-driven-alias-seeder.md) | ✅ Done — 11 aliases, ~71 anomalies covered |
-| 2 | API response cache + ETag headers | S | [#03](./improvements/03-api-response-cache-and-http-caching.md) | ✅ Done — LRU + SHA-256 ETag + 304 |
-| 3 | Game flow chart (period scoring visualization) | S | [#06](./improvements/06-game-flow-chart.md) | ✅ Done — D3 curveStepAfter in gameDetail |
-| 4 | Centralized Pino logger (replace scattered console.log) | S | [#07](./improvements/07-centralized-logger-rollout.md) | ✅ Done — all non-test ingest sources converted |
+| Lane | Task | Size | Status |
+|------|------|------|--------|
+| 1 | Anomaly-driven team alias auto-seeder | S | Done — 11 aliases, ~71 anomalies covered |
+| 2 | API response cache + ETag headers | S | Done — LRU + SHA-256 ETag + 304 |
+| 3 | Game flow chart (period scoring visualization) | S | Done — D3 curveStepAfter in gameDetail |
+| 4 | Centralized Pino logger (replace scattered console.log) | S | Done — all non-test ingest sources converted |
 
 **Done-when:** ~~Anomaly count reduced by >=30%. API responds with cache headers. Game detail shows period-by-period flow chart. All packages use Pino logger.~~ All met.
 
@@ -205,10 +205,10 @@ These items come from `docs/improvements/00-INDEX.md` (existing RFCs). Each is a
 
 **Automation level:** ~60%. Workflow code is automatable; Azure AD setup requires human.
 
-| Lane | Task | Size | RFC |
-|------|------|------|-----|
-| 1 | GitHub-hosted runner + OIDC | S | [#09](./improvements/09-github-hosted-runner-oidc-deploy.md) |
-| 2 | Pre-deploy validation + rollback | S | [#10](./improvements/10-pre-deploy-validation-and-rollback.md) |
+| Lane | Task | Size | Notes |
+|------|------|------|-------|
+| 1 | GitHub-hosted runner + OIDC | S | Runner is back; OIDC optional |
+| 2 | Pre-deploy validation + rollback | S | Still a possible follow-up |
 
 **Done-when:** CI runs on GitHub-hosted runners. Failed deploys auto-rollback. No manual Azure CLI needed.
 
@@ -259,7 +259,7 @@ These items come from `docs/improvements/00-INDEX.md` (existing RFCs). Each is a
 | 1 | Responsive audit: fix any tables/charts that overflow on mobile | S | Focus on dashboard, game detail, leaders |
 | 2 | Add PWA manifest + service worker for offline access | S | Cache static assets; show "offline" for API views |
 | 3 | Lazy-load images (team logos) with IntersectionObserver | XS | Already using .gif; just add lazy attribute |
-| 4 | Reduce initial JS payload (defer non-critical charts) | S | See RFC [#04](./improvements/04-web-bundle-code-splitting.md) |
+| 4 | Reduce initial JS payload (defer non-critical charts) | S | Per-view code splitting already shipped |
 
 **Done-when:** Lighthouse mobile score >= 80. Tables scroll horizontally on small screens. Logos lazy-load.
 
@@ -369,9 +369,9 @@ Items that are valuable but not yet prioritized into a wave. Pull into a future 
 
 | Item | Size | RFC/Notes |
 |------|------|-----------|
-| Losing-side stats backfill from MaxPreps | M | [#02](./improvements/02-losing-side-stats-backfill.md) — new external scraper, higher risk |
-| Team strength radar chart | S-M | [#05](./improvements/05-team-strength-radar-chart.md) |
-| Domain type consolidation in `@pll/shared` | M | [#08](./improvements/08-domain-type-consolidation.md) — will surface drift |
+| Losing-side stats backfill from MaxPreps | M | New external scraper, higher risk |
+| Team strength radar chart | S-M | Radar already exists on team pages; revisit only if expanding metrics |
+| Domain type consolidation in `@pll/shared` | M | Will surface drift |
 | Dashboard extraction (split 1074-line file) | S | TODO already in `dashboard.ts` |
 | Girls lacrosse league expansion | M | Requires new data source identification |
 | Alumni tracking (college commitments) | S | DB table exists but UI is missing |
