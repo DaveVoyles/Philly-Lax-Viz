@@ -63,11 +63,11 @@
   border-radius: 20px;
   border: 1px solid var(--pbla-border);
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0)),
+    linear-gradient(180deg, color-mix(in srgb, var(--pbla-white) 4%, transparent), transparent),
     var(--pbla-panel);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.05),
-    0 24px 60px rgba(0, 0, 0, 0.35);
+    inset 0 1px 0 color-mix(in srgb, var(--pbla-white) 5%, transparent),
+    0 24px 60px color-mix(in srgb, black 35%, transparent);
   backdrop-filter: blur(18px);
 }
 .pbla-panel::after {
@@ -77,7 +77,7 @@
   width: 220px;
   height: 220px;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(246, 140, 31, 0.18), transparent 72%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--pbla-orange) 18%, transparent), transparent 72%);
   pointer-events: none;
 }
 .pbla-hero {
@@ -101,8 +101,8 @@
   max-width: 100%;
   padding: 0.45rem 0.8rem;
   border-radius: 999px;
-  border: 1px solid rgba(246, 140, 31, 0.32);
-  background: rgba(246, 140, 31, 0.12);
+  border: 1px solid color-mix(in srgb, var(--pbla-orange) 32%, transparent);
+  background: color-mix(in srgb, var(--pbla-orange) 12%, transparent);
   color: var(--pbla-accent);
   font-size: 0.74rem;
   font-weight: 800;
@@ -114,7 +114,7 @@
   height: 0.5rem;
   border-radius: 999px;
   background: var(--pbla-accent);
-  box-shadow: 0 0 16px rgba(246, 140, 31, 0.8);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--pbla-orange) 80%, transparent);
   animation: pbla-pulse 1.9s ease-in-out infinite;
 }
 .pbla-hero__title {
@@ -150,8 +150,8 @@
   gap: 0.45rem;
   padding: 0.5rem 0.8rem;
   border-radius: 999px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: color-mix(in srgb, var(--pbla-white) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pbla-white) 8%, transparent);
   color: color-mix(in srgb, var(--pbla-white) 78%, transparent);
   font-size: 0.82rem;
   font-weight: 700;
@@ -164,8 +164,8 @@
   max-width: 100%;
   padding: 0.5rem 1rem;
   border-radius: 999px;
-  background: rgba(255, 0, 0, 0.08);
-  border: 1px solid rgba(255, 0, 0, 0.25);
+  background: color-mix(in srgb, var(--pbla-live-dot) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pbla-live-dot) 25%, transparent);
   color: var(--pbla-white);
   text-decoration: none;
   transition: transform 200ms ease, background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
@@ -173,13 +173,13 @@
 .pbla-live-badge:hover,
 .pbla-live-badge:focus-visible {
   transform: translateY(-1px);
-  border-color: rgba(255, 0, 0, 0.42);
+  border-color: color-mix(in srgb, var(--pbla-live-dot) 42%, transparent);
   outline: none;
 }
 .pbla-live-badge--active {
-  background: rgba(255, 0, 0, 0.15);
-  border-color: rgba(255, 0, 0, 0.5);
-  box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--pbla-live-dot) 15%, transparent);
+  border-color: color-mix(in srgb, var(--pbla-live-dot) 50%, transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--pbla-live-dot) 30%, transparent);
 }
 .pbla-live-icon {
   display: inline-flex;
@@ -205,7 +205,7 @@
 .pbla-live-badge--active .pbla-live-dot {
   background: var(--pbla-live-dot);
   animation: pbla-live-pulse 1.5s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--pbla-live-dot) 60%, transparent);
 }
 .pbla-live-text {
   font-size: 0.82rem;
@@ -226,8 +226,8 @@
   position: relative;
   overflow: hidden;
   border-radius: 18px;
-  border: 1px solid rgba(255, 209, 102, 0.18);
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)), rgba(5, 7, 13, 0.68);
+  border: 1px solid color-mix(in srgb, var(--pbla-accent) 18%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--pbla-white) 3%, transparent), transparent), color-mix(in srgb, var(--ds-bg) 68%, transparent);
   padding: 1rem;
 }
 .pbla-side-card__eyebrow {
@@ -259,8 +259,8 @@
 .pbla-goalie-pill {
   padding: 0.7rem 0.45rem;
   border-radius: 14px;
-  border: 1px dashed rgba(255, 209, 102, 0.22);
-  background: rgba(255,255,255,0.03);
+  border: 1px dashed color-mix(in srgb, var(--pbla-accent) 22%, transparent);
+  background: color-mix(in srgb, var(--pbla-white) 3%, transparent);
   text-align: center;
 }
 .pbla-goalie-pill__value {
@@ -299,8 +299,8 @@
   gap: 0.55rem;
   padding: 0.32rem;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
+  border: 1px solid color-mix(in srgb, var(--pbla-white) 8%, transparent);
+  background: color-mix(in srgb, var(--pbla-white) 3%, transparent);
   width: fit-content;
 }
 .pbla-season-btn {
@@ -320,9 +320,9 @@
   color: var(--pbla-white);
 }
 .pbla-season-btn.is-active {
-  background: linear-gradient(135deg, rgba(246, 140, 31, 0.22), rgba(255, 209, 102, 0.18));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--pbla-orange) 22%, transparent), color-mix(in srgb, var(--pbla-accent) 18%, transparent));
   color: var(--pbla-white);
-  box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.18) inset;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--pbla-accent) 18%, transparent) inset;
 }
 .pbla-season-summary {
   display: grid;
@@ -334,8 +334,8 @@
   position: relative;
   padding: 1rem;
   border-radius: 18px;
-  border: 1px solid rgba(255, 209, 102, 0.22);
-  background: rgba(255,255,255,0.03);
+  border: 1px solid color-mix(in srgb, var(--pbla-accent) 22%, transparent);
+  background: color-mix(in srgb, var(--pbla-white) 3%, transparent);
   min-width: 0;
   overflow: hidden;
   animation: cardGlow 3s ease-in-out infinite alternate;
@@ -349,7 +349,7 @@
   inset: -1px;
   border-radius: 18px;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(246, 140, 31, 0.5), rgba(255, 209, 102, 0.2), rgba(246, 140, 31, 0.5));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--pbla-orange) 50%, transparent), color-mix(in srgb, var(--pbla-accent) 20%, transparent), color-mix(in srgb, var(--pbla-orange) 50%, transparent));
   background-size: 200% 200%;
   animation: shimmerBorder 4s linear infinite;
   -webkit-mask: linear-gradient(var(--pbla-mask) 0 0) content-box, linear-gradient(var(--pbla-mask) 0 0);
@@ -363,12 +363,12 @@
   position: absolute;
   inset: 0;
   border-radius: 18px;
-  background: radial-gradient(ellipse at 50% 0%, rgba(246, 140, 31, 0.12), transparent 70%);
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--pbla-orange) 12%, transparent), transparent 70%);
   pointer-events: none;
 }
 @keyframes cardGlow {
-  0% { box-shadow: 0 0 8px rgba(246, 140, 31, 0.15), inset 0 0 12px rgba(246, 140, 31, 0.05); }
-  100% { box-shadow: 0 0 20px rgba(246, 140, 31, 0.3), inset 0 0 20px rgba(246, 140, 31, 0.08); }
+  0% { box-shadow: 0 0 8px color-mix(in srgb, var(--pbla-orange) 15%, transparent), inset 0 0 12px color-mix(in srgb, var(--pbla-orange) 5%, transparent); }
+  100% { box-shadow: 0 0 20px color-mix(in srgb, var(--pbla-orange) 30%, transparent), inset 0 0 20px color-mix(in srgb, var(--pbla-orange) 8%, transparent); }
 }
 @keyframes shimmerBorder {
   0% { background-position: 0% 50%; }
@@ -456,13 +456,13 @@
   letter-spacing: 0.02em;
 }
 .pbla-meta-badge--gold {
-  background: rgba(255, 209, 102, 0.15);
-  border: 1px solid rgba(255, 209, 102, 0.35);
+  background: color-mix(in srgb, var(--pbla-accent) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pbla-accent) 35%, transparent);
   color: var(--pbla-accent);
 }
 .pbla-meta-badge--fire {
-  background: rgba(255, 209, 102, 0.12);
-  border: 1px solid rgba(255, 209, 102, 0.30);
+  background: color-mix(in srgb, var(--pbla-accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pbla-accent) 30%, transparent);
   color: var(--pbla-accent);
 }
 .pbla-standings-grid {
@@ -489,7 +489,7 @@
   padding: 0.65rem 0.9rem;
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--team-color) 30%, transparent);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--team-color) 8%, transparent), color-mix(in srgb, var(--team-secondary) 5%, transparent)), rgba(6, 10, 18, 0.92);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--team-color) 8%, transparent), color-mix(in srgb, var(--team-secondary) 5%, transparent)), color-mix(in srgb, var(--ds-bg) 92%, transparent);
   text-decoration: none;
   color: inherit;
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--team-secondary) 12%, transparent);
@@ -515,9 +515,9 @@
   background: linear-gradient(
     105deg,
     transparent 40%,
-    rgba(255,255,255,0.06) 45%,
-    rgba(255,255,255,0.12) 50%,
-    rgba(255,255,255,0.06) 55%,
+    color-mix(in srgb, var(--pbla-white) 6%, transparent) 45%,
+    color-mix(in srgb, var(--pbla-white) 12%, transparent) 50%,
+    color-mix(in srgb, var(--pbla-white) 6%, transparent) 55%,
     transparent 60%
   );
   transform: translateX(-100%);
@@ -529,8 +529,8 @@
 .pbla-team-card:focus-visible {
   transform: scale(1.02) translateY(-2px);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.04),
-    0 8px 32px rgba(0,0,0,0.3),
+    inset 0 1px 0 color-mix(in srgb, var(--pbla-white) 4%, transparent),
+    0 8px 32px color-mix(in srgb, black 30%, transparent),
     0 0 0 1px color-mix(in srgb, var(--team-color) 36%, transparent),
     0 16px 36px color-mix(in srgb, var(--team-color) 18%, transparent);
   border-color: color-mix(in srgb, var(--team-color) 40%, transparent);
@@ -627,13 +627,13 @@
 }
 .pbla-streak--win {
   color: var(--pbla-streak-win);
-  border: 1px solid rgba(134, 239, 172, 0.18);
-  background: rgba(34, 197, 94, 0.11);
+  border: 1px solid color-mix(in srgb, var(--pbla-streak-win) 18%, transparent);
+  background: color-mix(in srgb, var(--pbla-streak-win) 11%, transparent);
 }
 .pbla-streak--loss {
   color: var(--pbla-streak-loss);
-  border: 1px solid rgba(252, 165, 165, 0.18);
-  background: rgba(239, 68, 68, 0.11);
+  border: 1px solid color-mix(in srgb, var(--pbla-streak-loss) 18%, transparent);
+  background: color-mix(in srgb, var(--pbla-streak-loss) 11%, transparent);
 }
 .pbla-team-card__stats {
   display: grid;
@@ -645,14 +645,14 @@
 .pbla-team-stat {
   padding: 0.45rem 0.5rem;
   border-radius: 10px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: color-mix(in srgb, var(--pbla-white) 3%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pbla-white) 5%, transparent);
   transition: background 220ms ease, border-color 220ms ease;
 }
 .pbla-team-card:hover .pbla-team-stat,
 .pbla-team-card:focus-visible .pbla-team-stat {
-  background: color-mix(in srgb, var(--team-color) 10%, rgba(255,255,255,0.03));
-  border-color: color-mix(in srgb, var(--team-color) 22%, rgba(255,255,255,0.05));
+  background: color-mix(in srgb, var(--team-color) 10%, color-mix(in srgb, var(--pbla-white) 3%, transparent));
+  border-color: color-mix(in srgb, var(--team-color) 22%, color-mix(in srgb, var(--pbla-white) 5%, transparent));
 }
 .pbla-team-stat__label {
   display: block;
@@ -690,7 +690,7 @@
 .pbla-win-track {
   height: 3px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.08);
+  background: color-mix(in srgb, var(--pbla-white) 8%, transparent);
   overflow: hidden;
 }
 .pbla-win-bar {
@@ -708,8 +708,8 @@
 .pbla-table-shell {
   overflow-x: auto;
   border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.02);
+  border: 1px solid color-mix(in srgb, var(--pbla-white) 6%, transparent);
+  background: color-mix(in srgb, var(--pbla-white) 2%, transparent);
 }
 .pbla-data-table {
   width: 100%;
@@ -741,7 +741,7 @@
   text-align: left;
   color: color-mix(in srgb, var(--pbla-white) 82%, transparent);
   font-size: 0.89rem;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--pbla-white) 5%, transparent);
   position: relative;
   z-index: 1;
 }
@@ -751,8 +751,8 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid color-mix(in srgb, var(--pbla-white) 8%, transparent);
+  background: color-mix(in srgb, var(--pbla-white) 3%, transparent);
 }
 .pbla-standings-table th:nth-child(n + 3),
 .pbla-standings-table td:nth-child(n + 3),
@@ -851,7 +851,7 @@
 }
 .pbla-rank-fire {
   margin-left: 0.3rem;
-  filter: drop-shadow(0 0 10px rgba(246, 140, 31, 0.55));
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--pbla-orange) 55%, transparent));
 }
 .pbla-player-cell,
 .pbla-team-name-cell {
@@ -871,8 +871,8 @@
   height: 1.45rem;
   margin-right: 0.55rem;
   border-radius: 999px;
-  background: rgba(246, 140, 31, 0.12);
-  border: 1px solid rgba(246, 140, 31, 0.24);
+  background: color-mix(in srgb, var(--pbla-orange) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pbla-orange) 24%, transparent);
   color: var(--pbla-accent);
   font-size: 0.72rem;
   font-weight: 800;
@@ -913,8 +913,8 @@
   gap: 0.45rem;
   padding: 0.7rem 1rem;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)), rgba(6, 10, 18, 0.9);
+  border: 1px solid color-mix(in srgb, var(--pbla-white) 8%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--pbla-white) 3%, transparent), transparent), color-mix(in srgb, var(--ds-bg) 90%, transparent);
   opacity: 0;
   transform: translateY(14px);
 }
@@ -925,8 +925,8 @@
   transition-delay: var(--delay, 0ms);
 }
 .pbla-game-card--playoff {
-  border-color: rgba(255, 209, 102, 0.24);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 16px 32px rgba(255, 209, 102, 0.08);
+  border-color: color-mix(in srgb, var(--pbla-accent) 24%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pbla-white) 4%, transparent), 0 16px 32px color-mix(in srgb, var(--pbla-accent) 8%, transparent);
 }
 .pbla-game-card__top {
   display: flex;
@@ -953,8 +953,8 @@
   align-items: center;
   padding: 0.35rem 0.6rem;
   border-radius: 999px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: color-mix(in srgb, var(--pbla-white) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pbla-white) 8%, transparent);
   color: color-mix(in srgb, var(--pbla-white) 86%, transparent);
   font-size: 0.72rem;
   font-weight: 800;
@@ -962,8 +962,8 @@
   text-transform: uppercase;
 }
 .pbla-game-card__badge--playoff {
-  background: rgba(255, 209, 102, 0.12);
-  border-color: rgba(255, 209, 102, 0.28);
+  background: color-mix(in srgb, var(--pbla-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--pbla-accent) 28%, transparent);
   color: var(--pbla-accent);
 }
 .pbla-game-card__badge--note {
@@ -994,9 +994,9 @@
 }
 .pbla-games-toggle {
   margin-top: 1rem;
-  border: 1px solid rgba(255, 209, 102, 0.2);
+  border: 1px solid color-mix(in srgb, var(--pbla-accent) 20%, transparent);
   border-radius: 999px;
-  background: rgba(255,255,255,0.04);
+  background: color-mix(in srgb, var(--pbla-white) 4%, transparent);
   color: var(--pbla-white);
   padding: 0.72rem 1rem;
   font: inherit;
@@ -1008,15 +1008,15 @@
 .pbla-games-toggle:hover,
 .pbla-games-toggle:focus-visible {
   transform: translateY(-1px);
-  background: rgba(246, 140, 31, 0.12);
-  border-color: rgba(246, 140, 31, 0.34);
+  background: color-mix(in srgb, var(--pbla-orange) 12%, transparent);
+  border-color: color-mix(in srgb, var(--pbla-orange) 34%, transparent);
   outline: none;
 }
 .pbla-games-empty {
   padding: 1rem;
   border-radius: 18px;
-  border: 1px dashed rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
+  border: 1px dashed color-mix(in srgb, var(--pbla-white) 8%, transparent);
+  background: color-mix(in srgb, var(--pbla-white) 3%, transparent);
   color: color-mix(in srgb, var(--pbla-white) 68%, transparent);
   line-height: 1.6;
 }
@@ -1024,8 +1024,8 @@
   padding: 1.45rem;
   text-align: center;
   background:
-    linear-gradient(135deg, rgba(246, 140, 31, 0.12), rgba(255, 209, 102, 0.08)),
-    rgba(9, 13, 24, 0.88);
+    linear-gradient(135deg, color-mix(in srgb, var(--pbla-orange) 12%, transparent), color-mix(in srgb, var(--pbla-accent) 8%, transparent)),
+    color-mix(in srgb, var(--pbla-panel) 88%, transparent);
 }
 .pbla-cta__title {
   margin: 0;
@@ -1054,8 +1054,8 @@
   gap: 0.45rem;
   padding: 0.72rem 1rem;
   border-radius: 999px;
-  border: 1px solid rgba(255, 209, 102, 0.22);
-  background: rgba(255,255,255,0.04);
+  border: 1px solid color-mix(in srgb, var(--pbla-accent) 22%, transparent);
+  background: color-mix(in srgb, var(--pbla-white) 4%, transparent);
   color: var(--pbla-white);
   font-size: 0.86rem;
   font-weight: 800;
@@ -1065,8 +1065,8 @@
 .pbla-cta__link:hover,
 .pbla-cta__link:focus-visible {
   transform: translateY(-2px);
-  background: rgba(246, 140, 31, 0.12);
-  border-color: rgba(246, 140, 31, 0.34);
+  background: color-mix(in srgb, var(--pbla-orange) 12%, transparent);
+  border-color: color-mix(in srgb, var(--pbla-orange) 34%, transparent);
   outline: none;
 }
 @keyframes pbla-pulse {

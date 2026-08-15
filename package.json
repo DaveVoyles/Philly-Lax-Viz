@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "typecheck": "pnpm -r typecheck",
-    "check:ds-tokens": "bash scripts/check-ds-tokens.sh --token-file packages/web/src/styles/tokens.css packages/web/src/styles.css packages/web/src/styles",
+    "check:ds-tokens": "bash scripts/check-ds-tokens.sh --token-file packages/web/src/styles/tokens.css packages/web/src",
     "test": "pnpm -r test",
     "crawl": "pnpm --filter @pll/ingest crawl",
     "ingest": "pnpm --filter @pll/ingest ingest",

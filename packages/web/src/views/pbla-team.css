@@ -57,7 +57,7 @@
   height: auto;
   object-fit: contain;
   border-radius: 8px;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+  filter: drop-shadow(0 2px 8px color-mix(in srgb, black 40%, transparent));
 }
 .pbla-team-hero__info { flex: 1; }
 .pbla-team-hero__name {
@@ -235,7 +235,7 @@ th[data-align="right"] .pbla-sort-btn {
   gap: 0.5rem;
   padding: 0.6rem 0.75rem;
   border-radius: 8px;
-  background: rgba(255,255,255,0.03);
+  background: color-mix(in srgb, var(--pbla-white) 3%, transparent);
   border-left: 3px solid var(--team-accent, var(--ds-text-muted));
   margin-bottom: 0.4rem;
   font-size: 0.82rem;
@@ -262,7 +262,7 @@ th[data-align="right"] .pbla-sort-btn {
   justify-self: center;
 }
 .pbla-team-game-row__meta {
-  color: rgba(248, 250, 252, 0.55);
+  color: color-mix(in srgb, var(--ds-text) 55%, transparent);
   font-size: 0.75rem;
   text-align: right;
 }
@@ -272,7 +272,7 @@ th[data-align="right"] .pbla-sort-btn {
   gap: 0.2rem;
   padding: 0.2rem 0.4rem;
   border-radius: 6px;
-  background: rgba(255, 0, 0, 0.12);
+  background: color-mix(in srgb, var(--pbla-live-dot) 12%, transparent);
   color: var(--pbla-video);
   font-size: 0.65rem;
   font-weight: 600;
@@ -282,7 +282,7 @@ th[data-align="right"] .pbla-sort-btn {
   max-width: 100%;
   overflow: hidden;
 }
-.pbla-team-game-row__video:hover { background: rgba(255, 0, 0, 0.22); }
+.pbla-team-game-row__video:hover { background: color-mix(in srgb, var(--pbla-live-dot) 22%, transparent); }
 .pbla-team-game-row__video svg { width: 12px; height: 12px; fill: currentColor; }
 .pbla-team-game-row > span:nth-child(4) {
   overflow: hidden;
@@ -291,7 +291,7 @@ th[data-align="right"] .pbla-sort-btn {
 }
 .pbla-team-game-note {
   font-size: 0.68rem;
-  color: rgba(248, 250, 252, 0.45);
+  color: color-mix(in srgb, var(--ds-text) 45%, transparent);
   margin-left: 0.3rem;
 }
 
