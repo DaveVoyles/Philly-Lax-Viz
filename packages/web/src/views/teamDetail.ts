@@ -662,7 +662,7 @@ async function loadTopScorers(slot: HTMLElement, teamId: number): Promise<void> 
   const scorersMargin =
     window.innerWidth <= 480
       ? { top: 32, right: 40, bottom: 40, left: 100 }
-      : window.innerWidth <= 768
+      : window.innerWidth <= 640
         ? { top: 32, right: 48, bottom: 40, left: 130 }
         : undefined;
   const scorersOptions = scorersMargin ? { margin: scorersMargin } : undefined;

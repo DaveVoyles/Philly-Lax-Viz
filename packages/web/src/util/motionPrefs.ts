@@ -11,12 +11,12 @@ export function shouldAnimate(): boolean {
 export function isLowPowerDevice(): boolean {
   const conn = (navigator as { connection?: { saveData?: boolean } }).connection;
   const saveData = conn?.saveData ?? false;
-  const isSmallViewport = window.innerWidth < 768;
+  const isSmallViewport = window.innerWidth < 640;
 
   return saveData || isSmallViewport;
 }
 
-/** Returns true if WebGL/Pixi.js canvases should be mounted (not mobile <768px, not saveData, not reduced-motion). */
+/** Returns true if WebGL/Pixi.js canvases should be mounted (not mobile <640px, not saveData, not reduced-motion). */
 export function shouldMountWebGL(): boolean {
   return shouldAnimate() && !isLowPowerDevice();
 }
