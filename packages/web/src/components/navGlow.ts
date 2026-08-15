@@ -15,7 +15,33 @@ interface Particle {
   hue: number;
 }
 
-const ACCENT_HUE = 190; // cyan-ish to match --accent (#00d4ff)
+/** Fallback hue for --ds-accent #1d4ed8 (hsl hue ~221). */
+const FALLBACK_ACCENT_HUE = 221;
+
+function readAccentHue(): number {
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue('--ds-accent')
+    .trim() || '#1d4ed8';
+  const ctx = document.createElement('canvas').getContext('2d');
+  if (!ctx) return FALLBACK_ACCENT_HUE;
+  ctx.fillStyle = raw;
+  const hex = String(ctx.fillStyle);
+  if (!hex.startsWith('#') || hex.length < 7) return FALLBACK_ACCENT_HUE;
+  const n = parseInt(hex.slice(1), 16);
+  const r = ((n >> 16) & 255) / 255;
+  const g = ((n >> 8) & 255) / 255;
+  const b = (n & 255) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  if (d === 0) return FALLBACK_ACCENT_HUE;
+  let h = 0;
+  if (max === r) h = ((g - b) / d) % 6;
+  else if (max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  h = Math.round(h * 60);
+  return h < 0 ? h + 360 : h;
+}
 
 /**
  * Mount the nav glow effect on all nav links within the given container.
@@ -64,7 +90,7 @@ export function mountNavGlow(nav: HTMLElement): void {
         life: 1,
         maxLife: 0.4 + Math.random() * 0.4,
         size: 1.5 + Math.random() * 2.5,
-        hue: ACCENT_HUE + (Math.random() - 0.5) * 30,
+        hue: readAccentHue() + (Math.random() - 0.5) * 30,
       });
     }
     ensureRunning();
@@ -92,14 +118,15 @@ export function mountNavGlow(nav: HTMLElement): void {
     }
 
     if (glowAlpha > 0 && glowTarget) {
+      const hue = readAccentHue();
       const g = glowTarget;
       const gradient = ctx.createLinearGradient(g.x, g.y + g.h, g.x + g.w, g.y + g.h);
-      gradient.addColorStop(0, `hsla(${ACCENT_HUE}, 100%, 60%, 0)`);
-      gradient.addColorStop(0.3, `hsla(${ACCENT_HUE}, 100%, 60%, ${0.6 * glowAlpha})`);
-      gradient.addColorStop(0.7, `hsla(${ACCENT_HUE + 20}, 100%, 70%, ${0.6 * glowAlpha})`);
-      gradient.addColorStop(1, `hsla(${ACCENT_HUE}, 100%, 60%, 0)`);
+      gradient.addColorStop(0, `hsla(${hue}, 100%, 60%, 0)`);
+      gradient.addColorStop(0.3, `hsla(${hue}, 100%, 60%, ${0.6 * glowAlpha})`);
+      gradient.addColorStop(0.7, `hsla(${hue + 20}, 100%, 70%, ${0.6 * glowAlpha})`);
+      gradient.addColorStop(1, `hsla(${hue}, 100%, 60%, 0)`);
 
-      ctx.shadowColor = `hsla(${ACCENT_HUE}, 100%, 60%, ${0.4 * glowAlpha})`;
+      ctx.shadowColor = `hsla(${hue}, 100%, 60%, ${0.4 * glowAlpha})`;
       ctx.shadowBlur = 8;
       ctx.fillStyle = gradient;
       ctx.fillRect(g.x, g.y + g.h - 2, g.w, 2.5);
@@ -110,8 +137,8 @@ export function mountNavGlow(nav: HTMLElement): void {
         g.x + g.w / 2, g.y + g.h / 2, 0,
         g.x + g.w / 2, g.y + g.h / 2, g.w * 0.6,
       );
-      radGrad.addColorStop(0, `hsla(${ACCENT_HUE}, 100%, 60%, ${0.08 * glowAlpha})`);
-      radGrad.addColorStop(1, `hsla(${ACCENT_HUE}, 100%, 60%, 0)`);
+      radGrad.addColorStop(0, `hsla(${hue}, 100%, 60%, ${0.08 * glowAlpha})`);
+      radGrad.addColorStop(1, `hsla(${hue}, 100%, 60%, 0)`);
       ctx.fillStyle = radGrad;
       ctx.fillRect(g.x - 10, g.y - 5, g.w + 20, g.h + 10);
     }

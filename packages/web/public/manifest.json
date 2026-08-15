@@ -3,8 +3,8 @@
   "short_name": "PhillyLax",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#00d4ff",
+  "background_color": "#ffffff",
+  "theme_color": "#1d4ed8",
   "icons": [
     {
       "src": "/icon-192.svg",
