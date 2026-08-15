@@ -85,6 +85,7 @@ function mountShell(app: HTMLElement): {
   setActive: (name: RouteName) => void;
 } {
   app.innerHTML = `
+    <a class="skip-link" href="#/">Skip to content</a>
     <header class="site-header">
       <div class="brand">🥍 PhillyLaxStats</div>
       <button class="nav-hamburger" aria-label="Open navigation" aria-expanded="false" aria-controls="main-nav">&#9776;</button>
@@ -123,6 +124,12 @@ function mountShell(app: HTMLElement): {
   `;
   const main = app.querySelector<HTMLElement>('#main');
   if (!main) throw new Error('shell mount missing');
+  main.tabIndex = -1;
+  const skip = app.querySelector<HTMLAnchorElement>('.skip-link');
+  skip?.addEventListener('click', (e) => {
+    e.preventDefault();
+    main.focus();
+  });
   const searchHost = app.querySelector<HTMLElement>('#search-host');
   if (searchHost) mountSearchBox(searchHost);
 

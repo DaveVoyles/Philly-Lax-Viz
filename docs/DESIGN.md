@@ -64,15 +64,15 @@ Real values from code — never approximate.
 ### PWA / manifest palette (main site)
 | Token | Hex | Where defined |
 |---|---|---|
-| `theme_color` | `#00d4ff` | `packages/web/public/manifest.json`, `packages/web/index.html` `<meta name="theme-color">` |
-| `background_color` | `#1a1a2e` | `packages/web/public/manifest.json` |
+| `theme_color` | `#1d4ed8` | `packages/web/public/manifest.json`, `packages/web/index.html` `<meta name="theme-color">` |
+| `background_color` | `#ffffff` | `packages/web/public/manifest.json` |
 
-This cyan/indigo PWA splash pair does not match either the light (`#ffffff`/`#1d4ed8`) or dark (`#0b0d10`/`#60a5fa`) in-app palette — see Known Inconsistencies.
+These match light-mode `--ds-accent` / `--ds-bg` in `packages/web/src/styles/tokens.css`.
 
 ### Box Lacrosse (PBLA) sub-site — always dark, no light variant
 | Token / usage | Hex | Where defined | Notes |
 |---|---|---|---|
-| Accent (gold) | `#ffd166` | `packages/web/src/views/pblaStyles.ts:10` | `--pbla-accent`; kickers, eyebrows, active season pill, points cells |
+| Accent (gold) | `#ffd166` | `packages/web/src/views/pbla.css` | `--ds-accent` remapped on `.pbla-view-root`; `--pbla-accent` aliases it |
 | Text / "white" | `#f8fafc` | `packages/web/src/views/pblaStyles.ts:11` | `--pbla-white`; headings, primary text (used with `color-mix()` for secondary tints) |
 | Muted | `#94a3b8` | `packages/web/src/views/pblaStyles.ts:12` | `--pbla-muted` (declared, lightly used) |
 | Ink / base | `#05070d` | `packages/web/src/views/pblaStyles.ts:13` | `--pbla-ink` |
@@ -155,11 +155,11 @@ Substantially more animated: a live Pixi.js WebGL particle-network background wi
 
 ## Known Inconsistencies / Design Debt
 - **PBLA is a fully separate dark-only design system layered on the same shell.** It does not use any of the main site's CSS custom properties (`--bg`, `--fg`, `--accent`, etc.), defines its own token set (`--pbla-*`) scoped to `.pbla-view-root`, and ignores the site's light/dark mode entirely — a user in light mode sees a hard cut to a dark, glassy, gold-accented page when navigating to Box Lacrosse. This is a deliberate "premium partnership pitch page" choice per the CSS comments and route metadata, but it means there are effectively two design systems in one repo with no shared tokens between them.
-- **Reduced-motion coverage is inconsistent.** The main site's `styles.css` wraps essentially all of its keyframe animations in `@media (prefers-reduced-motion: reduce)`. PBLA's `pblaStyles.ts` keyframes (`pbla-pulse`, `pbla-live-pulse`, `pbla-team-swatch-pulse`, `cardGlow`, `shimmerBorder`) have **no** `prefers-reduced-motion` guard in the CSS itself — only the WebGL canvas and the `animate` flag passed into `renderSeasonContent`/entrance transitions respect `shouldAnimate()`. The always-on pulsing dots and shimmering borders will keep animating for users with `prefers-reduced-motion: reduce` set.
-- **PWA manifest colors don't match either in-app theme.** `manifest.json`/`theme-color` use `#00d4ff` (cyan) on `#1a1a2e` (indigo-black), which matches neither the light-mode palette (`#ffffff`/`#1d4ed8`) nor the dark-mode palette (`#0b0d10`/`#60a5fa`), nor the PBLA palette (`#ffd166`/`#05070d`) — likely a leftover from an earlier brand pass.
+- **Reduced-motion is now covered in both CSS files.** `tokens.css` has the mandatory global reduce block; `pbla.css` also sets `animation: none` / `transition: none` on `.pbla-view-root` / `.pbla-team-root` including pseudos. WebGL still gates on `shouldMountWebGL()`.
+- **PWA manifest colors now match light-mode tokens** (`#1d4ed8` / `#ffffff`). Dark-mode splash still uses the light pair (no runtime theme-color swap).
 - **Two different table rendering strategies.** The main site uses native HTML `<table>` markup throughout; PBLA's standings/leaders tables use CSS Grid on `<thead>`/`<tbody>` rows to fake table layout (`pbla-data-table`), which changes how screen readers and the responsive column-hiding rules need to be reasoned about compared to the main site's `.col-secondary` approach.
 - **Radius and elevation conventions diverge sharply.** Main site: `4–8px` radii, minimal single-layer shadows, no blur. PBLA: `14–20px` radii, multi-layer shadows, `backdrop-filter: blur()`. There is no shared "elevation" or "radius" token either site draws from — every value is a literal per-component.
-- **No design tokens file / no Tailwind config.** All color, spacing, and radius values are hand-written literals in two large CSS blobs (`styles.css` global stylesheet + `pblaStyles.ts` injected `<style>` string), so most "system" values documented above are conventions inferred from repeated literals rather than enforced tokens — safe to assume future edits can silently drift.
+- **Shared `--ds-*` tokens live in `packages/web/src/styles/tokens.css`.** Main-site `styles.css` consumes them via `--bg` aliases. PBLA is extracted to `pbla.css` / `pbla-team.css` and remaps `--ds-*` on `.pbla-view-root` / `.pbla-team-root`. `check-ds-tokens.sh` currently gates `styles.css` + `styles/`; PBLA decorative `rgba()` washes are still out of SCOPE.
 - **`--pbla-muted` (`#94a3b8`) is declared but barely used** compared to the more common inline `color-mix(in srgb, var(--pbla-white) NN%, transparent)` pattern for secondary text — two competing ways to express "muted text" within the same PBLA stylesheet.
 
 ## Source Files

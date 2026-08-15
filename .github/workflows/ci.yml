@@ -38,6 +38,11 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # SCOPE: cleaned main-site CSS. packages/web/src still fails on pbla*.css
+      # decorative rgba() overlays (glass/glow) — tokenizing those is a redesign.
+      - name: Check design tokens
+        run: bash scripts/check-ds-tokens.sh --token-file packages/web/src/styles/tokens.css packages/web/src/styles.css packages/web/src/styles
+
       - name: Typecheck
         run: pnpm -r typecheck
 
