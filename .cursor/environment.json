@@ -1,0 +1,4 @@
+{
+  "name": "Philly-Lax-Viz portable cloud",
+  "install": "bash scripts/setup-cursor-cloud.sh"
+}

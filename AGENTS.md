@@ -1,5 +1,7 @@
 # AGENTS.md
 
+Cursor Cloud: see [`docs/cursor-cloud.md`](docs/cursor-cloud.md).
+
 > **📍 This file has moved to improve token efficiency.**  
 > **New location:** [`docs/onboarding.md`](./docs/onboarding.md)
 
