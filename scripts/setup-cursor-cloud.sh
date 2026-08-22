@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Cursor Cloud portable-core contract (keep twins in lockstep):
+#   1. No Mini secrets, App tokens, board PATs, MainVault, or .env copies.
+#   2. Fail closed if a required prove tool is missing.
+#   3. Prove is the repo's secret-free core — not a Mini-only path.
+#   4. GitHub Actions job cursor-cloud-setup on ubuntu-latest must stay green.
 # Portable Cloud prove: pnpm install + ds-tokens + typecheck + test. No ingest/Azure.
 set -euo pipefail
 

@@ -5,3 +5,5 @@ Cloud: `scripts/setup-cursor-cloud.sh` enables `pnpm` via corepack. On Node 22 (
 Mini / CI (self-hosted `pll`): nightly ingest, Azure config, `db:upload`, logo/PBLA sync.
 
 Do not put Mini secrets, Azure credentials, or a live `.env` into Cloud.
+
+GitHub Actions: `.github/workflows/cursor-cloud-setup.yml` runs the same script on `ubuntu-latest` (Node 22 when the prove needs npm/pnpm).
