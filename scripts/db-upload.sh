@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Azure Files upload is retired. Production SQLite is Mini volume pll-lax_pll-data.
 set -euo pipefail
 
 cat >&2 <<'EOF'
