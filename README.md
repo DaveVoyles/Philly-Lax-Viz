@@ -88,7 +88,7 @@ pnpm --filter @pll/ingest exec tsx src/scripts/generateUploadTemplate.ts  # crea
 | Doc | What it covers |
 | --- | --- |
 | [docs/deployment-mini.md](./docs/deployment-mini.md) | Mini Docker + Synology TLS production host |
-| [docs/azure-deployment.md](./docs/azure-deployment.md) | Archived Azure Container Apps runbook |
+| [docs/azure-deployment.md](./docs/azure-deployment.md) | Stub. Retired Azure runbook. Live ops is Mini. |
 | [docs/pipeline-gaps.md](./docs/pipeline-gaps.md) | Known ingest gaps, anomaly types, and improvement backlog |
 | [docs/runbooks/source-priority.md](./docs/runbooks/source-priority.md) | Data source authority and score reconciliation rules (MaxPreps vs. PhillyLacrosse vs. PIAA) |
 | [docs/runbooks/hudl-invitation-flow.md](./docs/runbooks/hudl-invitation-flow.md) | How to get a team invited into the Hudl service account and register it in admin UI |

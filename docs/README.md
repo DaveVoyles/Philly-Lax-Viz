@@ -30,13 +30,14 @@
 | Doc | Owns | Read when |
 |-----|------|-----------|
 | `index.md` | Ultra-minimal agent index with decision tree | Always — first thing for agents |
-| `quick-refs/commands.md` | All CLI commands, organized by category | Running scripts, dev servers, Azure sync |
+| `quick-refs/commands.md` | All CLI commands, organized by category | Running scripts, dev servers, Mini DB copy |
 | `quick-refs/db-schema.md` | Table schemas, columns, relationships | DB queries, understanding data model |
 | `quick-refs/api-endpoints.md` | API paths, params, responses | Calling API, adding endpoints |
 | `quick-refs/data-sources.md` | Source URLs, trust hierarchy, sync commands | Understanding data flow, reconciliation |
 | `onboarding.md` | Quick-start: conventions, hard rules, key file map | First-time setup, learning conventions |
 | `architecture-full.md` | Deep architecture: data flow, all sources, full DB schema, ADRs | Understanding internals, major changes |
 | `pipeline-gaps.md` | Actionable backlog of missing CI steps | Planning ingest improvements |
+| `deployment-mini.md` | Mini Docker production host | Deploy, DB copy, live site |
 | `runbooks/` | Step-by-step guides for specific operations | Deploying, importing data, Hudl onboarding |
 | `archive/` | Historical wave plans and session artifacts | Archaeology only |
 
@@ -57,12 +58,11 @@
 ### 🧭 Intermediate (as needed)
 3. [onboarding.md](./onboarding.md) — conventions, hard rules, common patterns (~1,800 tokens)
 4. [deployment-mini.md](./deployment-mini.md) — production Mini Docker + Synology TLS
-5. [azure-deployment.md](./azure-deployment.md) — archived Azure Container Apps runbook
-6. [runbooks/](./runbooks/) — operational guides (~varies)
+5. [runbooks/](./runbooks/) — operational guides (~varies)
 
 ### 🏗️ Deep Dive (rare — only when quick-refs insufficient)
-7. [architecture-full.md](./architecture-full.md) — full system design (~5,400 tokens)
-8. [pipeline-gaps.md](./pipeline-gaps.md) — known missing pieces (~800 tokens)
+6. [architecture-full.md](./architecture-full.md) — full system design (~5,400 tokens)
+7. [pipeline-gaps.md](./pipeline-gaps.md) — known missing pieces (~800 tokens)
 
 ---
 
@@ -140,12 +140,12 @@ specific piece of logic lives. **Load only if quick-refs don't answer your quest
 
 ---
 
-### [azure-deployment.md](./azure-deployment.md)
-Deployment guide and cost model. Covers Azure Static Web Apps + Container Apps + ACR setup, known
-pitfalls from live v3 deployment (SQLite on SMB, SWA region restrictions, CI billing limits), and the
-local fallback path when GitHub Actions billing is blocked.
+### [deployment-mini.md](./deployment-mini.md)
+Production host. Mini Docker (`pll-server` on 8907), Synology TLS, volume `pll-lax_pll-data`.
 
-**When to use:** When deploying, updating infrastructure, debugging production issues, or estimating costs.
+**When to use:** Deploy, copy a local DB onto production, or debug the live site.
+
+The retired Azure Container Apps runbook is [archive/azure-deployment.md](./archive/azure-deployment.md). `docs/azure-deployment.md` is a stub that points here.
 
 ---
 
