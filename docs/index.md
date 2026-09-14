@@ -28,7 +28,7 @@
 | **Work on PBLA box lacrosse** | [pbla-guide.md](./pbla-guide.md) (~2,000 tokens) | Full PBLA data flow, scripts, automation, pitfalls |
 | **First-time setup** | [onboarding.md](./onboarding.md) (~1,800 tokens) | Getting started, hard rules, conventions |
 | **Deep architecture** | [architecture-full.md](./architecture-full.md) (~5,400 tokens) | Full system design, data flow, decisions (⚠️ load only if needed) |
-| **Deploy or ops** | [azure-deployment.md](./azure-deployment.md) (~1,200 tokens) | Azure setup, cost model, pitfalls |
+| **Deploy or ops** | [deployment-mini.md](./deployment-mini.md) | Mini Docker, Synology TLS, SQLite volume |
 | **Runbook task** | [runbooks/](./runbooks/) (~varies) | Step-by-step: deploy, import, corrections, Hudl |
 
 ---
@@ -69,7 +69,7 @@ pnpm build
 
 ### 🧭 Intermediate (as needed)
 3. [onboarding.md](./onboarding.md) — conventions, hard rules, common patterns
-4. [azure-deployment.md](./azure-deployment.md) — deployment architecture
+4. [deployment-mini.md](./deployment-mini.md) — production Mini Docker + Synology TLS
 5. [runbooks/](./runbooks/) — operational guides
 
 ### 🏗️ Deep Dive (rare)
@@ -83,7 +83,7 @@ pnpm build
 | Task | Load order | Estimated tokens |
 |------|------------|------------------|
 | "Run the ingest pipeline" | index.md → commands.md | ~1,200 |
-| "Fix a failing workflow" | index.md → commands.md → azure-deployment.md | ~2,400 |
+| "Fix a failing workflow" | index.md → commands.md → deployment-mini.md | ~1,400 |
 | "Understand how data flows" | index.md → data-sources.md → architecture-full.md | ~6,600 |
 | "Add a new API endpoint" | index.md → api-endpoints.md → onboarding.md | ~3,200 |
 | "Import coach spreadsheet" | index.md → commands.md → runbooks/local-data-import.md | ~2,100 |
