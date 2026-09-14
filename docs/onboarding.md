@@ -11,7 +11,7 @@
 TypeScript pnpm monorepo that scrapes, parses, and visualizes Philadelphia high-school boys lacrosse data from **phillylacrosse.com** (RSS scoreboards & summaries), **piaad1.org** (official PIAA District 1 rankings), **phillylaxnumbers.com** (LaxNumbers — per-game player stats), and **maxpreps.com** (team logos). Four workspace packages handle ingestion, an HTTP API, shared types, and a D3-based web client.
 
 The site is deployed via:
-- **Azure Container App** — single Fastify container (`pll-server`) at `https://phillylaxstats.com`. Serves the Vite SPA, all `/api/*` routes, and `/logos/*` static files. DB baked into the image (`/tmp/lacrosse.db`) and refreshed nightly from Azure Files. `min-replicas=1` (always-on, no cold starts).
+- **Mini Docker** — single Fastify container (`pll-server`) at `https://phillylaxstats.com`. Serves the Vite SPA, all `/api/*` routes, and `/logos/*` static files. SQLite volume `/data/lacrosse.db`, refreshed nightly on the Mini `pll` runner. See [deployment-mini.md](deployment-mini.md).
 
 ---
 

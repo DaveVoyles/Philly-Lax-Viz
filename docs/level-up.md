@@ -12,8 +12,8 @@
 | Constraint | Detail |
 |---|---|
 | **Scale** | Dozens of daily users (coaches + players). No need for CDN, caching layers, or horizontal scaling yet. |
-| **Hosting** | Single Azure Container App (`pll-server`, `min-replicas=1`) at `https://phillylaxstats.com`. Serves SPA + API + logos from one container. |
-| **Domain** | `PhillyLaxStats.com` (NameCheap, owner-acquired). Will point to Azure once stable. |
+| **Hosting** | Mini Docker (`pll-server` on host 8907) at `https://phillylaxstats.com`. Serves SPA + API + logos from one container. |
+| **Domain** | `PhillyLaxStats.com` (Namecheap). Apex A → house WAN; www CNAME → `davevoyles.synology.me`. |
 | **Data authority** | Coach-submitted data > Hudl > LaxNumbers > RSS. Manual entries take precedence but are auditable. |
 | **T-shirt sizing** | XS = <1hr, S = 1-3hr, M = 3-8hr. Avoid M+ items; split them. |
 | **Automation bias** | If a task can be scripted or handled by an agent end-to-end, prefer that over manual steps. Document any step that still requires human action. |

@@ -1,8 +1,6 @@
 name: health-check
 
-# Ping the live API every 5 minutes to keep the Azure Container App warm.
-# Without this, ACA (Consumption plan, scale-to-zero) cold-starts take 15-20s,
-# causing dashboard timeouts for users hitting the site after a quiet period.
+# Ping the public Mini origin. Mini does not sleep; this is an uptime probe only.
 on:
   schedule:
     - cron: '*/5 * * * *'

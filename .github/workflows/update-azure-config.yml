@@ -1,74 +1,15 @@
 name: Update Azure Container App Config
 
+# Azure Container Apps hosting is retired. CORS lives in Mini pll.env.
+
 on:
   workflow_dispatch:
-    inputs:
-      cors_origins:
-        description: 'Comma-separated list of allowed CORS origins'
-        required: false
-        default: 'https://www.phillylaxstats.com,https://phillylaxstats.com,http://localhost:5173'
-      bind_custom_domain:
-        description: 'Bind custom domain + managed TLS (true/false)'
-        required: false
-        default: 'false'
-      custom_hostname:
-        description: 'Custom hostname to bind (e.g. phillylaxstats.com)'
-        required: false
-        default: ''
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
-  update-config:
+  retired:
     runs-on: ubuntu-latest
     steps:
-      - name: Azure login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Update CORS_ORIGINS on Container App
-        if: github.event.inputs.cors_origins != '' && github.event.inputs.bind_custom_domain != 'true'
+      - name: Azure Container Apps path is retired
         run: |
-          ORIGINS="${{ github.event.inputs.cors_origins || secrets.CORS_ORIGINS || 'https://www.phillylaxstats.com,https://phillylaxstats.com,http://localhost:5173' }}"
-          echo "Setting CORS_ORIGINS to: $ORIGINS"
-          az containerapp update \
-            --name ${{ secrets.ACA_NAME }} \
-            --resource-group ${{ secrets.ACA_RESOURCE_GROUP }} \
-            --set-env-vars "CORS_ORIGINS=$ORIGINS"
-
-      - name: Bind custom domain
-        if: github.event.inputs.bind_custom_domain == 'true' && github.event.inputs.custom_hostname != ''
-        run: |
-          HOSTNAME="${{ github.event.inputs.custom_hostname }}"
-          ACA_NAME="${{ secrets.ACA_NAME }}"
-          RG="${{ secrets.ACA_RESOURCE_GROUP }}"
-
-          echo "Adding hostname: $HOSTNAME"
-          az containerapp hostname add \
-            --name "$ACA_NAME" \
-            --resource-group "$RG" \
-            --hostname "$HOSTNAME" || echo "Hostname may already exist, continuing..."
-
-          echo "Listing managed environment for container app..."
-          ACA_ENV=$(az containerapp show --name "$ACA_NAME" --resource-group "$RG" --query "properties.environmentId" -o tsv)
-          echo "Environment ID: $ACA_ENV"
-
-          echo "Binding managed certificate for: $HOSTNAME"
-          # Apex domains use HTTP validation; subdomains use CNAME
-          if echo "$HOSTNAME" | grep -q "^www\."; then
-            VALIDATION="CNAME"
-          else
-            VALIDATION="HTTP"
-          fi
-          az containerapp hostname bind \
-            --name "$ACA_NAME" \
-            --resource-group "$RG" \
-            --hostname "$HOSTNAME" \
-            --environment "$ACA_ENV" \
-            --validation-method "$VALIDATION" || echo "Binding failed - check logs"
-
-      - name: Azure logout
-        if: always()
-        run: az logout
+          echo "::error::Production is Mini Docker. Edit ~/docker-stack/secrets/pll.env and recreate pll-server. Do not update ACA."
+          exit 1

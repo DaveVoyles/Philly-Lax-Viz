@@ -1,194 +1,30 @@
 name: deploy
 
-# Build + ship the single container on every push to main.
-# Container image -> GHCR -> Azure Container Apps (Consumption, scale-to-zero).
+# Rebuild the Mini production container. Azure Container Apps is retired.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  packages: write
-  id-token: write
 
 env:
-  NODE_VERSION: '22'
-  PNPM_VERSION: '10.33.1'
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/pll-server
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
-concurrency:
-  group: deploy-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
-  # ---------------------------------------------------------------------
-  # 1. Build + test the whole monorepo once before container deploy.
-  # ---------------------------------------------------------------------
-  build-and-test:
+  deploy-mini:
     runs-on: [self-hosted, pll]
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Azure CLI (self-hosted runner - not pre-installed)
+      - name: Rebuild pll-server on Mini
         run: |
-          if ! command -v az >/dev/null 2>&1; then
-            curl -sL https://aka.ms/InstallAzureCLIDeb | bash
-          fi
-
-      - name: Download DB for sitemap generation
-        env:
-          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
-        run: |
-          mkdir -p data
-          if az storage file exists \
-               --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
-               --share-name pll-data \
-               --path lacrosse.db \
-               --query exists -o tsv 2>/dev/null | grep -q true; then
-            az storage file download \
-              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
-              --share-name pll-data \
-              --path lacrosse.db \
-              --dest data/lacrosse.db
-            echo "DB downloaded: $(du -h data/lacrosse.db | cut -f1)"
-          else
-            echo "::warning::DB not found on Azure File Share; sitemap will use committed version"
-          fi
-
-      - name: Regenerate sitemap
-        continue-on-error: true
-        env:
-          DB_PATH: ${{ github.workspace }}/data/lacrosse.db
-        run: |
-          if [ -f "data/lacrosse.db" ]; then
-            pnpm --filter @pll/server exec tsx src/scripts/generateSitemap.ts
-            echo "Sitemap regenerated: $(wc -l < packages/web/public/sitemap.xml) lines"
-          else
-            echo "::warning::Skipping sitemap regen - DB not available"
-          fi
-
-      - name: Typecheck
-        run: pnpm -r typecheck
-
-      - name: Test
-        run: pnpm -r test
-
-  # ---------------------------------------------------------------------
-  # 2. Build + push the server image, then update the Container App.
-  # ---------------------------------------------------------------------
-  deploy-server:
-    needs: build-and-test
-    runs-on: [self-hosted, pll]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Azure CLI (self-hosted runner — not pre-installed)
-        run: |
-          if ! command -v az >/dev/null 2>&1; then
-            curl -sL https://aka.ms/InstallAzureCLIDeb | bash
-          fi
-          az --version | head -1
-
-      - name: Seed DB for Docker build
-        env:
-          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
-        run: |
-          mkdir -p data
-          # Download the live DB from Azure File Share so the image ships with real data.
-          # Falls back to an empty seed if the share is unavailable (first-run safe).
-          if az storage file exists \
-               --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
-               --share-name pll-data \
-               --path lacrosse.db \
-               --query exists -o tsv 2>/dev/null | grep -q true; then
-            az storage file download \
-              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
-              --share-name pll-data \
-              --path lacrosse.db \
-              --dest data/lacrosse.db
-            echo "Seeded Docker build with $(du -h data/lacrosse.db | cut -f1) DB"
-          else
-            echo "::warning::Remote DB not found on Azure File Share; image will start empty"
-            touch data/lacrosse.db
-          fi
-
-      - name: Log in to GHCR
-        # Write credentials directly as base64 into the Docker config auths
-        # section. This bypasses macOS keychain and is readable by buildkit
-        # which runs in a separate process and ignores credential helpers.
-        # Use "default" context so the config is valid even when OrbStack is not running.
-        run: |
-          CONFIG_DIR="${DOCKER_CONFIG:-$HOME/.docker}"
-          mkdir -p "$CONFIG_DIR"
-          AUTH=$(echo -n "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" | base64 | tr -d '\n')
-          printf '{"auths":{"ghcr.io":{"auth":"%s"}}}\n' "$AUTH" \
-            > "$CONFIG_DIR/config.json"
-          echo "Docker config written for ghcr.io"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Extract image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,format=long
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build + push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          # Force linux/amd64: Azure Container Apps only accepts amd64 images.
-          # Cross-compilation runs under QEMU on this arm64 self-hosted runner.
-          platforms: linux/amd64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: false
-
-      - name: Compute lowercase image tag
-        id: image_tag
-        # OCI image references must be lowercase; github.repository_owner may
-        # contain uppercase letters (e.g. DaveVoyles), so we normalise here.
-        # Use tr instead of ${,,} — macOS ships with Bash 3.2 which lacks that expansion.
-        run: |
-          OWNER_LC=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
-          echo "sha_tag=ghcr.io/${OWNER_LC}/pll-server:sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-
-      - name: Azure login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v2
-        with:
-          resourceGroup: ${{ secrets.ACA_RESOURCE_GROUP }}
-          containerAppName: ${{ secrets.ACA_NAME }}
-          imageToDeploy: ${{ steps.image_tag.outputs.sha_tag }}
-          # Server reads DB from /data/lacrosse.db via env (set on the app itself).
-          # We don't override env here so the existing volume mount is preserved.
-
-      - name: Azure logout
-        if: always()
-        run: az logout
+          docker compose -f /Users/davevoyles/docker-stack/philly-lax-viz/docker-compose.yml up -d --build
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            st=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' pll-server)
+            echo "status=$st"
+            if [ "$st" = "healthy" ]; then
+              exit 0
+            fi
+            sleep 3
+          done
+          docker logs pll-server --tail 40
+          exit 1

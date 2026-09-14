@@ -1,7 +1,7 @@
 name: snapshot-db-nightly
 
 # Nightly off-host backup of the SQLite DB to Azure Blob Storage.
-# Runs ~15 min after ingest-nightly (which finishes well before 09:00 UTC).
+# Copies the Mini Docker volume first. Runs ~15 min after ingest-nightly.
 on:
   schedule:
     - cron: '15 9 * * *'
@@ -47,6 +47,16 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      - name: Copy live DB from Mini Docker volume
+        run: |
+          mkdir -p data
+          docker run --rm \
+            -v pll-lax_pll-data:/data:ro \
+            -v "${{ github.workspace }}/data:/out" \
+            alpine:latest \
+            cp /data/lacrosse.db /out/lacrosse.db
+          echo "Copied DB: $(du -h ${{ env.DB_LOCAL_PATH }})"
 
       - name: Guard - DB exists
         id: guard
