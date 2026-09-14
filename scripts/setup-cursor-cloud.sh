@@ -56,4 +56,4 @@ else
 fi
 
 echo "setup-cursor-cloud: environment ready"
-echo "setup-cursor-cloud: ingest, Azure, and db:upload stay Mini-only"
+echo "setup-cursor-cloud: ingest and logo/PBLA sync stay Mini-only"

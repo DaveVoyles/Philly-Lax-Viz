@@ -68,7 +68,7 @@ async function main() {
   if (!apply) {
     console.log(`\n(dry-run) Pass --apply to write to DB.`);
   } else {
-    console.log('\n\u26a0\ufe0f  Remember: run `pnpm db:upload` to push these changes to the Azure-hosted DB.');
+    console.log('\nCopy data/lacrosse.db into volume pll-lax_pll-data (DB_PATH=/data/lacrosse.db). See docs/deployment-mini.md.');
   }
 
   db.close();
