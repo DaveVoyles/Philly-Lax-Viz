@@ -917,7 +917,7 @@ function main(): void {
     log.info(
       `Applied ${plan.stats.length} player stat rows across ${new Set(plan.mappedSheets.map((s) => s.gameId)).size} games.`,
     );
-    console.log('\n\u26a0\ufe0f  Remember: run `pnpm db:upload` to push these changes to the Azure-hosted DB.');
+    console.log('\nCopy data/lacrosse.db into volume pll-lax_pll-data (DB_PATH=/data/lacrosse.db). See docs/deployment-mini.md.');
   } finally {
     db.close();
   }
