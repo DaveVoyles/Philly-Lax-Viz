@@ -29,7 +29,10 @@ jobs:
             -v /Users/davevoyles/docker-stack/backups/philly-lax-viz:/out \
             alpine:latest \
             tar czf "/out/pll-${STAMP}.tgz" -C /data .
-          ls -l "/Users/davevoyles/docker-stack/backups/philly-lax-viz/pll-${STAMP}.tgz"
+          docker run --rm \
+            -v /Users/davevoyles/docker-stack/backups/philly-lax-viz:/out \
+            alpine:latest \
+            ls -l "/out/pll-${STAMP}.tgz"
 
       - name: Rsync backups to NAS
         run: |
