@@ -7,7 +7,7 @@
 
 ## The Problem
 
-The live site (Azure Container App) uses the DB from Azure File Share, not your local copy.
+The live site (Mini Docker) uses the DB in volume `pll-lax_pll-data`, not your laptop copy.
 If you only run a local script, the data stays local and never reaches the live site.
 
 ---

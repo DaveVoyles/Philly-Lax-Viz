@@ -1,4 +1,6 @@
-# Azure deployment — Philly Lacrosse Vis
+# Azure deployment — Philly Lacrosse Vis (archived)
+
+**Mini is production** as of 2026-09-14. See [deployment-mini.md](deployment-mini.md). This page is the old Azure Container Apps runbook. Do not create a new ACA revision.
 
 Low-cost single-container deployment of the PLL stack:
 

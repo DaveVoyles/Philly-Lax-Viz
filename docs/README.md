@@ -56,12 +56,13 @@
 
 ### 🧭 Intermediate (as needed)
 3. [onboarding.md](./onboarding.md) — conventions, hard rules, common patterns (~1,800 tokens)
-4. [azure-deployment.md](./azure-deployment.md) — deployment architecture (~1,200 tokens)
-5. [runbooks/](./runbooks/) — operational guides (~varies)
+4. [deployment-mini.md](./deployment-mini.md) — production Mini Docker + Synology TLS
+5. [azure-deployment.md](./azure-deployment.md) — archived Azure Container Apps runbook
+6. [runbooks/](./runbooks/) — operational guides (~varies)
 
 ### 🏗️ Deep Dive (rare — only when quick-refs insufficient)
-6. [architecture-full.md](./architecture-full.md) — full system design (~5,400 tokens)
-7. [pipeline-gaps.md](./pipeline-gaps.md) — known missing pieces (~800 tokens)
+7. [architecture-full.md](./architecture-full.md) — full system design (~5,400 tokens)
+8. [pipeline-gaps.md](./pipeline-gaps.md) — known missing pieces (~800 tokens)
 
 ---
 

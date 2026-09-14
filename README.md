@@ -7,7 +7,7 @@
 <details>
 <summary>Developer / admin deployment (not user-facing)</summary>
 
-An Azure Container App hosts both the live Fastify API server and serves the compiled Vite SPA static files at `https://phillylaxstats.com` (with the SQLite DB mounted via Azure Files).
+Mini Docker hosts both the live Fastify API server and the compiled Vite SPA at `https://phillylaxstats.com` (SQLite on a local volume). Synology DSM terminates TLS. See [docs/deployment-mini.md](docs/deployment-mini.md).
 This powers the public SPA and the API, including admin-only features: coach dashboard analytics (`#/coach/dashboard`), player dedup (`#/admin/dedup`),
 coach spreadsheet upload (`#/coach/upload`), community corrections review (`#/admin/corrections`),
 Hudl team management (`#/admin/hudl`), and live data-quality diagnostics.

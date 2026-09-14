@@ -1,6 +1,6 @@
 name: ingest-nightly
 
-# Pull current SQLite DB from Azure Files, run ingest, push back, restart app.
+# Copy live SQLite from Mini Docker volume, ingest, copy back, restart pll-server.
 # 02:00 America/New_York ≈ 06:00 UTC year-round (close enough for nightly).
 on:
   schedule:
@@ -26,14 +26,12 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 env:
   NODE_VERSION: '22'
   PNPM_VERSION: '10.33.1'
   DB_LOCAL_PATH: ${{ github.workspace }}/data/lacrosse.db
-  DB_REMOTE_NAME: lacrosse.db
-  AZ_FILE_SHARE: pll-data         # adjust if you named the share differently
+  PLL_VOLUME: pll-lax_pll-data
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 concurrency:
@@ -58,45 +56,18 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      - name: Install Azure CLI (self-hosted runner — not pre-installed)
-        run: |
-          if ! command -v az >/dev/null 2>&1; then
-            curl -sL https://aka.ms/InstallAzureCLIDeb | bash
-          fi
-          az --version | head -1
-
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Azure login
-        id: azure_login
-        # Non-fatal: if Azure credentials are missing/expired the ingest can still run
-        # and populate a local DB; the upload/restart steps handle their own checks.
-        continue-on-error: true
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Download current DB from Azure Files
-        env:
-          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+      - name: Copy live DB from Mini Docker volume
         run: |
           mkdir -p data
-          # Tolerate first-run case where the share is empty.
-          if az storage file exists \
-                --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
-                --share-name   "${{ env.AZ_FILE_SHARE }}" \
-                --path "${{ env.DB_REMOTE_NAME }}" \
-                --query exists -o tsv | grep -q true; then
-            az storage file download \
-              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
-              --share-name   "${{ env.AZ_FILE_SHARE }}" \
-              --path "${{ env.DB_REMOTE_NAME }}" \
-              --dest "${{ env.DB_LOCAL_PATH }}"
-            echo "Downloaded DB: $(du -h ${{ env.DB_LOCAL_PATH }})"
-          else
-            echo "::warning::Remote DB not found; ingest will create a fresh one."
-          fi
+          docker run --rm \
+            -v "${{ env.PLL_VOLUME }}:/data:ro" \
+            -v "${{ github.workspace }}/data:/out" \
+            alpine:latest \
+            cp /data/lacrosse.db /out/lacrosse.db
+          echo "Copied DB: $(du -h ${{ env.DB_LOCAL_PATH }})"
 
       - name: Snapshot pre-ingest anomaly count
         id: pre
@@ -238,43 +209,17 @@ jobs:
           pnpm --filter @pll/ingest exec tsx src/scripts/checkDataQuality.ts --db="${{ env.DB_LOCAL_PATH }}"
           echo "::endgroup::"
 
-      - name: Upload updated DB to Azure Files
-        # Skip upload if corrections or data quality check hard-failed to avoid
-        # pushing a potentially corrupt DB to production.
-        # Use .conclusion (not .outcome) so that continue-on-error:true steps that
-        # fail don't block the upload. .outcome reflects the raw exit code; .conclusion
-        # reflects the continue-on-error-adjusted result (failure → success when
-        # continue-on-error:true). checkDataQuality exits 1 for any advisory warning,
-        # which was causing the upload to be silently skipped on every run.
+      - name: Copy updated DB into Mini volume and restart
         if: steps.apply_corrections.conclusion != 'failure' && steps.data_quality.conclusion != 'failure'
-        env:
-          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
         run: |
-          az storage file upload \
-            --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
-            --share-name   "${{ env.AZ_FILE_SHARE }}" \
-            --source "${{ env.DB_LOCAL_PATH }}" \
-            --path "${{ env.DB_REMOTE_NAME }}"
-
-      - name: Restart Container App revision
-        if: steps.azure_login.outcome == 'success'
-        # Non-fatal: ACA restart is best-effort after DB upload; if the revision
-        # restart fails the container will still pick up the new DB on next request.
-        continue-on-error: true
-        run: |
-          REV=$(az containerapp revision list \
-            --name "${{ secrets.ACA_NAME }}" \
-            --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}" \
-            --query "[?properties.active].name | [0]" -o tsv)
-          if [ -n "$REV" ]; then
-            az containerapp revision restart \
-              --name "${{ secrets.ACA_NAME }}" \
-              --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}" \
-              --revision "$REV"
-            echo "Restarted revision: $REV"
-          else
-            echo "::warning::No active revision found to restart."
-          fi
+          docker stop pll-server
+          docker run --rm \
+            -v "${{ env.PLL_VOLUME }}:/data" \
+            -v "${{ github.workspace }}/data:/in" \
+            alpine:latest \
+            sh -c 'cp /in/lacrosse.db /data/lacrosse.db && chown 100:101 /data/lacrosse.db && chmod 664 /data /data/lacrosse.db'
+          docker start pll-server
+          echo "Wrote volume ${{ env.PLL_VOLUME }} and restarted pll-server"
 
       - name: Post anomaly delta to Discord
         if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
@@ -287,7 +232,3 @@ jobs:
           curl -fsS -H "Content-Type: application/json" \
             -d "{\"content\":\":lacrosse: nightly ingest done — anomalies ${PRE} → ${POST} (Δ ${DELTA})\"}" \
             "$DISCORD_WEBHOOK_URL" || echo "Discord post failed (non-fatal)"
-
-      - name: Azure logout
-        if: always()
-        run: az logout

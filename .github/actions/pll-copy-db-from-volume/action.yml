@@ -1,0 +1,16 @@
+name: Copy Philly SQLite from Mini volume
+description: Copy lacrosse.db from pll-lax_pll-data into workspace data/
+
+runs:
+  using: composite
+  steps:
+    - name: Copy DB from volume
+      shell: bash
+      run: |
+        mkdir -p data
+        docker run --rm \
+          -v pll-lax_pll-data:/data:ro \
+          -v "${{ github.workspace }}/data:/out" \
+          alpine:latest \
+          cp /data/lacrosse.db /out/lacrosse.db
+        echo "Copied DB: $(du -h data/lacrosse.db)"
