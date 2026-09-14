@@ -39,8 +39,7 @@ pnpm dev                # server :3001 + web :5173
 pnpm crawl              # RSS → data/raw-cache/
 pnpm ingest             # parse → data/lacrosse.db
 
-# Azure sync (after local DB changes)
-pnpm db:upload          # push to Azure File Share
+# Production sync (after local DB changes) — copy into Mini volume, see docs/deployment-mini.md
 
 # Test & build
 pnpm typecheck
@@ -48,7 +47,7 @@ pnpm test
 pnpm build
 ```
 
-**Important:** After running any local-only script (workbook imports, dedup, manual corrections), you must run `pnpm db:upload` to make changes visible on the live site. The nightly CI workflow syncs automatically, but ad-hoc local imports require this manual step.
+**Important:** After running any local-only script (workbook imports, dedup, manual corrections), copy the SQLite file into Mini volume `pll-lax_pll-data`. See [deployment-mini.md](./deployment-mini.md). The nightly CI workflow syncs automatically, but ad-hoc local imports do not.
 
 ---
 
@@ -87,8 +86,8 @@ cp data/lacrosse.db data/lacrosse.db.bak-<context>
 5. **Don't read `.env` files** (project policy).
 6. **Stay in your lane.** Lane assignments are in the current wave plan in `docs/`.
 7. **Logo files are `.gif` not `.png`.** MaxPreps serves .gif logos. Storing as `.png` will break display.
-8. **After any local-only DB mutation, run `pnpm db:upload`.** The live site reads from the Azure-hosted DB. If you run a script that writes to `data/lacrosse.db` (workbook imports, dedup, manual corrections, migrations), you **must** sync to Azure with `pnpm db:upload` or the changes will not appear on the live site. The nightly CI handles RSS-sourced data automatically, but ad-hoc local scripts do not sync themselves.
-9. **Azure mutations require the `AZURE_CREDENTIALS` service principal** via the `update-azure-config.yml` workflow. Local `az` CLI (`dvoyles@microsoft.com`) lacks Container App write permissions.
+8. **After any local-only DB mutation, copy SQLite onto Mini.** The live site reads volume `pll-lax_pll-data`. See [deployment-mini.md](./deployment-mini.md). The nightly CI handles RSS-sourced data automatically.
+9. **Production env lives in Mini `~/docker-stack/secrets/pll.env`.** Do not dispatch `update-azure-config.yml` (retired).
 
 ---
 
@@ -139,11 +138,11 @@ cp data/lacrosse.db data/lacrosse.db.bak-<context>
 `adminCorrections.ts`, `adminHudl.ts`, `coachDashboard.ts`, `coachUpload.ts`, `commitments.ts`, `compare.ts`, `constellation.ts`, `dashboard.ts`, `dataQuality.ts`, `gameDetail.ts`, `h2h.ts`, `leaders.ts`, `pbla.ts`, `pblaData.ts`, `pblaTeam.ts`, `playerCompare.ts`, `playerDetail.ts`, `ratings.ts`, `sources.ts`, `status.ts`, `teamDetail.ts`, `topTeams.ts`
 
 **Key CI workflows** (all under `.github/workflows/`):
-- `ingest-nightly.yml` — crawl + parse + ingest + applyCorrections + restart ACA
-- `deploy.yml` — build server image (includes web bundle), push to GHCR, deploy to ACA (triggered on push to main)
+- `ingest-nightly.yml` — crawl + parse + ingest + applyCorrections + write Mini volume
+- `deploy.yml` — `workflow_dispatch` rebuild of Mini compose
 - `sync-logos.yml` — weekly Sunday logo sync from MaxPreps
-- `sync-pbla.yml` — Tue/Thu 6AM ET: scrape PBLA data from Sportability, upload DB, trigger Pages rebuild
-- `update-azure-config.yml` — ops tool: updates CORS_ORIGINS / env vars on Azure Container App
+- `sync-pbla.yml` — Tue/Thu 6AM ET: scrape PBLA data from Sportability, write Mini volume
+- `update-azure-config.yml` — retired; CORS is Mini `pll.env`
 
 ---
 
@@ -221,7 +220,7 @@ These are pitfalls that have bitten agents and contributors multiple times:
 
 | Mistake | Why it fails | Correct approach |
 |---------|-------------|-----------------|
-| Import data locally without `pnpm db:upload` | Azure DB (used by live site) still has old data | Always run `pnpm db:upload` after any local DB mutation |
+| Import data locally without copying the DB onto Mini | Live volume still has old data | Copy SQLite into `pll-lax_pll-data` ([deployment-mini.md](./deployment-mini.md)) |
 | Store logo files as `.png` | MaxPreps serves `.gif`; mismatch breaks display | Use `.gif` extension for all logo files |
 | Use unicode characters in HTTP-bound strings | Em-dashes, smart quotes break undici headers | Use ASCII-only: `-` not `—`, `'` not curly quotes |
 | Open the DB writably during another agent's wave | SQLite WAL conflicts can corrupt data | Use read-only `sqlite3` queries when another agent is active |

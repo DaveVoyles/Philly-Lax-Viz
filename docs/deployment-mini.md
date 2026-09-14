@@ -16,6 +16,22 @@ Proof origin: `https://pll.davevoyles.synology.me`.
 
 `ingest-nightly.yml` on the `pll` Mini runner copies the volume to the workspace, crawls/ingests, copies the DB back, and `docker start pll-server`. Hudl secrets stay in GitHub. Azure Files is not on this path.
 
+## Copy a local DB onto production
+
+`pnpm db:upload` is retired. On Mini, from a tree that has `data/lacrosse.db`:
+
+```bash
+docker stop pll-server
+docker run --rm \
+  -v pll-lax_pll-data:/data \
+  -v "$PWD/data":/in \
+  alpine:latest \
+  sh -c 'cp /in/lacrosse.db /data/lacrosse.db && chown 100:101 /data/lacrosse.db && chmod 664 /data /data/lacrosse.db'
+docker start pll-server
+```
+
+Confirm with `curl -sS https://phillylaxstats.com/api/health`.
+
 ## Deploy
 
 `deploy.yml` is `workflow_dispatch` only. It rebuilds the Mini compose stack. Do not push linux/amd64 images for Azure.

@@ -278,8 +278,8 @@ pnpm --filter @pll/ingest exec tsx src/scripts/syncPblaVideos.ts --dry-run
 2. `pnpm ingest` — parse → DB
 3. `syncPiaa.ts` — PIAA rankings → DB
 4. `applyCorrections.ts` — auto-approve non-outliers
-5. `pnpm db:upload` — push to Azure File Share
-6. Restart Azure Container App
+5. Copy DB into Mini volume `pll-lax_pll-data`
+6. Restart `pll-server`
 
 **NOT in nightly:**
 - Logo sync (weekly via `sync-logos.yml`)
@@ -309,7 +309,7 @@ pnpm --filter @pll/ingest exec tsx src/scripts/seedAliasesFromAnomalies.ts
 
 ### Stale Data
 **Problem:** Live site doesn't reflect recent changes  
-**Solution:** Ensure `pnpm db:upload` was run after local mutations  
+**Solution:** Copy SQLite into Mini volume `pll-lax_pll-data` ([deployment-mini.md](../deployment-mini.md))  
 **Check:** `GET /api/freshness` shows last sync timestamp per source
 
 ### Missing Player Stats

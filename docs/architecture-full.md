@@ -55,20 +55,20 @@ External Sources
        ▼
   data/lacrosse.db (SQLite, user_version=25)
 
-       │ ingest-nightly.yml (GitHub Actions, self-hosted runner)
+       │ ingest-nightly.yml (GitHub Actions, Mini pll runner)
        ▼
-  Azure File Share  ←→  Fastify API server (Azure Container App)
+  Mini volume pll-lax_pll-data  ←→  Fastify API (pll-server)
                               │ /api/* endpoints
-       │ deploy.yml (push to main)
+       │ deploy.yml (workflow_dispatch)
        ▼
-  Azure Static Web App (phillylaxstats.com)
+  https://phillylaxstats.com (SPA + API, Synology TLS)
 ```
 
 **Deployment architecture:**
 
 | Component | URL | Role |
 |-----------|-----|------|
-| Web + API (ACA) | https://phillylaxstats.com | Vite SPA + Fastify API in one container, min-replicas=1 |
+| Web + API (Mini) | https://phillylaxstats.com | Vite SPA + Fastify API in one container |
 
 The web client calls the API directly — there is no static JSON export layer.
 
@@ -307,24 +307,20 @@ This is additive — it supplements phillylacrosse.com data, not replaces it.
 
 1. Checkout repo
 2. Setup pnpm + Node 20 with cache
-3. Install Azure CLI (if missing)
-4. `pnpm install --frozen-lockfile`
-5. Azure login (service principal — `continue-on-error: true` due to expired credentials)
-6. **Download `lacrosse.db` from Azure File Share** (or warn if missing)
-7. Snapshot pre-ingest anomaly count from `anomalies` table
-8. **Crawl `hs-summaries`** — `pnpm --filter @pll/ingest crawl --category=hs-summaries`
-9. **Sync PIAA schedule** — `pnpm --filter @pll/ingest exec tsx src/scripts/syncPiaa.ts`
-10. **Ingest** — `pnpm --filter @pll/ingest ingest --db=<abs-path> --category=hs-summaries,scoreboard`
-11. **LaxNumbers additive ingest** — `--source=laxnumbers --since=... --until=...`
-12. Snapshot post-ingest anomaly count
-13. Seed team aliases from anomalies
-14. Apply community corrections (`applyCorrections.ts`) with `continue-on-error: true`
-15. **Upload updated `lacrosse.db` to Azure File Share**
-16. Restart Azure Container App revision (conditional on Azure login success)
-17. Post anomaly delta to Discord (if webhook configured)
-18. Azure logout
+3. `pnpm install --frozen-lockfile`
+4. **Copy `lacrosse.db` from Mini volume `pll-lax_pll-data`**
+5. Snapshot pre-ingest anomaly count from `anomalies` table
+6. **Crawl `hs-summaries`** — `pnpm --filter @pll/ingest crawl --category=hs-summaries`
+7. **Sync PIAA schedule** — `pnpm --filter @pll/ingest exec tsx src/scripts/syncPiaa.ts`
+8. **Ingest** — `pnpm --filter @pll/ingest ingest --db=<abs-path> --category=hs-summaries,scoreboard`
+9. **LaxNumbers additive ingest** — `--source=laxnumbers --since=... --until=...`
+10. Snapshot post-ingest anomaly count
+11. Seed team aliases from anomalies
+12. Apply community corrections (`applyCorrections.ts`) with `continue-on-error: true`
+13. **Copy updated `lacrosse.db` into Mini volume and restart `pll-server`**
+14. Post anomaly delta to Discord (if webhook configured)
 
-**Raw cache persistence:** `data/raw-cache/` lives on the self-hosted runner between runs. It is NOT downloaded from Azure each night — only the DB is. This means re-running on a fresh runner would start with an empty cache and would re-crawl everything.
+**Raw cache persistence:** `data/raw-cache/` lives on the self-hosted runner between runs. Only the SQLite volume is the live site. A fresh runner starts with an empty cache and re-crawls.
 
 ---
 
@@ -406,10 +402,7 @@ This is additive — it supplements phillylacrosse.com data, not replaces it.
 
 ## 10. Deployment
 
-The site is deployed via a **single Azure Container App** (`pll-server`, `min-replicas=1`). The `deploy.yml` workflow:
-1. Builds the monorepo (typecheck + tests)
-2. Builds the Docker image — includes Vite SPA build (`pnpm --filter @pll/web build`) and bakes `packages/web/dist` into the image
-3. Pushes to GHCR and deploys to ACA via `azure/container-apps-deploy-action`
+The site is deployed via **Mini Docker** (`pll-server`, host 8907) plus Synology TLS. `deploy.yml` is `workflow_dispatch` only and rebuilds compose on Mini. See [deployment-mini.md](./deployment-mini.md).
 
 All views call the Fastify API on the same origin. The Fastify server serves:
 - `/api/*` — API routes
@@ -418,7 +411,6 @@ All views call the Fastify API on the same origin. The Fastify server serves:
 
 - **Production URL:** `https://phillylaxstats.com/`
 - **API backend:** same origin — `https://phillylaxstats.com/api/*`
-- **ACA FQDN:** `pll-server.proudwave-03a07ae1.eastus.azurecontainerapps.io`
 
 SPA routing is handled by `app.ts` `setNotFoundHandler` (returns `index.html` for non-API, non-logos paths).
 
@@ -428,11 +420,11 @@ SPA routing is handled by `app.ts` `setNotFoundHandler` (returns `index.html` fo
 
 ### ADR-001: SQLite as the primary database
 **Decision:** Use SQLite (via `better-sqlite3`) rather than a hosted database.  
-**Why:** The entire dataset is small enough to fit in one file (<50MB), the ingest pipeline runs on a single machine (Mac Mini self-hosted runner), and SQLite requires no separate server process. The DB file is uploaded to Azure File Share and downloaded at the start of each nightly run — effectively using Azure as a persistence layer.  
+**Why:** The entire dataset is small enough to fit in one file (<50MB), the ingest pipeline runs on a single machine (Mac Mini self-hosted runner), and SQLite requires no separate server process. The live file is Docker volume `pll-lax_pll-data`; NAS holds nightly tarballs.  
 **Trade-off:** Concurrent writes are not supported. The pipeline is designed to be single-writer. Read-heavy API queries are fine.
 
 ### ADR-002: Single container serving SPA + API (2026-06-24)
-**Decision:** Azure Container App (`pll-server`, `min-replicas=1`) serves both the Vite SPA and the Fastify API from `https://phillylaxstats.com`.  
+**Decision:** Mini Docker (`pll-server`) serves both the Vite SPA and the Fastify API from `https://phillylaxstats.com`. Azure Container Apps retired 2026-09-14.  
 **Why:** The previous two-service split (Azure SWA + ACA scale-to-zero) produced 15-20 second cold starts because GitHub Actions scheduler jitter made keep-warm pings unreliable. With `min-replicas=1` required anyway, consolidation costs the same (~$5-8/mo) but removes SWA tooling, cross-origin proxy rewrites, and a second CI deploy job.  
 **Trade-off:** No CDN for static assets (negligible for a Philadelphia-metro audience; assets served with `Cache-Control: immutable`).
 
@@ -455,7 +447,7 @@ SPA routing is handled by `app.ts` `setNotFoundHandler` (returns `index.html` fo
 **Trade-off:** Consumers of the raw DB must know to prepend the prefix.
 
 ### ADR-007: Raw cache lives on the runner, not in Azure
-**Decision:** `data/raw-cache/` is NOT uploaded to Azure File Share. It persists on the self-hosted runner between runs.  
+**Decision:** `data/raw-cache/` is NOT copied into the SQLite volume. It persists on the self-hosted runner between runs.  
 **Why:** The raw cache can be large (many HTML files) and uploading/downloading it on every run would significantly increase pipeline time. The runner machine (Mac Mini) is stable and always available.  
 **Trade-off:** If the runner is wiped or replaced, the raw cache is lost. A fresh run will re-crawl everything, which is expensive but correct.
 
@@ -500,13 +492,11 @@ When the 2027 season begins, update:
 
 ### CORS configuration
 
-The Azure Container App (`pll-server`) serves the frontend and API from the same origin (`https://phillylaxstats.com`), so CORS is only needed for local development. The `CORS_ORIGINS` environment variable defaults to `http://localhost:5173` for dev. No changes are needed for production correction POSTs.
+The Mini container (`pll-server`) serves the frontend and API from the same origin (`https://phillylaxstats.com`), so CORS is only needed for local development. The `CORS_ORIGINS` environment variable on Mini includes the public origin plus `http://localhost:5173`. No split hostname is needed for production correction POSTs.
 
 ### Required GitHub Actions secret
 
-Add `VITE_API_URL` as a GitHub Actions secret (Settings -> Secrets -> Actions):
-- Value: the Azure Container Apps URL for the server (for example, `https://pll-server.<hash>.azurecontainerapps.io`)
-- This is used at build time so the SPA knows where to send API requests
+Hudl credentials stay in GitHub Actions secrets. Do not set a `VITE_API_URL` pointing at Azure Container Apps. Production is same-origin `https://phillylaxstats.com`.
 
 ### Correction lifecycle
 

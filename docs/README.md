@@ -79,22 +79,22 @@ External Sources
          v
   data/lacrosse.db  (SQLite, 4 packages as monorepo)
 
-         | ingest-nightly.yml (GitHub Actions)
+         | ingest-nightly.yml (GitHub Actions, Mini pll runner)
          v
-  Azure File Share          live DB storage
+  Mini volume pll-lax_pll-data     live SQLite
 
-         | deploy.yml (push to main)
+         | deploy.yml (workflow_dispatch)
          v
-  Azure Container App       phillylaxstats.com (Fastify serves SPA + API)
+  Mini Docker pll-server           phillylaxstats.com (Fastify serves SPA + API)
 ```
 
-Single deployment target — Azure Container App hosts both web client and API:
+Single deployment target — Mini Docker hosts both web client and API:
 
 | Component | URL | Data source |
 |-----------|-----|-------------|
-| Web + API | `https://phillylaxstats.com` | SQLite on Azure File Share |
+| Web + API | `https://phillylaxstats.com` | SQLite volume `pll-lax_pll-data` |
 
-**After local-only data changes** (workbook imports, manual corrections, dedup): run `pnpm db:upload` to sync the local DB to Azure File Share. The nightly CI handles this automatically for RSS-sourced data, but ad-hoc local scripts require this manual sync step.
+**After local-only data changes** (workbook imports, manual corrections, dedup): copy `data/lacrosse.db` into the Mini volume. See [deployment-mini.md](./deployment-mini.md). Nightly CI handles RSS-sourced data.
 
 ---
 

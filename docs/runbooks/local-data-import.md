@@ -25,8 +25,7 @@ pnpm --filter @pll/ingest exec tsx src/scripts/applyHarritonWorkbook.ts \
 # 3. Verify locally
 sqlite3 data/lacrosse.db ".mode column" "SELECT name, SUM(goals) FROM players p JOIN player_stats ps ON ps.player_id = p.id WHERE p.team_id = 80 GROUP BY p.id ORDER BY 2 DESC LIMIT 5"
 
-# 4. Sync to Azure
-pnpm db:upload
+# 4. Sync to Mini production volume (see docs/deployment-mini.md)
 ```
 
 ---
@@ -50,7 +49,7 @@ All scripts live in `packages/ingest/src/scripts/`.
 After running any import:
 
 - [ ] Query the local DB to confirm data looks correct
-- [ ] Run `pnpm db:upload` (uploads to Azure File Share)
+- [ ] Copy SQLite into Mini volume `pll-lax_pll-data` ([deployment-mini.md](../deployment-mini.md))
 - [ ] Spot-check the live site: `curl -s "https://phillylaxstats.com/api/teams" | python3 -m json.tool | head -30`
 
 ---
@@ -59,7 +58,7 @@ After running any import:
 
 | Mistake | Consequence | Prevention |
 |---------|-------------|------------|
-| Forgot `pnpm db:upload` | Data only in local DB, not on live site | Always run after any local DB write |
+| Forgot to copy the DB onto Mini | Data only in local DB, not on live site | Copy into `pll-lax_pll-data` after any local DB write |
 | Ran with `--dry-run` only | Nothing was written | Remove `--dry-run` flag for real import |
 | Didn't back up first | Can't undo bad import | Always `cp` before destructive scripts |
 | Ran against test DB | Changes in wrong file | Ensure `--db=data/lacrosse.db` not `.test.db` |

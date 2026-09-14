@@ -13,7 +13,7 @@
 **Deployed:** Mini Docker + Synology TLS (single container). Azure Container Apps retired 2026-09-14.
 
 > ❌ **GitHub Pages is NOT used. Azure Static Web Apps is NOT used.**  
-> Do not suggest, configure, or reference either. All static assets are served directly by the Fastify container on Azure Container Apps.
+> Do not suggest, configure, or reference either. All static assets are served by the Fastify container on Mini.
 
 ---
 
@@ -48,8 +48,8 @@ pnpm ingest             # parse → data/lacrosse.db
 pnpm pbla:check         # diff live vs. snapshot
 pnpm --filter @pll/ingest exec tsx src/scripts/patchPblaStats.ts
 
-# Azure sync (after local DB changes)
-pnpm db:upload          # push to Azure File Share
+# Production sync (after local DB changes, on Mini)
+# copy data/lacrosse.db into volume pll-lax_pll-data — see docs/deployment-mini.md
 
 # Test & build
 pnpm typecheck
@@ -95,7 +95,7 @@ pnpm build
 
 1. **ASCII-only in HTTP-bound text** — em-dash `—` breaks undici; use `-`
 2. **No `pkill`/`killall`** — use `kill <PID>` or `lsof -ti:PORT | xargs kill`
-3. **After local DB changes:** run `pnpm db:upload` to sync to Azure
+3. **After local DB changes:** copy SQLite into Mini volume `pll-lax_pll-data` ([deployment-mini.md](./deployment-mini.md))
 4. **Logo files are `.gif`** not `.png` (MaxPreps serves .gif)
 5. **Never read `.env` files** (project policy)
 6. **CI shell scripts: no `${VAR,,}` bash 4 syntax** — self-hosted runner is macOS with Bash 3.2; use `$(echo "$VAR" | tr '[:upper:]' '[:lower:]')` instead

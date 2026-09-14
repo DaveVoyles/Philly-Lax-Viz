@@ -30,8 +30,8 @@ Agents should understand what they can do autonomously and what requires human a
 |---|---|---|
 | **NameCheap DNS** | NameCheap API (`namecheap.domains.dns.*`) | Requires `NAMECHEAP_API_KEY`, `NAMECHEAP_API_USER`, and IP whitelisting. Agent can set A/CNAME/TXT records programmatically. |
 | **Hudl login + scrape** | Playwright via `syncHudl.ts` | Already built. Agent runs `--headed` for first-time selector discovery, then `--dry-run` to validate before writing. |
-| **Azure Container App config** | `update-azure-config.yml` GitHub Actions workflow | Agent dispatches workflow via `gh workflow run`. No direct `az` CLI write access from local machine. |
-| **DB upload to Azure** | `pnpm db:upload` (wraps `scripts/db-upload.sh`) | Requires `az` CLI auth. Uploads local DB to Azure File Share. |
+| **Mini production env** | `~/docker-stack/secrets/pll.env` + `docker compose up -d` | CORS and `DB_PATH`. Do not use `update-azure-config.yml`. |
+| **DB onto Mini** | copy `lacrosse.db` into volume `pll-lax_pll-data` | See [deployment-mini.md](./deployment-mini.md). `pnpm db:upload` is retired. |
 | **Spreadsheet parsing** | `applyHarritonWorkbook.ts` patterns | Agent can read `.xlsx` files, parse sheets, map columns, write to DB. |
 | **YouTube API polling** | YouTube Data API v3 (`search.list` with `eventType=live`) | Requires `YOUTUBE_API_KEY`. Can check if a channel is live. |
 | **CI workflow dispatch** | `gh workflow run <workflow>.yml` | Any workflow with `workflow_dispatch` trigger. |
@@ -63,9 +63,9 @@ Agents should understand what they can do autonomously and what requires human a
 
 ## Wave 1 — Domain & Hosting Transition
 
-**Goal:** Route `PhillyLaxStats.com` to the Azure Container App and update all references.
+**Goal:** Public `PhillyLaxStats.com` on Mini Docker + Synology TLS (done 2026-09-14). Azure Container Apps retired.
 
-**Status:** Domain purchased from NameCheap (2026-05-19). Ready for DNS configuration.
+**Status:** DONE. Apex A → house WAN. www CNAME → `davevoyles.synology.me`.
 
 **Automation level:** ~80% automatable. DNS records can be set via NameCheap API once credentials are provided.
 
