@@ -10,7 +10,7 @@ Proof origin: `https://pll.davevoyles.synology.me`.
 - Compose: `~/docker-stack/philly-lax-viz/docker-compose.yml`
 - Secrets: `~/docker-stack/secrets/pll.env` (gitignored)
 - Volume: `pll-lax_pll-data` — do not delete
-- Backup: `~/docker-stack/scripts/backup-pll-sqlite.sh` → NAS `NetBackup/mac-mini-backups/philly-lax-viz`
+- Backup: `~/docker-stack/scripts/backup-pll-sqlite.sh` → NAS `NetBackup/mac-mini-backups/philly-lax-viz`. Nightly GHA `snapshot-db-nightly.yml` and Mini launchd `com.docker-stack.backup-pll-sqlite` both call that script.
 
 ## Nightly ingest
 

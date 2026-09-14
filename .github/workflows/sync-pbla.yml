@@ -14,15 +14,12 @@ on:
 
 permissions:
   contents: write
-  id-token: write
   actions: write
 
 env:
   NODE_VERSION: '22'
   PNPM_VERSION: '10.33.1'
   DB_LOCAL_PATH: ${{ github.workspace }}/data/lacrosse.db
-  DB_REMOTE_NAME: lacrosse.db
-  AZ_FILE_SHARE: pll-data
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 concurrency:
@@ -31,7 +28,7 @@ concurrency:
 
 jobs:
   sync:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, pll]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -47,21 +44,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Azure login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Download DB from Azure Files
-        env:
-          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
-        run: |
-          az storage file download \
-            --share-name "$AZ_FILE_SHARE" \
-            --path "$DB_REMOTE_NAME" \
-            --dest "$DB_LOCAL_PATH" \
-            --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
-            --output none
+      - uses: ./.github/actions/pll-copy-db-from-volume
 
       - name: Sync PBLA data
         env:
@@ -73,37 +56,8 @@ jobs:
           fi
           pnpm --filter @pll/ingest exec tsx src/scripts/syncPbla.ts $FLAGS
 
-      - name: Upload DB to Azure Files
+      - uses: ./.github/actions/pll-copy-db-to-volume
         if: inputs.dry_run != 'true'
-        env:
-          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
-        run: |
-          az storage file upload \
-            --share-name "$AZ_FILE_SHARE" \
-            --source "$DB_LOCAL_PATH" \
-            --path "$DB_REMOTE_NAME" \
-            --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
-            --output none
-
-      - name: Restart Container App revision
-        if: inputs.dry_run != 'true'
-        # Non-fatal: ACA restart is best-effort after DB upload; if the revision
-        # restart fails the container will still pick up the new DB on next cold start.
-        continue-on-error: true
-        run: |
-          REV=$(az containerapp revision list \
-            --name "${{ secrets.ACA_NAME }}" \
-            --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}" \
-            --query "[?properties.active].name | [0]" -o tsv)
-          if [ -n "$REV" ]; then
-            az containerapp revision restart \
-              --name "${{ secrets.ACA_NAME }}" \
-              --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}" \
-              --revision "$REV"
-            echo "Restarted revision: $REV"
-          else
-            echo "::warning::No active revision found to restart."
-          fi
 
       - name: Check PBLA schedule for new results
         if: inputs.dry_run != 'true'
