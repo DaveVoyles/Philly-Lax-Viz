@@ -26,7 +26,7 @@ docker run --rm \
   -v pll-lax_pll-data:/data \
   -v "$PWD/data":/in \
   alpine:latest \
-  sh -c 'cp /in/lacrosse.db /data/lacrosse.db && chown 100:101 /data/lacrosse.db && chmod 664 /data /data/lacrosse.db'
+  sh -c 'cp /in/lacrosse.db /data/lacrosse.db && chown 100:101 /data/lacrosse.db && chmod 755 /data && chmod 664 /data/lacrosse.db && test -x /data || { echo "FATAL: /data not traversable after chmod" >&2; exit 1; }'
 docker start pll-server
 ```
 
