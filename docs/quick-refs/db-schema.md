@@ -389,7 +389,7 @@ manual_uploads
 1. **Logo URLs:** `teams.logo_url` stores ONLY the bare filename (e.g., `harriton.gif`). The server prefixes `/logos/` when emitting to clients.
 2. **Backups:** Before destructive scripts, run `cp data/lacrosse.db data/lacrosse.db.bak-<context>`.
 3. **Read-only queries:** When another agent is mid-wave, use `sqlite3 data/lacrosse.db ".mode column" "SELECT ..."` for read-only checks. Don't open writably.
-4. **After local mutations:** Run `pnpm db:upload` to sync to Azure File Share. The live site reads from Azure, not local.
+4. **After local mutations:** Copy SQLite into Mini volume `pll-lax_pll-data`. See [deployment-mini.md](../deployment-mini.md).
 
 ---
 
