@@ -1,0 +1,41 @@
+# CodeRabbit AI review config — https://docs.coderabbit.ai/guides/configure-coderabbit
+# Tuned for low noise. Raise `profile` to "assertive" only if reviews feel too thin.
+language: en-US
+early_access: false
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: false
+  collapse_walkthrough: true
+
+  in_progress_fortune: false   # no "fortune cookie" filler comment while it works
+  sequence_diagrams: true      # diagrams in the walkthrough
+  slop_detection:
+    enabled: true              # flags low-effort / AI-slop PRs (free on public repos)
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+
+  # Vendored deps, lockfiles, worktrees and data snapshots are not hand-written code.
+  path_filters:
+    - "!node_modules/**"
+    - "!pnpm-lock.yaml"
+    - "!.worktrees/**"
+    - "!data/**"
+    - "!fixtures/**"
+    - "!**/dist/**"
+    - "!**/*.min.js"
+    - "!**/*.min.css"
+
+  tools:
+    github-checks:
+      enabled: true
+
+chat:
+  auto_reply: true
