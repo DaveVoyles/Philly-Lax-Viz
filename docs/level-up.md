@@ -30,7 +30,7 @@ Agents should understand what they can do autonomously and what requires human a
 |---|---|---|
 | **NameCheap DNS** | NameCheap API (`namecheap.domains.dns.*`) | Requires `NAMECHEAP_API_KEY`, `NAMECHEAP_API_USER`, and IP whitelisting. Agent can set A/CNAME/TXT records programmatically. |
 | **Hudl login + scrape** | Playwright via `syncHudl.ts` | Already built. Agent runs `--headed` for first-time selector discovery, then `--dry-run` to validate before writing. |
-| **Mini production env** | `~/docker-stack/secrets/pll.env` + `docker compose up -d` | CORS and `DB_PATH`. Do not use `update-azure-config.yml`. |
+| **Mini production env** | `~/docker-stack/secrets/pll.env` + `docker compose up -d` | CORS and `DB_PATH`. The old `update-azure-config.yml` workflow was deleted. |
 | **DB onto Mini** | copy `lacrosse.db` into volume `pll-lax_pll-data` | See [deployment-mini.md](./deployment-mini.md). `pnpm db:upload` is retired. |
 | **Spreadsheet parsing** | `applyHarritonWorkbook.ts` patterns | Agent can read `.xlsx` files, parse sheets, map columns, write to DB. |
 | **YouTube API polling** | YouTube Data API v3 (`search.list` with `eventType=live`) | Requires `YOUTUBE_API_KEY`. Can check if a channel is live. |
@@ -72,7 +72,7 @@ Agents should understand what they can do autonomously and what requires human a
 | Lane | Task | Size | Automatable? | Notes |
 |------|------|------|---|-------|
 | 1 | Create `scripts/dns-setup.sh` using NameCheap API | S | Yes | Sets A record to Azure Container App IP, TXT for domain verification |
-| 2 | Enable managed TLS certificate on Azure Container App | XS | Yes (workflow) | Dispatch `update-azure-config.yml` with custom domain binding |
+| 2 | Enable managed TLS certificate on Azure Container App | XS | Yes (workflow) | Obsolete: ACA is retired and the workflow is deleted; TLS is handled on the Mini |
 | 3 | Update `CORS_ORIGINS` env var to include new domain | XS | Yes (workflow) | Add `https://phillylaxstats.com` to allowed origins |
 | 4 | Update `VITE_API_URL` in web build config for production | XS | Yes | Change env in GitHub Actions for Pages build |
 | 5 | Update all docs to reflect new domain | S | Yes | `grep -r 'proudwave' . \| grep -v node_modules` then search-and-replace |

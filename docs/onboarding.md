@@ -87,7 +87,7 @@ cp data/lacrosse.db data/lacrosse.db.bak-<context>
 6. **Stay in your lane.** Lane assignments are in the current wave plan in `docs/`.
 7. **Logo files are `.gif` not `.png`.** MaxPreps serves .gif logos. Storing as `.png` will break display.
 8. **After any local-only DB mutation, copy SQLite onto Mini.** The live site reads volume `pll-lax_pll-data`. See [deployment-mini.md](./deployment-mini.md). The nightly CI handles RSS-sourced data automatically.
-9. **Production env lives in Mini `~/docker-stack/secrets/pll.env`.** Do not dispatch `update-azure-config.yml` (retired).
+9. **Production env lives in Mini `~/docker-stack/secrets/pll.env`.** The old `update-azure-config.yml` workflow is deleted; do not look for it.
 
 ---
 
@@ -142,7 +142,6 @@ cp data/lacrosse.db data/lacrosse.db.bak-<context>
 - `deploy.yml` — `workflow_dispatch` rebuild of Mini compose
 - `sync-logos.yml` — weekly Sunday logo sync from MaxPreps
 - `sync-pbla.yml` — Tue/Thu 6AM ET: scrape PBLA data from Sportability, write Mini volume
-- `update-azure-config.yml` — retired; CORS is Mini `pll.env`
 
 ---
 
